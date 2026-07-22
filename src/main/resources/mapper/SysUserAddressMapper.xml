@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.homemaking.mapper.SysUserAddressMapper">
+
+    <update id="updateAddress">
+        update sys_user_address
+        <set>
+            <if test="label != null">
+                label = #{label},
+            </if>
+            <if test="consigneeName != null">
+                consignee_name = #{consigneeName},
+            </if>
+            <if test="consigneePhone != null">
+                consignee_phone = #{consigneePhone},
+            </if>
+            <if test="province != null">
+                province = #{province},
+            </if>
+            <if test="updateTime !=null">
+                update_time = #{updateTime},
+            </if>
+            <if test="city != null">
+                city = #{city},
+            </if>
+            <if test="district != null">
+                district = #{district},
+            </if>
+            <if test="detailAddress !=null">
+                detail_address = #{detailAddress},
+            </if>
+            <if test="isDefault != null">
+                is_default = #{isDefault},
+            </if>
+            <if test="isDeleted != null">
+                is_deleted = #{isDeleted},
+            </if>
+        </set>
+        where id = #{id}
+    </update>
+    <delete id="deleteAddress">
+        delete from sys_user_address where id = #{id}
+    </delete>
+</mapper>

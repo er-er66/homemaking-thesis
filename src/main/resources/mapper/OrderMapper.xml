@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.homemaking.mapper.OrderMapper">
+
+    <insert id="addOrder">
+        insert into homemaking_order(order_no, user_account, staff_account, service_item, service_address, service_time,
+                                     order_amount, order_status, pay_status, pay_password, create_time, update_time,
+                                     is_deleted)
+        values (#{orderNo}, #{userAccount}, #{staffAccount}, #{serviceItem}, #{serviceAddress}, #{serviceTime},
+                #{orderAmount}, #{orderStatus}, #{payStatus}, #{payPassword}, #{createTime}, #{updateTime},
+                #{isDeleted})
+
+    </insert>
+    <update id="takeOrder">
+    update homemaking_order
+        set staff_account = #{staffAccount}, order_status = #{orderStatus}
+        where id = #{orderId}
+    </update>
+    <update id="dispatchOrder">
+        update homemaking_order
+        set order_status = #{orderStatus},staff_account = #{staffAccount},update_time = #{updateTime}
+
+        where id = #{id}
+    </update>
+    <update id="rejectOrder">
+        update homemaking_order
+        set dispatch_status = #{dispatchStatus},dispatch_admin_account = #{dispatchAdminAccount},update_time = #{updateTime}
+        where id = #{id}
+    </update>
+    <select id="getAllOrder" resultType="com.example.homemaking.entity.Order">
+        select *
+        from homemaking_order
+        where is_deleted = 0
+    </select>
+    <select id="getOrders" resultType="com.example.homemaking.entity.Order">
+        select *
+        from homemaking_order
+        where is_deleted = 0
+        <if test="orderNo != null and orderNo != ''">
+            and order_no = #{orderNo}
+        </if>
+        <if test="orderStatus != null">
+            and order_status = #{orderStatus}
+        </if>
+    </select>
+    <select id="getOrderById" resultType="com.example.homemaking.entity.Order">
+        select *
+        from homemaking_order
+        where id = #{id}
+    </select>
+</mapper>

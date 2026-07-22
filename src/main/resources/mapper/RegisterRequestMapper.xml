@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.homemaking.mapper.RegisterRequestMapper">
+
+
+    <insert id="insertSys_User">
+        insert into sys_user(account,phone,password,username,gender,avatar,status,create_time,update_time,is_deleted)
+        values(#{account},#{phone},#{password},#{username},#{gender},#{avatar},#{status},#{createTime},#{updateTime},#{isDeleted})
+    </insert>
+    <insert id="insertSys_Staff">
+        insert into sys_staff(account,phone,password,username,gender,skills,avatar,status,create_time,update_time,is_deleted)
+        values(#{account},#{phone},#{password},#{username},#{gender},#{skills},#{avatar},#{status},#{createTime},#{updateTime},#{isDeleted})
+    </insert>
+
+</mapper>

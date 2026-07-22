@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.homemaking.mapper.AdminMapper">
+    <select id="getAdminById" resultType="com.example.homemaking.entity.SysAdmin">
+        select * from sys_admin where id = #{id}
+    </select>
+
+    <select id="searchAdmins" resultType="com.example.homemaking.entity.SysAdmin">
+        <![CDATA[
+        select * from sys_admin where 1=1
+        ]]>
+        <if test="name != null and name != ''">
+            <![CDATA[
+            and username like concat('%', #{name}, '%')
+            ]]>
+        </if>
+        <if test="phone != null and phone != ''">
+            <![CDATA[
+            and phone like concat('%', #{phone}, '%')
+            ]]>
+        </if>
+        <if test="startTime != null">
+            <![CDATA[
+            and create_time >= #{startTime}
+            ]]>
+        </if>
+        <if test="endTime != null">
+            <![CDATA[
+            and create_time <= #{endTime}
+            ]]>
+        </if>
+    </select>
+
+    <update id="toggleAdminStatus">
+        update sys_admin
+        set status = case when status = 1 then 0 else 1 end
+        where id = #{id}
+    </update>
+</mapper>

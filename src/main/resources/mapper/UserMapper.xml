@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.homemaking.mapper.UserMapper">
+    <update id="updateStatus" parameterType="java.lang.Long">
+        update sys_user
+        set status = case when status = 1 then 0 else 1 end
+        where id = #{id}
+    </update>
+    <update id="setUserStatus">
+        update sys_user
+        set status = case when status = 1 then 0 else 1 end
+        where id = #{id}
+    </update>
+    <update id="updateUserPassword" parameterType="com.example.homemaking.entity.SysUser">
+        update sys_user
+        set pay_password = #{payPassword}
+        where id = #{id}
+    </update>
+    <update id="updateUserPhone" parameterType="com.example.homemaking.entity.SysUser">
+        update sys_user
+        set phone = #{phone}
+        where id = #{id}
+    </update>
+    <update id="saveAddress">
+        insert into sys_user_address(user_account, target_id, label, consignee_name, consignee_phone, province, city,
+                                     district, detail_address, is_default, create_time, update_time, is_deleted)
+        values (#{userAccount}, #{targetId}, #{label}, #{consigneeName}, #{consigneePhone}, #{province}, #{city},
+                #{district}, #{detailAddress}, #{isDefault}, #{createTime}, #{updateTime}, #{isDeleted})
+    </update>
+
+    <select id="selectAll" resultType="com.example.homemaking.entity.SysUser">
+        select *
+        from sys_user
+    </select>
+    <select id="getUserById" resultType="com.example.homemaking.entity.SysUser">
+        select *
+        from sys_user
+        where id = #{id}
+    </select>
+    <select id="searchUsers" resultType="com.example.homemaking.entity.SysUser">
+        <![CDATA[
+        select * from sys_user where 1=1
+        ]]>
+        <if test="name != null and name != ''">
+            <![CDATA[
+            and username like concat('%', #{name}, '%')
+            ]]>
+        </if>
+        <if test="phone != null and phone != ''">
+            <![CDATA[
+            and phone like concat('%', #{phone}, '%')
+            ]]>
+        </if>
+        <if test="startTime != null">
+            <![CDATA[
+            and create_time >= #{startTime}
+            ]]>
+        </if>
+        <if test="endTime != null">
+            <![CDATA[
+            and create_time <= #{endTime}
+            ]]>
+        </if>
+    </select>
+    <select id="getUserByAccount" resultType="com.example.homemaking.entity.SysUser">
+        select *
+        from sys_user
+        where account = #{account}
+    </select>
+    <select id="getAddressList" resultType="com.example.homemaking.entity.UserAddress">
+        select *
+        from sys_user_address
+        where user_account = #{userAccount}
+          and is_deleted = 0
+    </select>
+    <select id="getAccountPassword" resultType="java.lang.String">
+    select pay_password
+        from sys_user
+        where account = #{account}
+        and is_deleted = 0
+    </select>
+</mapper>
