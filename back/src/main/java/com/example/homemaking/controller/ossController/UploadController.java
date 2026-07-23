@@ -32,4 +32,17 @@ public class UploadController {
             return Result.error("上传失败");
         }
     }
+    @PostMapping("/admin/upload-package-cover")
+    public Result<Map<String, String>> uploadPackageCover(@RequestParam("cover") MultipartFile file) {
+        try {
+            String url = ossUtil.upload(file);
+            log.info("套餐封面上传成功：{}", url);
+            Map<String, String> data = new HashMap<>();
+            data.put("url", url);
+            return Result.success(data);
+        } catch (Exception e) {
+            log.error("套餐封面上传失败", e);
+            return Result.error("套餐封面上传失败");
+        }
+    }
 }

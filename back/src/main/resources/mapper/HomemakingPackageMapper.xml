@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.homemaking.mapper.HomemakingPackageMapper">
+    <insert id="insert">
+        insert into homemaking_package(package_name,package_price,package_desc,package_img,unit_text,status,sort,expire_status,expire_start_time,expire_end_time,create_time,update_time,is_deleted)
+        values(#{packageName},#{packagePrice},#{packageDesc},#{packageImg},#{unitText},#{status},#{sort},#{expireStatus},#{expireStartTime},#{expireEndTime},#{createTime},#{updateTime},#{isDeleted})
+    </insert>
+    <update id="updateById">
+        update homemaking_package
+        set package_name=#{packageName},package_price=#{packagePrice},package_desc=#{packageDesc},package_img=#{packageImg},unit_text=#{unitText},status=#{status},sort=#{sort},expire_status=#{expireStatus},expire_start_time=#{expireStartTime},expire_end_time=#{expireEndTime},update_time=#{updateTime}
+        where id=#{id}
+    </update>
+    <select id="selectById" resultType="com.example.homemaking.entity.HomemakingPackage">
+        select * from homemaking_package where id=#{id}
+    </select>
+    <select id="selectList" resultType="com.example.homemaking.entity.HomemakingPackage">
+        select * from homemaking_package where is_deleted=0
+    </select>
+</mapper>
