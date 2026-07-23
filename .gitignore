@@ -1,0 +1,22 @@
+# ========= IDEA 全局忽略（根目录 + back子模块idea） =========
+.idea/
+*.iml
+back/.idea/
+back/*.iml
+back/target/
+back/HELP.md
+back/*.log
+back/application-local.yml
+back/application-dev.yml
+
+# ========= VSCode 前端相关忽略 =========
+front/node_modules/
+front/dist/
+front/unpackage/dist/
+front/.vscode/
+front/.env.local
+
+# ========= 系统通用文件 =========
+.DS_Store
+*.tmp
+*.bak
