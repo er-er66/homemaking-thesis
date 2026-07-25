@@ -12,6 +12,9 @@
           <span class="logo-text">家政服务</span>
         </div>
         <div class="header-center">
+          <el-menu-item v-if="isAdmin" index="admin" @click="router.push('/admin/dashboard')">
+            后台管理
+          </el-menu-item>
           <el-menu-item index="services">
             <a href="#services">服务项目</a>
           </el-menu-item>
@@ -21,7 +24,7 @@
           <el-menu-item index="contact">
             <a href="#contact">联系我们</a>
           </el-menu-item>
-          <el-menu-item index="merchant" @click="router.push('/merchant')">
+          <el-menu-item v-if="!isAdmin" index="merchant" @click="router.push('/merchant')">
             商家消息
             <el-badge
               v-if="totalUnread > 0"
@@ -31,7 +34,7 @@
           </el-menu-item>
         </div>
         <div class="header-right">
-          <template v-if="isLoggedIn">
+          <template v-if="isLoggedIn && !isAdmin">
             <el-dropdown trigger="click">
               <span class="user-info">
                 <el-avatar :size="32" :src="userAvatar" class="user-avatar">
@@ -47,6 +50,9 @@
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
+          </template>
+          <template v-else-if="isLoggedIn && isAdmin">
+            <el-button type="danger" @click="handleLogout">退出登录</el-button>
           </template>
           <template v-else>
             <el-button @click="goToLogin">登录</el-button>
@@ -73,7 +79,10 @@
       <el-row :gutter="20" justify="center">
         <el-col :xs="24" :sm="12" :md="8" v-for="service in services" :key="service.id">
           <el-card shadow="hover" class="service-card" @click="goToOrder(service)">
-            <div class="service-icon">{{ service.icon }}</div>
+            <div class="service-image">
+              <img v-if="service.image" :src="service.image" :alt="service.name" />
+              <div v-else class="service-icon">{{ service.icon }}</div>
+            </div>
             <h3>{{ service.name }}</h3>
             <p>{{ service.description }}</p>
             <el-tag type="danger" size="large">{{ service.price }}</el-tag>
@@ -168,13 +177,17 @@ const fetchPackages = async () => {
   try {
     const res = await getPackageListApi({ status: 1 })
     if (res && res.data && Array.isArray(res.data)) {
-      services.value = res.data.map((pkg, index) => ({
-        id: pkg.id,
-        name: pkg.package_name,
-        description: pkg.package_desc || '',
-        price: `¥${pkg.package_price}${pkg.unit_text || ''}`,
-        icon: ['🧹', '✨', '🔧', '👶', '👩‍🍼', '⏰'][index % 6]
-      }))
+      services.value = res.data.map((pkg, index) => {
+        const desc = pkg.packageDesc || ''
+        return {
+          id: pkg.id,
+          name: pkg.packageName,
+          description: desc.length > 15 ? desc.slice(0, 15) + '...' : desc,
+          price: `¥${pkg.packagePrice}${pkg.unitText || ''}`,
+          image: (pkg.packageImg || '').replace(/`/g, ''),
+          icon: ['🧹', '✨', '🔧', '👶', '‍', '⏰'][index % 6]
+        }
+      })
     }
   } catch (e) {
     console.warn('获取套餐列表失败:', e)
@@ -190,14 +203,15 @@ const checkLoginStatus = () => {
       isLoggedIn.value = true
       userName.value = userInfo.username || userInfo.account || '用户'
       userAvatar.value = userInfo.avatar || ''
-      isAdmin.value = userInfo.role === 'super_admin'
-      if (isAdmin.value) {
-        router.replace('/admin/dashboard')
-      } else if (userInfo.role === 'staff' || userInfo.roleCode === '002') {
+      const role = userInfo.role || userInfo.roleCode || ''
+      isAdmin.value = role.startsWith('10') || role.startsWith('01') || role === 'super_admin' || role === 'admin'
+      if (userInfo.role === 'staff' || userInfo.roleCode === '002') {
         router.replace('/staff/home')
       } else {
-        // 普通用户：获取未读消息
-        fetchUnreadMessages(userInfo.account)
+        // 普通用户和管理员：获取未读消息（管理员不自动跳转）
+        if (!isAdmin.value) {
+          fetchUnreadMessages(userInfo.account)
+        }
       }
     } catch {
       isLoggedIn.value = false
@@ -244,7 +258,13 @@ const goToRegister = () => {
 }
 
 const bookService = () => {
-  router.push('/login')
+  const token = localStorage.getItem('token')
+  if (!token) {
+    ElMessage.warning('请先登录后再预约')
+    router.push('/login')
+    return
+  }
+  router.push('/publish-order')
 }
 
 const goToOrder = (service) => {
@@ -404,25 +424,78 @@ const goToProfile = () => {
   margin-bottom: 20px;
   cursor: pointer;
   transition: transform 0.2s;
+  height: 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 16px;
+  box-sizing: border-box;
+  overflow: hidden !important;
+}
+
+.service-card :deep(.el-card__body) {
+  overflow: hidden !important;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0;
 }
 
 .service-card:hover {
   transform: translateY(-4px);
 }
 
+.service-image {
+  width: 100px;
+  height: 100px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f5f7fa;
+  margin: 0 auto 12px;
+}
+
+.service-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .service-icon {
-  font-size: 48px;
-  margin-bottom: 15px;
+  font-size: 40px;
+  line-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  text-align: center;
 }
 
 .service-card h3 {
-  font-size: 20px;
-  margin-bottom: 10px;
+  font-size: 18px;
+  margin: 0 0 8px;
+  flex-shrink: 0;
 }
 
 .service-card p {
   color: var(--text-light);
-  margin-bottom: 15px;
+  margin: 0 0 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.5;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.service-card .el-tag {
+  flex-shrink: 0;
+  margin-top: auto;
 }
 
 .about {

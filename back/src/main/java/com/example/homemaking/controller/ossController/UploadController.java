@@ -45,4 +45,6 @@ public class UploadController {
             return Result.error("套餐封面上传失败");
         }
     }
+
+
 }

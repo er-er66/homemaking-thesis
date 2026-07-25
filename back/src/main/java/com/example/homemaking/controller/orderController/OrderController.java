@@ -42,8 +42,11 @@ public class OrderController {
     @GetMapping("/order")
     public Result<List<Order>> getOrder(
             @RequestParam(required = false) String orderNo,
-            @RequestParam(required = false) Integer orderStatus) {
+            @RequestParam(required = false) Integer orderStatus
+    ) {
+        log.info("获取订单列表，订单编号：{}，订单状态：{}", orderNo, orderStatus);
         List<Order> orders = orderService.getOrders(orderNo, orderStatus);
+
         return Result.success(orders);
     }
     /**
@@ -55,6 +58,7 @@ public class OrderController {
 
     @GetMapping("/order/{id}")
     public Result<Order> getOrderById(@PathVariable Long id) {
+
         Order order = orderService.getOrderById(id);
         return Result.success(order);
 

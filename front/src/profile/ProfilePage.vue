@@ -88,19 +88,55 @@
           <el-icon class="menu-arrow" :class="{ open: activePanel === 'orders' }"><ArrowRight /></el-icon>
         </div>
         <div class="menu-panel" :class="{ open: activePanel === 'orders' }">
-          <el-table :data="orderList" v-loading="orderLoading" stripe>
-            <el-table-column prop="serviceName" label="服务项目" />
-            <el-table-column prop="price" label="金额" />
-            <el-table-column prop="createTime" label="下单时间" />
-            <el-table-column label="状态">
-              <template #default="{ row }">
-                <el-tag :type="row.status === 1 ? 'success' : row.status === 0 ? 'warning' : 'info'">
-                  {{ row.status === 1 ? '已完成' : row.status === 0 ? '进行中' : '已取消' }}
-                </el-tag>
-              </template>
-            </el-table-column>
-          </el-table>
-          <el-empty v-if="!orderLoading && orderList.length === 0" :description="userRole === 'staff' ? '暂无接单记录' : '暂无订单记录'" />
+          <div class="order-tabs">
+            <el-radio-group v-model="orderFilter" @change="fetchOrders">
+              <el-radio-button value="all">全部</el-radio-button>
+              <el-radio-button value="pending">待接单</el-radio-button>
+              <el-radio-button value="progress">进行中</el-radio-button>
+              <el-radio-button value="completed">已完成</el-radio-button>
+              <el-radio-button value="cancelled">已取消</el-radio-button>
+            </el-radio-group>
+          </div>
+          <div class="order-scroll-container">
+            <div v-loading="orderLoading" class="order-list">
+              <div v-for="order in orderList" :key="order.id" class="order-item">
+                <div class="order-header">
+                  <span class="order-id">订单号：{{ order.id }}</span>
+                  <span class="order-time">{{ formatDateTime(order.createTime) }}</span>
+                </div>
+                <div class="order-body">
+                  <div class="order-cover">
+                    <img v-if="order.coverUrl" :src="order.coverUrl" :alt="order.serviceItem" />
+                    <div v-else class="order-cover-placeholder">{{ getOrderIcon(order.serviceItem) }}</div>
+                  </div>
+                  <div class="order-info">
+                    <h4 class="order-name">{{ order.serviceItem }}</h4>
+                    <p class="order-address">{{ order.serviceAddress }}</p>
+                    <p class="order-time-slot">预约时间：{{ formatDateTime(order.serviceTime) }}</p>
+                    <p v-if="order.remark" class="order-remark">备注：{{ order.remark }}</p>
+                  </div>
+                  <div class="order-right">
+                    <div class="order-price">¥{{ order.orderAmount }}</div>
+                    <el-tag :type="getOrderStatusType(order)" size="small">
+                      {{ getOrderStatusText(order) }}
+                    </el-tag>
+                    <div class="order-actions">
+                      <el-button size="small" text type="primary" @click="viewOrderDetail(order)">
+                        查看详情
+                      </el-button>
+                      <el-button v-if="canContactMerchant(order)" size="small" text type="success" @click="contactMerchant(order)">
+                        联系商家
+                      </el-button>
+                      <el-button v-if="canCancelOrder(order)" size="small" text type="danger" @click="cancelOrder(order.id)">
+                        取消订单
+                      </el-button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <el-empty v-if="!orderLoading && orderList.length === 0" :description="getEmptyDescription()" />
+            </div>
+          </div>
         </div>
       </el-card>
     <el-card class="menu-card">
@@ -224,6 +260,7 @@ const phoneCountdown = ref(0)
 
 const orderList = ref([])
 const orderLoading = ref(false)
+const orderFilter = ref('all')
 
 const addressList = ref([])
 const addrLoading = ref(false)
@@ -400,6 +437,12 @@ const fetchOrders = async () => {
     const params = userRole.value === 'staff'
       ? { staffAccount: userAccount.value }
       : { userAccount: userAccount.value }
+    
+    if (orderFilter.value !== 'all') {
+      const statusMap = { pending: 0, progress: 1, completed: 2, cancelled: 3 }
+      params.orderStatus = statusMap[orderFilter.value]
+    }
+    
     const res = await getOrderListApi(params)
     orderList.value = Array.isArray(res.data) ? res.data : []
   } catch {
@@ -407,6 +450,81 @@ const fetchOrders = async () => {
   } finally {
     orderLoading.value = false
   }
+}
+
+const formatDateTime = (time) => {
+  if (!time) return '-'
+  return time.replace('T', ' ').substring(0, 19)
+}
+
+const getOrderIcon = (serviceName) => {
+  if (!serviceName) return '📦'
+  if (serviceName.includes('保洁') || serviceName.includes('清洁')) return '🧹'
+  if (serviceName.includes('维修')) return ''
+  if (serviceName.includes('月嫂') || serviceName.includes('保姆')) return '👶'
+  if (serviceName.includes('搬家')) return '🚚'
+  return ''
+}
+
+const getOrderStatusText = (order) => {
+  const status = order.orderStatus ?? order.status
+  switch (status) {
+    case 0: return '待接单'
+    case 1: return '进行中'
+    case 2: return '已完成'
+    case 3: return '已取消'
+    default: return '未知'
+  }
+}
+
+const getOrderStatusType = (order) => {
+  const status = order.orderStatus ?? order.status
+  switch (status) {
+    case 0: return 'warning'
+    case 1: return 'primary'
+    case 2: return 'success'
+    case 3: return 'info'
+    default: return 'info'
+  }
+}
+
+const canCancelOrder = (order) => {
+  const status = order.orderStatus ?? order.status
+  return status === 0 || status === 1
+}
+
+const canContactMerchant = (order) => {
+  const status = order.orderStatus ?? order.status
+  return status === 1 && order.staffAccount
+}
+
+const contactMerchant = (order) => {
+  if (!order.staffAccount) {
+    ElMessage.warning('暂无可联系的商家')
+    return
+  }
+  router.push({
+    path: '/merchant',
+    query: { merchantId: order.staffAccount }
+  })
+}
+
+const getEmptyDescription = () => {
+  if (userRole.value === 'staff') return '暂无接单记录'
+  const filterText = { all: '暂无订单', pending: '暂无待接单', progress: '暂无进行中', completed: '暂无已完成', cancelled: '暂无已取消' }
+  return filterText[orderFilter.value] || '暂无订单'
+}
+
+const viewOrderDetail = (order) => {
+  router.push({ path: '/order', query: { id: order.id } })
+}
+
+const cancelOrder = async (id) => {
+  try {
+    await ElMessageBox.confirm('确定要取消该订单吗？', '提示', { type: 'warning' })
+    ElMessage.success('订单已取消')
+    fetchOrders()
+  } catch { /* cancelled */ }
 }
 
 const toggleAddressPanel = () => {
@@ -580,8 +698,33 @@ h2 {
 }
 
 .menu-panel.open {
-  max-height: 500px;
+  max-height: 2000px;
   padding-top: 16px;
+  overflow: visible;
+}
+
+.order-scroll-container {
+  max-height: 500px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.order-scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.order-scroll-container::-webkit-scrollbar-track {
+  background: #f5f7fa;
+  border-radius: 3px;
+}
+
+.order-scroll-container::-webkit-scrollbar-thumb {
+  background: #dcdfe6;
+  border-radius: 3px;
+}
+
+.order-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #c0c4cc;
 }
 
 .code-row {
@@ -644,6 +787,151 @@ h2 {
 
 .add-addr-btn {
   width: 100%;
+  margin-top: 8px;
+}
+
+.order-tabs {
+  margin-bottom: 16px;
+}
+
+.order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 500px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.order-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.order-list::-webkit-scrollbar-track {
+  background: #f5f7fa;
+  border-radius: 3px;
+}
+
+.order-list::-webkit-scrollbar-thumb {
+  background: #dcdfe6;
+  border-radius: 3px;
+}
+
+.order-list::-webkit-scrollbar-thumb:hover {
+  background: #c0c4cc;
+}
+
+.order-item {
+  border: 1px solid #ebeef5;
+  border-radius: 12px;
+  background: #fff;
+  transition: box-shadow 0.2s;
+}
+
+.order-item:hover {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: #f9fafb;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.order-id {
+  font-size: 13px;
+  color: #909399;
+}
+
+.order-time {
+  font-size: 12px;
+  color: #c0c4cc;
+}
+
+.order-body {
+  display: flex;
+  padding: 16px;
+  gap: 16px;
+}
+
+.order-cover {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.order-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.order-cover-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f7fa;
+  font-size: 36px;
+  border-radius: 8px;
+}
+
+.order-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.order-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  margin: 0 0 6px;
+}
+
+.order-address {
+  font-size: 13px;
+  color: #606266;
+  margin: 0 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.order-time-slot {
+  font-size: 12px;
+  color: #909399;
+  margin: 0 0 4px;
+}
+
+.order-remark {
+  font-size: 12px;
+  color: #e6a23c;
+  margin: 0;
+}
+
+.order-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  min-width: 100px;
+}
+
+.order-price {
+  font-size: 18px;
+  font-weight: bold;
+  color: #ff6b6b;
+}
+
+.order-actions {
+  display: flex;
+  gap: 8px;
   margin-top: 8px;
 }
 </style>

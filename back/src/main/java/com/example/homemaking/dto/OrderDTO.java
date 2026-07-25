@@ -14,6 +14,8 @@ public class OrderDTO {
      */
     private String userAccount;
 
+    private String coverUrl;//封面图片地址
+
     /**
      * 接单家政人员账号，未接单传空字符串/不传
      */

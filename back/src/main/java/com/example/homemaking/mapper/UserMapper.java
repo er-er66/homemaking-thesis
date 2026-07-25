@@ -2,6 +2,7 @@ package com.example.homemaking.mapper;
 
 import com.example.homemaking.entity.SysUser;
 import com.example.homemaking.entity.UserAddress;
+import com.example.homemaking.entity.UserImg;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -91,4 +92,6 @@ public interface UserMapper {
      * @return
      */
     String getAccountPassword(String payPassword);
+
+
 }

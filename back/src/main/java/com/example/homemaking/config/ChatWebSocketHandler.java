@@ -4,8 +4,8 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.AbstractWebSocketHandler;
-import com.fasterxml.jackson.databind.ObjectMapper;  // 使用 Jackson
-import com.fasterxml.jackson.databind.JsonNode;      // 使用 Jackson
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,38 +24,48 @@ public class ChatWebSocketHandler extends AbstractWebSocketHandler {
 
             String type = json.has("type") ? json.get("type").asText() : null;
 
-            // 处理心跳消息
             if ("ping".equals(type)) {
                 String pongJson = "{\"type\":\"pong\",\"timestamp\":" + System.currentTimeMillis() + "}";
                 session.sendMessage(new TextMessage(pongJson));
                 return;
             }
 
-            // 处理普通消息
+            if ("register".equals(type)) {
+                String userId = json.has("userId") ? json.get("userId").asText() : null;
+                if (userId != null && !userId.isEmpty()) {
+                    webSocketMap.put(userId, session);
+                    logger.info("用户注册WebSocket: userId={}", userId);
+                    String ackJson = "{\"type\":\"register_ack\",\"status\":\"ok\"}";
+                    session.sendMessage(new TextMessage(ackJson));
+                }
+                return;
+            }
+
             String from = json.has("from") ? json.get("from").asText() : null;
             String to = json.has("to") ? json.get("to").asText() : null;
             String text = json.has("text") ? json.get("text").asText() : null;
+            String roomId = json.has("roomId") ? json.get("roomId").asText() : null;
 
             if (from == null || from.isEmpty()) {
                 sendError(session, "参数 'from' 不能为空");
                 return;
             }
-            if (to == null || to.isEmpty()) {
-                sendError(session, "参数 'to' 不能为空");
-                return;
-            }
 
             webSocketMap.put(from, session);
 
-            // 构建响应
             String responseJson = String.format(
-                    "{\"from\":\"%s\",\"type\":\"%s\",\"text\":\"%s\"}",
-                    from, type, text != null ? text.replace("\"", "\\\"") : ""
+                    "{\"from\":\"%s\",\"type\":\"%s\",\"text\":\"%s\",\"roomId\":\"%s\"}",
+                    from,
+                    type != null ? type : "message",
+                    text != null ? text.replace("\"", "\\\"") : "",
+                    roomId != null ? roomId : ""
             );
 
-            WebSocketSession targetSession = webSocketMap.get(to);
-            if (targetSession != null && targetSession.isOpen()) {
-                targetSession.sendMessage(new TextMessage(responseJson));
+            if (to != null && !to.isEmpty()) {
+                WebSocketSession targetSession = webSocketMap.get(to);
+                if (targetSession != null && targetSession.isOpen()) {
+                    targetSession.sendMessage(new TextMessage(responseJson));
+                }
             }
 
         } catch (Exception e) {
@@ -78,6 +88,7 @@ public class ChatWebSocketHandler extends AbstractWebSocketHandler {
         webSocketMap.entrySet().removeIf(entry -> entry.getValue().equals(session));
         super.afterConnectionClosed(session, status);
     }
+
     public static int getOnlineCount() {
         return webSocketMap.size();
     }

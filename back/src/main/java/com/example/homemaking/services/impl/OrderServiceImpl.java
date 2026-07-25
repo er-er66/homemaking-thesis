@@ -4,10 +4,13 @@ import ch.qos.logback.core.joran.util.beans.BeanUtil;
 import com.example.homemaking.dto.OrderDTO;
 import com.example.homemaking.entity.Order;
 import com.example.homemaking.entity.SysUser;
+import com.example.homemaking.entity.UserImg;
 import com.example.homemaking.mapper.OrderMapper;
+import com.example.homemaking.mapper.UserImgMapper;
 import com.example.homemaking.mapper.UserMapper;
 import com.example.homemaking.services.OrderService;
 import com.example.homemaking.util.OrderNoUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -15,6 +18,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 public class OrderServiceImpl implements OrderService {
 
@@ -22,6 +26,9 @@ public class OrderServiceImpl implements OrderService {
     private OrderMapper orderMapper;
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private UserImgMapper userImgMapper;
 
     /**
      * 创建订单
@@ -38,15 +45,31 @@ public class OrderServiceImpl implements OrderService {
             return "支付密码错误";
         }
         Order order = new Order();
-
         BeanUtils.copyProperties(orderDTO, order);
+        if (order.getOrderStatus() == null) {//用户的发布订单（默认待接单）
+            order.setOrderStatus(0);
+        }
         order.setOrderNo(OrderNoUtil.generateOrderNo());//生成订单号(时间戳+雪花短码)
         order.setCreateTime(LocalDateTime.now());//设置下单时间
         order.setUpdateTime(LocalDateTime.now());
         order.setIsDeleted(0);//逻辑删除：0正常 1已删除
         order.setStaffAccount("null");
-        int count = orderMapper.addOrder(order);
-        if (count > 0) {
+
+        // 保存订单封面图片
+        if (orderDTO.getCoverUrl() != null && !orderDTO.getCoverUrl().isEmpty()) {
+            UserImg userImg = new UserImg();
+            userImg.setOrderNo(order.getOrderNo());
+            userImg.setUserAccount(order.getUserAccount());
+            userImg.setStaffAccount(order.getStaffAccount());
+            userImg.setUserOrderUrl(orderDTO.getCoverUrl());
+            int count1 = userImgMapper.addUserImg(userImg);
+            if (count1 <= 0) {
+                return "用户订单封面上传失败";
+            }
+        }
+
+        int count2 = orderMapper.addOrder(order);
+        if (count2 > 0) {
             return "订单创建成功";
         }
         return "订单创建失败";
@@ -59,7 +82,15 @@ public class OrderServiceImpl implements OrderService {
      */
     @Override
     public List<Order> getAllOrder() {
-        return orderMapper.getAllOrder();
+        List<Order> orders = orderMapper.getAllOrder();
+        // 填充封面URL
+        for (Order order : orders) {
+            UserImg userImg = userImgMapper.selectByOrderNo(order.getOrderNo());
+            if (userImg != null) {
+                order.setCoverUrl(userImg.getUserOrderUrl());
+            }
+        }
+        return orders;
     }
 
     /**
@@ -71,7 +102,15 @@ public class OrderServiceImpl implements OrderService {
      */
     @Override
     public List<Order> getOrders(String orderNo, Integer orderStatus) {
-        return orderMapper.getOrders(orderNo, orderStatus);
+        List<Order> orders = orderMapper.getOrders(orderNo, orderStatus);
+        // 填充封面URL
+        for (Order order : orders) {
+            UserImg userImg = userImgMapper.selectByOrderNo(order.getOrderNo());
+            if (userImg != null) {
+                order.setCoverUrl(userImg.getUserOrderUrl());
+            }
+        }
+        return orders;
     }
 
     /**
@@ -83,6 +122,12 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Order getOrderById(Long id) {
         Order order = orderMapper.getOrderById(id);
+        if (order != null) {
+            UserImg userImg = userImgMapper.selectByOrderNo(order.getOrderNo());
+            if (userImg != null) {
+                order.setCoverUrl(userImg.getUserOrderUrl());
+            }
+        }
         return order;
     }
 

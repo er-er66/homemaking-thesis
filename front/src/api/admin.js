@@ -46,6 +46,17 @@ export const uploadAvatarApi = (formData) => {
   })
 }
 
+export const uploadPackageCoverApi = (formData) => {
+  return request({
+    url: '/upload-package-cover',
+    method: 'post',
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}
+
 export const getUserListApi = (params) => {
   return request({
     url: '/users',
@@ -196,13 +207,7 @@ export const changePhoneApi = (params) => {
   })
 }
 
-export const getAddressListApi = (params) => {
-  return request({
-    url: '/user/address/list',
-    method: 'get',
-    params
-  })
-}
+
 
 export const saveAddressApi = (data) => {
   return request({
@@ -225,6 +230,14 @@ export const deleteAddressApi = (id) => {
     url: '/user/address/delete',
     method: 'post',
     params: { id }
+  })
+}
+
+export const getAddressListApi = (params) => {
+  return request({
+    url: '/user/address/list',
+    method: 'get',
+    params
   })
 }
 
@@ -267,7 +280,13 @@ export const getUnreadMessagesApi = (userId) => {
     params: { userId }
   })
 }
-
+export const getChatRoomListApi = (userId) => {
+  return request({
+    url: '/chat/rooms',
+    method: 'get',
+    params: { userId }
+  })
+}
 export const getMerchantListApi = (userId) => {
   return request({
     url: '/chat/merchants',
@@ -279,7 +298,7 @@ export const getMerchantListApi = (userId) => {
 export const markChatReadApi = (params) => {
   return request({
     url: '/chat/read',
-    method: 'put',
+    method: 'post',
     params
   })
 }
@@ -289,5 +308,51 @@ export const getPackageListApi = (params) => {
     url: '/package/list',
     method: 'get',
     params
+  })
+}
+
+export const createPackageApi = (data) => {
+  return request({
+    url: '/package/create',
+    method: 'post',
+    data
+  })
+}
+
+export const updatePackageApi = (data) => {
+  return request({
+    url: '/package/update',
+    method: 'put',
+    data
+  })
+}
+
+export const deletePackageApi = (id) => {
+  return request({
+    url: `/package/delete/${id}`,
+    method: 'post'
+  })
+}
+
+export const togglePackageStatusApi = (id) => {
+  return request({
+    url: `/package/${id}/status`,
+    method: 'put'
+  })
+}
+
+export const changeAdminPasswordApi = (data) => {
+  return request({
+    url: '/admin/change-password',
+    method: 'post',
+    data
+  })
+}
+
+export const changeAdminPhoneApi = (data) => {
+  return request({
+    url: '/admin/change-phone',
+    method: 'post',
+    data
   })
 }

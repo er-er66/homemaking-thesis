@@ -4,66 +4,194 @@
   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.homemaking.mapper.ChatMapper">
-    <insert id="insert">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO chat_messages
-        (room_id, sender_id, receiver_id, content, msg_type, attach_url, created_at, updated_at, is_read)
+        (room_id, sender_id, sender_type, content, msg_type, attach_url, created_at, updated_at)
         VALUES
-        (#{roomId}, #{senderId}, #{receiverId}, #{content}, #{msgType}, #{attachUrl}, #{createdAt}, #{updatedAt}, #{isRead})
+        (#{roomId}, #{senderId}, #{senderType}, #{content}, #{msgType}, #{attachUrl}, #{createdAt}, #{updatedAt})
     </insert>
+
     <select id="getHistory" resultType="com.example.homemaking.entity.ChatMessage">
         SELECT
             id,
+            room_id as roomId,
             sender_id as senderId,
-            receiver_id as receiverId,
+            sender_type as senderType,
             content,
             msg_type as msgType,
             attach_url as attachUrl,
             created_at as createdAt
         FROM chat_messages
-        WHERE
-            sender_id = #{senderId} OR receiver_id = #{senderId}
-            <if test="receiverId != null and receiverId != ''">
-                AND (sender_id = #{receiverId} OR receiver_id = #{receiverId})
-            </if>
+        WHERE room_id = #{roomId}
         ORDER BY created_at ASC
     </select>
-    <!-- ChatMapper.xml -->
-    <select id="getUnreadMessagesByReceiver" resultType="java.util.Map">
+
+    <select id="getUnreadMessagesByUser" resultType="java.util.Map">
         SELECT
-            sender_id as merchantId,
-            MAX(content) as lastMsg,
-            MAX(created_at) as time,
-            COUNT(*) as unreadCount
-        FROM chat_messages
-        WHERE receiver_id = #{receiverId}
-          AND is_read = 0
-        GROUP BY sender_id
+            cmr.room_id as roomId,
+            cr.room_name as roomName,
+            cr.order_id as orderId,
+            cr.room_type as roomType,
+            (SELECT content FROM chat_messages WHERE room_id = cmr.room_id ORDER BY created_at DESC LIMIT 1) as lastMsg,
+            (SELECT created_at FROM chat_messages WHERE room_id = cmr.room_id ORDER BY created_at DESC LIMIT 1) as time,
+            (SELECT COUNT(*) FROM chat_message_read WHERE room_id = cmr.room_id AND user_id = #{userId} AND is_read = 0) as unreadCount
+        FROM chat_room_member cmr
+        LEFT JOIN chat_room cr ON cmr.room_id = cr.room_id
+        WHERE cmr.user_id = #{userId}
         ORDER BY time DESC
     </select>
-    <select id="getUserChatHistory" resultType="com.example.homemaking.entity.ChatMessage">
+
+    <select id="getSysStaffList" resultType="java.lang.String">
+        SELECT DISTINCT cmr.user_id
+        FROM chat_room_member cmr
+        JOIN chat_room cr ON cmr.room_id = cr.room_id
+        WHERE cmr.room_id IN (
+            SELECT room_id FROM chat_room_member WHERE user_id = #{userId}
+        )
+        AND cmr.user_id != #{userId}
+    </select>
+
+    <select id="getRoomMembers" resultType="com.example.homemaking.entity.ChatRoomMember">
         SELECT
             id,
-            sender_id as senderId,
-            receiver_id as receiverId,
-            content,
-            msg_type as msgType,
-            attach_url as attachUrl,
-            created_at as createdAt
-        FROM chat_messages
-        WHERE
-                (sender_id = #{userId} or receiver_id = #{userId})
-        ORDER BY created_at ASC
+            room_id as roomId,
+            user_id as userId,
+            user_type as userType,
+            join_time as joinTime
+        FROM chat_room_member
+        WHERE room_id = #{roomId}
     </select>
-    <select id="getSysStaffList" resultType="java.lang.String">
-        SELECT sender_id, receiver_id FROM chat_messages WHERE sender_id = #{userId} or receiver_id = #{userId}
+
+    <select id="getRoomMembersExcludeSender" resultType="com.example.homemaking.entity.ChatRoomMember">
+        SELECT
+            id,
+            room_id as roomId,
+            user_id as userId,
+            user_type as userType,
+            join_time as joinTime
+        FROM chat_room_member
+        WHERE room_id = #{roomId}
+        AND user_id != #{senderId}
+    </select>
+
+    <insert id="insertMessageRead">
+        INSERT INTO chat_message_read
+        (msg_id, room_id, user_id, is_read, created_at)
+        VALUES
+        (#{msgId}, #{roomId}, #{userId}, #{isRead}, #{createdAt})
+    </insert>
+
+    <insert id="batchInsertMessageRead">
+        INSERT INTO chat_message_read
+        (msg_id, room_id, user_id, is_read, created_at)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.msgId}, #{item.roomId}, #{item.userId}, #{item.isRead}, #{item.createdAt})
+        </foreach>
+    </insert>
+
+    <update id="updateMessageRead">
+        UPDATE chat_message_read
+        SET is_read = 1, read_time = NOW()
+        WHERE room_id = #{roomId} AND user_id = #{userId} AND is_read = 0
+    </update>
+
+    <select id="getChatRoomById" resultType="com.example.homemaking.entity.ChatRoom">
+        SELECT
+            room_id as roomId,
+            room_name as roomName,
+            order_id as orderId,
+            room_type as roomType,
+            create_time as createTime,
+            update_time as updateTime
+        FROM chat_room
+        WHERE room_id = #{roomId}
+    </select>
+
+    <insert id="insertChatRoom">
+        INSERT INTO chat_room
+        (room_id, room_name, order_id, room_type, create_time, update_time)
+        VALUES
+        (#{roomId}, #{roomName}, #{orderId}, #{roomType}, #{createTime}, #{updateTime})
+    </insert>
+
+    <insert id="insertChatRoomMember">
+        INSERT INTO chat_room_member
+        (room_id, user_id, user_type, join_time)
+        VALUES
+        (#{roomId}, #{userId}, #{userType}, #{joinTime})
+    </insert>
+
+    <select id="getChatRoomsByUserId" resultType="com.example.homemaking.entity.ChatRoom">
+        SELECT
+            cr.room_id as roomId,
+            cr.room_name as roomName,
+            cr.order_id as orderId,
+            cr.room_type as roomType,
+            cr.create_time as createTime,
+            cr.update_time as updateTime
+        FROM chat_room cr
+        JOIN chat_room_member cmr ON cr.room_id = cmr.room_id
+        WHERE cmr.user_id = #{userId}
+    </select>
+
+    <select id="getUnreadMsgIdsByRoomAndUser" resultType="java.lang.Integer">
+        SELECT msg_id
+        FROM chat_message_read
+        WHERE room_id = #{roomId} AND user_id = #{userId} AND is_read = 0
+    </select>
+
+    <select id="getChatRoomList" resultType="java.util.Map">
+        SELECT
+            cr.room_id as roomId,
+            (SELECT COALESCE(s.username, a.username, u.username)
+             FROM chat_room_member crm2
+             LEFT JOIN sys_staff s ON s.account = crm2.user_id OR s.phone = crm2.user_id
+             LEFT JOIN sys_admin a ON a.account = crm2.user_id OR a.phone = crm2.user_id
+             LEFT JOIN sys_user u ON u.account = crm2.user_id OR u.phone = crm2.user_id
+             WHERE crm2.room_id = cr.room_id AND crm2.user_id != #{userId}
+             LIMIT 1) as name,
+            (SELECT COALESCE(s.account, a.account, u.account)
+             FROM chat_room_member crm2
+             LEFT JOIN sys_staff s ON s.account = crm2.user_id OR s.phone = crm2.user_id
+             LEFT JOIN sys_admin a ON a.account = crm2.user_id OR a.phone = crm2.user_id
+             LEFT JOIN sys_user u ON u.account = crm2.user_id OR u.phone = crm2.user_id
+             WHERE crm2.room_id = cr.room_id AND crm2.user_id != #{userId}
+             LIMIT 1) as account,
+            (SELECT COALESCE(s.avatar, a.avatar, u.avatar)
+             FROM chat_room_member crm2
+             LEFT JOIN sys_staff s ON s.account = crm2.user_id OR s.phone = crm2.user_id
+             LEFT JOIN sys_admin a ON a.account = crm2.user_id OR a.phone = crm2.user_id
+             LEFT JOIN sys_user u ON u.account = crm2.user_id OR u.phone = crm2.user_id
+             WHERE crm2.room_id = cr.room_id AND crm2.user_id != #{userId}
+             LIMIT 1) as avatar,
+            (SELECT
+                CASE
+                    WHEN s.id IS NOT NULL THEN 'staff'
+                    WHEN a.id IS NOT NULL THEN 'cs'
+                    ELSE 'staff'
+                END
+             FROM chat_room_member crm2
+             LEFT JOIN sys_staff s ON s.account = crm2.user_id OR s.phone = crm2.user_id
+             LEFT JOIN sys_admin a ON a.account = crm2.user_id OR a.phone = crm2.user_id
+             LEFT JOIN sys_user u ON u.account = crm2.user_id OR u.phone = crm2.user_id
+             WHERE crm2.room_id = cr.room_id AND crm2.user_id != #{userId}
+             LIMIT 1) as type,
+            (SELECT content FROM chat_messages cm WHERE cm.room_id = cr.room_id ORDER BY cm.created_at DESC LIMIT 1) as lastMsg,
+            (SELECT created_at FROM chat_messages cm WHERE cm.room_id = cr.room_id ORDER BY cm.created_at DESC LIMIT 1) as lastTime,
+            (SELECT COUNT(*) FROM chat_message_read cmr WHERE cmr.room_id = cr.room_id AND cmr.user_id = #{userId} AND cmr.is_read = 0) as unread
+        FROM chat_room cr
+        INNER JOIN chat_room_member crm ON cr.room_id = crm.room_id AND crm.user_id = #{userId}
+        ORDER BY lastTime DESC
     </select>
 
     <insert id="batchInsert">
         INSERT INTO chat_messages
-        (room_id, sender_id, receiver_id, content, msg_type, attach_url, created_at, updated_at, is_read)
+        (room_id, sender_id, sender_type, content, msg_type, attach_url, created_at, updated_at)
         VALUES
         <foreach collection="list" item="item" separator=",">
-            (#{item.roomId}, #{item.senderId}, #{item.receiverId}, #{item.content}, #{item.msgType}, #{item.attachUrl}, #{item.createdAt}, #{item.updatedAt}, #{item.isRead})
+            (#{item.roomId}, #{item.senderId}, #{item.senderType}, #{item.content}, #{item.msgType}, #{item.attachUrl}, #{item.createdAt}, #{item.updatedAt})
         </foreach>
     </insert>
 

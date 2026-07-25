@@ -39,22 +39,20 @@ public class MessageConsumerService {
     @Transactional
     public void consumeMessages() {
         List<ChatMessage> batch = new ArrayList<>();
-        
+
         try {
-            // 批量从Redis队列右侧弹出消息
             for (int i = 0; i < BATCH_SIZE; i++) {
                 Object obj = redisTemplate.opsForList().rightPop(CHAT_QUEUE_KEY);
                 if (obj == null) {
                     break;
                 }
-                
+
                 ChatMessage message;
                 if (obj instanceof ChatMessage) {
                     message = (ChatMessage) obj;
                 } else if (obj instanceof String) {
                     message = objectMapper.readValue((String) obj, ChatMessage.class);
                 } else if (obj instanceof java.util.LinkedHashMap) {
-                    // 将LinkedHashMap转换为ChatMessage
                     String json = objectMapper.writeValueAsString(obj);
                     message = objectMapper.readValue(json, ChatMessage.class);
                 } else {
@@ -63,18 +61,16 @@ public class MessageConsumerService {
                 }
                 batch.add(message);
             }
-            
-            // 批量插入MySQL
+
             if (!batch.isEmpty()) {
                 int count = chatMapper.batchInsert(batch);
                 log.info("批量插入 {} 条消息", count);
             }
-            
+
         } catch (JsonProcessingException e) {
             log.error("消息反序列化失败", e);
         } catch (Exception e) {
             log.error("消息消费异常", e);
-            // 如果数据库插入失败，将消息重新放回队列
             if (!batch.isEmpty()) {
                 for (int i = batch.size() - 1; i >= 0; i--) {
                     redisTemplate.opsForList().leftPush(CHAT_QUEUE_KEY, batch.get(i));

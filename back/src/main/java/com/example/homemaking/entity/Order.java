@@ -93,4 +93,9 @@ public class Order {
      * 逻辑删除：0正常 1已删除
      */
     private Integer isDeleted;
+
+    /**
+     * 订单封面图片URL(user_img表)专门给前端展示图片特意加的
+     */
+    private String coverUrl;
 }

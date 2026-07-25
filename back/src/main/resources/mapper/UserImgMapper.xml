@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.homemaking.mapper.UserImgMapper">
+    <insert id="addUserImg" parameterType="com.example.homemaking.entity.UserImg">
+        insert into user_img (order_no,user_account, staff_account, user_order_url)
+        values (#{orderNo}, #{userAccount}, #{staffAccount}, #{userOrderUrl})
+    </insert>
+
+    <select id="selectByOrderNo" resultType="com.example.homemaking.entity.UserImg">
+        select * from user_img
+        where order_no = #{orderNo}
+    </select>
+</mapper>
