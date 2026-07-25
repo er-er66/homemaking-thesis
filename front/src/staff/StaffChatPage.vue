@@ -145,7 +145,7 @@ import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Document } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { takeOrderApi, saveChatMsgApi, getChatHistoryApi, getUserNameApi } from '../api/admin'
+import { takeOrderApi, saveChatMsgApi, getChatHistoryApi, getUserNameApi, getChatRoomListApi } from '../api/admin'
 
 const route = useRoute()
 const router = useRouter()
@@ -155,6 +155,7 @@ const userName = ref('用户')
 const userAvatar = ref(route.query.userAvatar || '')
 const orderId = ref(route.query.orderId || '')
 const orderNo = ref(route.query.orderNo || '')
+const currentRoomId = ref('')
 
 const messages = ref([])
 const newMsg = ref('')
@@ -239,29 +240,41 @@ onMounted(async () => {
     }
   }
 
-  await loadHistoryMessages(staffAccount, userAccount.value)
-  
-  const saved = localStorage.getItem(`chat_${staffAccount}_${userAccount.value}`)
-  if (saved) {
+  // 从后端获取会话列表，找到正确的 roomId
+  if (staffAccount && userAccount.value) {
     try {
-      const localMessages = JSON.parse(saved)
-      mergeMessages(localMessages)
-    } catch { /* ignore */ }
+      const res = await getChatRoomListApi(staffAccount)
+      if (res && res.data && Array.isArray(res.data)) {
+        const room = res.data.find(r => r.account === userAccount.value)
+        if (room) {
+          currentRoomId.value = room.roomId
+        }
+      }
+    } catch (e) {
+      console.warn('获取会话列表失败:', e)
+    }
   }
+
+  await loadHistoryMessages(currentRoomId.value, staffAccount)
+  
+  // 清除本地缓存，统一使用后端数据
+  localStorage.removeItem(`chat_${staffAccount}_${userAccount.value}`)
 
   connectWs(staffAccount)
 })
 
-const loadHistoryMessages = async (senderId, receiverId) => {
+const loadHistoryMessages = async (roomId, staffAccount) => {
+  if (!roomId) {
+    console.warn('roomId 为空，跳过加载历史消息')
+    return
+  }
   try {
     const res = await getChatHistoryApi({
-      sender_id: senderId,
-      receiver_id: receiverId
+      room_id: roomId
     })
     if (res && res.data && res.data.length > 0) {
       messages.value = res.data.map(msg => {
-        // 后端返回的是 camelCase 字段：senderId, receiverId
-        const isCurrentStaffSender = String(msg.senderId) === String(senderId)
+        const isCurrentStaffSender = String(msg.senderId) === String(staffAccount)
         
         return {
           from: isCurrentStaffSender ? 'me' : 'user',
@@ -276,11 +289,12 @@ const loadHistoryMessages = async (senderId, receiverId) => {
   }
 }
 
-const saveMessagesToBackend = async (senderId, receiverId, content, msgType = 'text', attachUrl = '') => {
+const saveMessagesToBackend = async (senderId, content, msgType = 'text', attachUrl = '') => {
   try {
     await saveChatMsgApi({
+      roomId: currentRoomId.value,
       senderId: senderId,
-      receiverId: receiverId,
+      senderType: 1,
       content: content,
       msgType: msgType,
       attachUrl: attachUrl
@@ -352,7 +366,6 @@ const connectWs = (staffAccount) => {
             orderData: data.orderData,
             time: formatTime(now)
           })
-          saveMessages(staffAccount)
           nextTick(scrollToBottom)
         } else {
           // 普通消息：根据发送者身份决定显示位置
@@ -361,7 +374,6 @@ const connectWs = (staffAccount) => {
             text: data.text || data.content || '',
             time: formatTime(new Date())
           })
-          saveMessages(staffAccount)
           nextTick(scrollToBottom)
         }
       } catch (e) {
@@ -371,7 +383,6 @@ const connectWs = (staffAccount) => {
           text: event.data,
           time: formatTime(new Date())
         })
-        saveMessages(staffAccount)
         nextTick(scrollToBottom)
       }
     }
@@ -491,9 +502,7 @@ const sendMsg = async () => {
       staffAccount = JSON.parse(staffInfoStr).account || ''
     } catch { /* ignore */ }
   }
-  saveMessages(staffAccount)
-
-  await saveMessagesToBackend(staffAccount, userAccount.value, text, 'text')
+  await saveMessagesToBackend(staffAccount, text, 'text')
 
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({

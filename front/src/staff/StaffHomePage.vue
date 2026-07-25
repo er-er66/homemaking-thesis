@@ -36,7 +36,10 @@
             <el-avatar :size="42" :src="user.avatar" shape="square">{{ user.name.charAt(0) }}</el-avatar>
             <div class="user-info">
               <div class="user-top">
-                <span class="user-name">{{ user.name }}</span>
+                <span class="user-name">
+                  {{ user.name }}
+                  <el-tag v-if="user.type === 'cs'" type="danger" size="small" style="margin-left: 4px">客服</el-tag>
+                </span>
                 <span class="user-time">{{ user.lastTime }}</span>
               </div>
               <div class="user-bottom">
@@ -145,7 +148,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowDown, Location, Clock, User } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getOrderListApi, getUserNameApi, rejectOrderApi } from '../api/admin'
+import { getOrderListApi, getUserNameApi, rejectOrderApi, getChatRoomListApi } from '../api/admin'
 
 const router = useRouter()
 
@@ -185,43 +188,123 @@ onMounted(() => {
 })
 
 const fetchChatUsers = async () => {
-  const stored = localStorage.getItem('staff_chat_users')
-  if (stored) {
-    try {
-      const users = JSON.parse(stored)
-      // 为每个用户获取真实姓名
-      for (const user of users) {
-        if (user.account) {
-          // 如果 name 等于 account（说明之前存的是账号），则重新获取真实姓名
-          if (user.name === user.account) {
-            try {
-              const res = await getUserNameApi(user.account)
-              if (res.code === 200 && res.data) {
-                user.name = res.data.username || res.data.name || user.account
-                user.avatar = res.data.avatar || user.avatar || ''
-              }
-            } catch (e) {
-              console.error(`获取用户 ${user.account} 信息失败:`, e)
+  userLoading.value = true
+  try {
+    const stored = localStorage.getItem('staff_chat_users')
+    let localUsers = []
+    if (stored) {
+      try {
+        localUsers = JSON.parse(stored)
+      } catch { /* ignore */ }
+    }
+    
+    // 从后端获取会话列表（包含与管理员的聊天）
+    if (staffAccount.value) {
+      try {
+        const res = await getChatRoomListApi(staffAccount.value)
+        if (res && res.data && Array.isArray(res.data)) {
+          const backendRooms = res.data
+          
+          // 合并后端数据和本地数据
+          const mergedUsers = []
+          const processedAccounts = new Set()
+          
+          // 先处理后端数据
+          for (const room of backendRooms) {
+            const account = room.account || room.id || ''
+            if (!account || processedAccounts.has(account)) continue
+            processedAccounts.add(account)
+            
+            const user = {
+              account: account,
+              name: room.name || account,
+              avatar: room.avatar || '',
+              lastMsg: room.lastMsg || '',
+              lastTime: room.lastTime || '',
+              unread: room.unread || 0,
+              lastTimestamp: room.lastTime ? new Date(room.lastTime).getTime() : 0,
+              type: room.type || 'user' // 'user' 或 'cs'（客服/管理员）
             }
+            mergedUsers.push(user)
+          }
+          
+          // 再添加本地数据中后端没有的
+          for (const localUser of localUsers) {
+            if (!processedAccounts.has(localUser.account)) {
+              mergedUsers.push(localUser)
+            }
+          }
+          
+          // 为每个用户获取真实姓名
+          for (const user of mergedUsers) {
+            if (user.account && user.name === user.account) {
+              try {
+                const res = await getUserNameApi(user.account)
+                if (res.code === 200 && res.data) {
+                  user.name = res.data.username || res.data.name || user.account
+                  user.avatar = res.data.avatar || user.avatar || ''
+                }
+              } catch (e) {
+                console.error(`获取用户 ${user.account} 信息失败:`, e)
+              }
+            }
+          }
+          
+          chatUsers.value = mergedUsers
+          chatUsers.value.sort((a, b) => new Date(b.lastTimestamp || 0) - new Date(a.lastTimestamp || 0))
+          
+          // 更新 localStorage
+          localStorage.setItem('staff_chat_users', JSON.stringify(mergedUsers))
+          return
+        }
+      } catch (e) {
+        console.warn('获取会话列表失败，使用本地数据:', e)
+      }
+    }
+    
+    // 如果后端获取失败，使用本地数据
+    if (localUsers.length > 0) {
+      for (const user of localUsers) {
+        if (user.account && user.name === user.account) {
+          try {
+            const res = await getUserNameApi(user.account)
+            if (res.code === 200 && res.data) {
+              user.name = res.data.username || res.data.name || user.account
+              user.avatar = res.data.avatar || user.avatar || ''
+            }
+          } catch (e) {
+            console.error(`获取用户 ${user.account} 信息失败:`, e)
           }
         }
       }
-      chatUsers.value = users
+      chatUsers.value = localUsers
       chatUsers.value.sort((a, b) => new Date(b.lastTimestamp || 0) - new Date(a.lastTimestamp || 0))
-      // 更新 localStorage
-      localStorage.setItem('staff_chat_users', JSON.stringify(users))
-    } catch { /* ignore */ }
+      localStorage.setItem('staff_chat_users', JSON.stringify(localUsers))
+    }
+  } finally {
+    userLoading.value = false
   }
 }
 
 const selectUser = (user) => {
-  router.push({
-    path: '/staff/chat',
-    query: {
-      userAccount: user.account,
-      userAvatar: user.avatar || ''
-    }
-  })
+  // 如果是客服/管理员，跳转到商家聊天页面（管理员聊天）
+  if (user.type === 'cs') {
+    router.push({
+      path: '/merchant',
+      query: {
+        merchantId: user.account
+      }
+    })
+  } else {
+    // 普通用户，跳转到家政人员聊天页面
+    router.push({
+      path: '/staff/chat',
+      query: {
+        userAccount: user.account,
+        userAvatar: user.avatar || ''
+      }
+    })
+  }
 }
 
 const fetchOrders = async () => {

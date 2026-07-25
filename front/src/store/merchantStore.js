@@ -9,12 +9,14 @@ export const getMerchants = () => merchantStore.merchants
 
 export const setMerchants = (list) => {
   merchantStore.merchants = list.map(item => ({
-    id: item.id || item.merchantId || item.merchant_id,
-    name: item.name || item.merchantName || item.merchant_name || '商家',
+    id: item.id || item.merchantId || item.merchant_id || item.roomId || item.room_id,
+    name: item.name || item.merchantName || item.merchant_name || item.roomName || item.room_name || '商家',
+    account: item.account || item.merchantAccount || item.merchant_account || '',
     avatar: item.avatar || item.merchantAvatar || item.merchant_avatar || '',
     lastMsg: item.lastMsg || item.last_msg || '',
-    time: item.time || item.last_time || '',
-    unread: item.unread || item.unreadCount || item.unread_count || 0
+    time: item.time || item.last_time || item.lastMsgTime || item.last_msg_time || '',
+    unread: item.unread || item.unreadCount || item.unread_count || 0,
+    type: item.type || item.roomType || ''
   }))
   merchantStore.initialized = true
 }
@@ -32,7 +34,8 @@ export const addMerchant = (merchant) => {
       avatar: merchant.avatar || '',
       lastMsg: '',
       time: '',
-      unread: 0
+      unread: 0,
+      type: merchant.type || ''
     })
   }
 }

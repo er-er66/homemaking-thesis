@@ -1,10 +1,12 @@
 <template>
   <div class="merchant-page">
     <div class="merchant-header">
-      <el-link type="info" :underline="false" @click="router.push('/')" class="back-link">
-        ← 返回
-      </el-link>
-      <h2>商家消息</h2>
+      <div class="header-left">
+        <el-link type="info" :underline="false" @click="router.push('/')" class="back-link">
+          ← 返回
+        </el-link>
+        <h2>商家消息</h2>
+      </div>
     </div>
 
     <div :class="['merchant-body', { 'has-chat': currentMerchant.id }]" v-loading="loading">
@@ -23,7 +25,7 @@
               </el-avatar>
               <div class="merchant-info">
                 <div class="merchant-top">
-                  <span class="merchant-name">{{ item.name }}</span>
+                  <span class="merchant-name">{{ item.name }}<span v-if="item.type === 'cs' && !item.name.includes('客服')" class="cs-tag">（客服）</span></span>
                   <span class="merchant-time">{{ item.time }}</span>
                 </div>
                 <div class="merchant-bottom">
@@ -39,7 +41,7 @@
 
       <div class="merchant-chat" v-if="currentMerchant.id">
         <div class="chat-header">
-          <span class="chat-title">{{ currentMerchant.name }}</span>
+          <span class="chat-title">{{ currentMerchant.name }}<span v-if="currentMerchant.type === 'cs' && !currentMerchant.name.includes('客服')" class="cs-tag">（客服）</span></span>
         </div>
         <div class="chat-body">
           <div class="chat-messages" ref="msgBox">
@@ -82,7 +84,12 @@
                 :class="['chat-msg', msg.from === 'me' ? 'msg-right' : 'msg-left']"
               >
                 <div class="msg-bubble">{{ msg.text }}</div>
-                <div class="msg-time">{{ msg.time }}</div>
+                <div class="msg-status-row">
+                  <span class="msg-time">{{ msg.time }}</span>
+                  <span v-if="msg.from === 'merchant'" class="msg-read-status">
+                    {{ msg.isRead ? '已读' : '未读' }}
+                  </span>
+                </div>
               </div>
             </template>
           </div>
@@ -157,12 +164,12 @@
 
 <script setup>
 import { ref, nextTick, onMounted, onUnmounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Document } from '@element-plus/icons-vue'
-import { getMerchants, clearUnread, updateLastMsg, recvMsgFromMerchant, setMerchants } from '../store/merchantStore'
-import { getOrderDetailApi, takeOrderApi, getChatHistoryApi, getMerchantListApi, getUserNameApi, saveChatMsgApi } from '../api/admin'
-
+import { getMerchants, clearUnread, updateLastMsg, recvMsgFromMerchant, setMerchants, addMerchant } from '../store/merchantStore'
+import { getOrderDetailApi, takeOrderApi, getChatHistoryApi, getMerchantListApi, getUserNameApi, saveChatMsgApi, markChatReadApi, getChatRoomListApi } from '../api/admin'
+const route = useRoute()
 const router = useRouter()
 
 const loading = ref(false)
@@ -238,6 +245,7 @@ const handleIncomingMessage = (data) => {
       chatMessages.value.push(orderMsg)
       updateLastMsg(merchantId, '[订单] ' + (orderData.serviceItem || '新订单'), time)
       nextTick(scrollToBottom)
+      markChatReadApi({ userId: getMyId(), merchantId: merchantId }).catch(() => {})
     } else {
       recvMsgFromMerchant({
         merchantId,
@@ -253,9 +261,10 @@ const handleIncomingMessage = (data) => {
     if (currentMerchant.value.id === merchantId) {
       const now = new Date()
       const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
-      chatMessages.value.push({ from: 'merchant', text: message, time })
+      chatMessages.value.push({ from: 'merchant', text: message, time, isRead: true })
       updateLastMsg(merchantId, message, time)
       nextTick(scrollToBottom)
+      markChatReadApi({ userId: getMyId(), merchantId: merchantId }).catch(() => {})
     } else {
       recvMsgFromMerchant({
         merchantId,
@@ -266,7 +275,16 @@ const handleIncomingMessage = (data) => {
     }
   }
 }
-
+const getMyId = () => {
+  const userInfoStr = localStorage.getItem('userInfo')
+  if (userInfoStr) {
+    try {
+      const info = JSON.parse(userInfoStr)
+      return info.account || ''
+    } catch { /* ignore */ }
+  }
+  return ''
+}
 const sendMessage = (data) => {
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify(data))
@@ -353,20 +371,12 @@ onMounted(async () => {
   
   if (userId) {
     try {
-      const res = await getMerchantListApi(userId)
+      const res = await getChatRoomListApi(userId)
       if (res && res.data && Array.isArray(res.data)) {
-        const merchantList = res.data.map(merchantId => ({
-          id: merchantId,
-          name: String(merchantId),
-          avatar: '',
-          lastMsg: '',
-          time: '',
-          unread: 0
-        }))
-        setMerchants(merchantList)
+        setMerchants(res.data)
       }
     } catch (e) {
-      console.warn('获取商家列表失败:', e)
+      console.warn('获取会话列表失败:', e)
     }
   }
   
@@ -374,6 +384,49 @@ onMounted(async () => {
   setTimeout(() => {
     loading.value = false
   }, 300)
+
+  // 如果 URL 中带有 merchantId 参数，自动打开与该商家的聊天
+  const targetMerchantId = route.query.merchantId
+  if (targetMerchantId) {
+    console.log('[MerchantPage] targetMerchantId:', targetMerchantId)
+    console.log('[MerchantPage] merchantList:', merchantList.value)
+    
+    // 等待 merchantList 更新后再匹配
+    await nextTick()
+    
+    const findAndOpen = async () => {
+      const targetMerchant = merchantList.value.find(m => {
+        console.log('[MerchantPage] checking merchant:', m.id, m.account)
+        return m.id === targetMerchantId || m.account === targetMerchantId
+      })
+      
+      console.log('[MerchantPage] targetMerchant:', targetMerchant)
+      
+      if (targetMerchant) {
+        await openChat(targetMerchant)
+      } else {
+        // 如果商家不在列表中，创建一个临时商家对象并打开聊天
+        console.log('[MerchantPage] creating tempMerchant')
+        const tempMerchant = {
+          id: targetMerchantId,
+          account: targetMerchantId,
+          name: String(targetMerchantId),
+          avatar: '',
+          lastMsg: '',
+          time: '',
+          unread: 0
+        }
+        await openChat(tempMerchant)
+      }
+    }
+    
+    // 如果 merchantList 还是空的，等待一下再试
+    if (merchantList.value.length === 0) {
+      setTimeout(findAndOpen, 500)
+    } else {
+      await findAndOpen()
+    }
+  }
 })
 
 onUnmounted(() => {
@@ -391,20 +444,17 @@ const openChat = async (merchant) => {
   currentMerchant.value = merchant
   clearUnread(merchant.id)
 
-  const userInfoStr = localStorage.getItem('userInfo')
-  let myId = ''
-  if (userInfoStr) {
-    try {
-      const info = JSON.parse(userInfoStr)
-      myId = info.account || ''
-    } catch { /* ignore */ }
-  }
+  const myId = getMyId()
+
+  // 构造正确的 roomId 格式：家政人员账号_管理员账号
+  const roomId = merchant.id.includes('_') 
+    ? merchant.id 
+    : `${merchant.id}_${myId}`
 
   chatMessages.value = []
   try {
     const res = await getChatHistoryApi({
-      sender_id: myId,
-      receiver_id: merchant.id
+      room_id: roomId
     })
     if (res && res.data && Array.isArray(res.data)) {
       res.data.forEach(msg => {
@@ -414,7 +464,8 @@ const openChat = async (merchant) => {
           type: msg.msgType || 'text',
           text: msg.content,
           orderData: msg.orderData,
-          time: formatTime(new Date(msg.createdAt))
+          time: formatTime(new Date(msg.createdAt)),
+          isRead: msg.isRead === true || msg.isRead === 1 || msg.isRead === '1'
         })
       })
     }
@@ -423,20 +474,31 @@ const openChat = async (merchant) => {
   }
 
   nextTick(scrollToBottom)
+
+  // 使用正确的 roomId 标记已读
+  markChatReadApi({ room_id: roomId, userId: myId }).catch(() => {})
+  
+  // 标记已读后，更新本地消息的已读状态
+  chatMessages.value.forEach(msg => {
+    if (msg.from === 'merchant') {
+      msg.isRead = true
+    }
+  })
+  
+  // 同时清除本地未读计数
+  clearUnread(merchant.id)
 }
 
 const sendMsg = async () => {
   const text = newMsg.value.trim()
   if (!text) return
   
-  const userInfoStr = localStorage.getItem('userInfo')
-  let myId = ''
-  if (userInfoStr) {
-    try {
-      const info = JSON.parse(userInfoStr)
-      myId = info.account || ''
-    } catch { /* ignore */ }
-  }
+  const myId = getMyId()
+  
+  // 构造正确的 roomId 格式：家政人员账号_管理员账号
+  const roomId = currentMerchant.value.id.includes('_') 
+    ? currentMerchant.value.id 
+    : `${currentMerchant.value.id}_${myId}`
   
   const now = new Date()
   const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
@@ -447,8 +509,8 @@ const sendMsg = async () => {
 
   try {
     await saveChatMsgApi({
+      roomId: roomId,
       senderId: myId,
-      receiverId: currentMerchant.value.id,
       content: text,
       msgType: 'text'
     })
@@ -494,12 +556,20 @@ const formatTime = (date) => {
   background: white;
   padding: 12px 20px;
   border-bottom: 1px solid #ebeef5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .merchant-header h2 {
   font-size: 18px;
-  margin-top: 4px;
-  margin-bottom: 0;
+  margin: 0;
 }
 
 .back-link {
@@ -573,7 +643,11 @@ const formatTime = (date) => {
   font-weight: 500;
   color: var(--text-h);
 }
-
+.cs-tag {
+  font-size: 12px;
+  color: var(--text-light);
+  font-weight: 400;
+}
 .merchant-time {
   font-size: 11px;
   color: var(--text-light);
@@ -661,7 +735,31 @@ const formatTime = (date) => {
   margin-top: 4px;
   padding: 0 4px;
 }
+.msg-status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 0 4px;
+}
 
+.msg-time {
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+.msg-read-status {
+  font-size: 11px;
+  color: #909399;
+}
+
+.msg-left .msg-read-status {
+  color: #909399;
+}
+
+.msg-right .msg-read-status {
+  display: none;
+}
 .chat-input-row {
   display: flex;
   gap: 10px;
@@ -812,5 +910,54 @@ const formatTime = (date) => {
   .merchant-body.has-chat .merchant-chat {
     display: flex;
   }
+}
+
+.cs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.cs-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 2px solid #ebeef5;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #fff;
+}
+
+.cs-item:hover {
+  border-color: #ffb0b0;
+  background: #fffbfb;
+}
+
+.cs-item.active {
+  border-color: var(--accent);
+  background: #fff5f5;
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.12);
+}
+
+.cs-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cs-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.cs-account {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 2px;
 }
 </style>

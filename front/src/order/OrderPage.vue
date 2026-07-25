@@ -95,15 +95,25 @@
         </div>
       </div>
 
-      <el-button
-        type="primary"
-        size="large"
-        class="pay-btn"
-        :loading="paying"
-        @click="handlePayClick"
-      >
-        立即支付 {{ service.price }}
-      </el-button>
+      <div class="pay-btn-row">
+        <el-button
+          type="primary"
+          size="large"
+          class="pay-btn"
+          :loading="paying"
+          @click="handlePayClick"
+        >
+          立即支付 {{ service.price }}
+        </el-button>
+        <el-button
+          type="success"
+          size="large"
+          class="contact-cs-btn"
+          @click="showCustomerServiceDialog = true"
+        >
+          联系客服
+        </el-button>
+      </div>
     </div>
 
     <el-dialog
@@ -146,15 +156,47 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <el-dialog
+      v-model="showCustomerServiceDialog"
+      title="联系客服"
+      width="420px"
+      :close-on-click-modal="false"
+      class="customer-service-dialog"
+      @open="fetchAdminList"
+    >
+      <div class="cs-list" v-loading="csLoading">
+        <div
+          v-for="admin in adminList"
+          :key="admin.id"
+          :class="['cs-item', { active: selectedCsId === admin.id }]"
+          @click="selectedCsId = admin.id"
+        >
+          <el-avatar :size="40" :src="admin.avatar" shape="square">
+            {{ (admin.realName || admin.username || admin.account || '客').charAt(0) }}
+          </el-avatar>
+          <div class="cs-info">
+            <div class="cs-name">{{ admin.realName || admin.username || '客服' }}</div>
+            <div class="cs-account">{{ admin.account }}</div>
+          </div>
+          <el-icon v-if="selectedCsId === admin.id" color="var(--accent)" size="20"><Check /></el-icon>
+        </div>
+        <el-empty v-if="!csLoading && adminList.length === 0" description="暂无在线客服" :image-size="60" />
+      </div>
+      <template #footer>
+        <el-button @click="showCustomerServiceDialog = false">取消</el-button>
+        <el-button type="primary" :disabled="!selectedCsId" @click="confirmContactCs">确认联系</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowDown, WarningFilled } from '@element-plus/icons-vue'
+import { ArrowDown, WarningFilled, Check } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { checkPayPasswordApi, getAddressListApi, createOrderApi } from '../api/admin'
+import { checkPayPasswordApi, getAddressListApi, createOrderApi, getAdminListApi } from '../api/admin'
 
 const route = useRoute()
 const router = useRouter()
@@ -177,6 +219,11 @@ const showPayDialog = ref(false)
 const paying = ref(false)
 const pwdDigits = ref(['', '', '', '', '', ''])
 const pwdRefs = ref([])
+
+const showCustomerServiceDialog = ref(false)
+const csLoading = ref(false)
+const adminList = ref([])
+const selectedCsId = ref(null)
 
 onMounted(() => {
   const { id, name, description, price, icon } = route.query
@@ -337,6 +384,36 @@ const handlePay = async () => {
 const closePayDialog = () => {
   showPayDialog.value = false
   pwdDigits.value = ['', '', '', '', '', '']
+}
+
+const fetchAdminList = async () => {
+  csLoading.value = true
+  try {
+    const res = await getAdminListApi({})
+    const data = res.data || {}
+    adminList.value = Array.isArray(data) ? data : (data.records || [data])
+  } catch {
+    adminList.value = []
+  } finally {
+    csLoading.value = false
+  }
+}
+
+const confirmContactCs = async () => {
+  if (!selectedCsId.value) {
+    ElMessage.warning('请选择一位客服')
+    return
+  }
+  const selectedAdmin = adminList.value.find(a => a.id === selectedCsId.value)
+  if (!selectedAdmin) {
+    ElMessage.error('客服信息获取失败')
+    return
+  }
+  showCustomerServiceDialog.value = false
+  router.push({
+    path: '/merchant',
+    query: { merchantId: selectedAdmin.account }
+  })
 }
 </script>
 
@@ -630,5 +707,68 @@ h2 {
 .pwd-dot:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.2);
+}
+
+.pay-btn-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.pay-btn-row .pay-btn {
+  flex: 1;
+}
+
+.pay-btn-row .contact-cs-btn {
+  flex: 1;
+}
+
+.cs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.cs-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 2px solid #ebeef5;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #fff;
+}
+
+.cs-item:hover {
+  border-color: #ffb0b0;
+  background: #fffbfb;
+}
+
+.cs-item.active {
+  border-color: var(--accent);
+  background: #fff5f5;
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.12);
+}
+
+.cs-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cs-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.cs-account {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 2px;
 }
 </style>
