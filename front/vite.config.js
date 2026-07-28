@@ -11,12 +11,6 @@ export default defineConfig({
         ws: true,
         changeOrigin: true
       },
-      
-      '/admin/chat': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/admin\/chat/, '/api/chat')
-      },
       '/admin': {
         target: 'http://localhost:8080',
         changeOrigin: true
@@ -26,22 +20,6 @@ export default defineConfig({
         changeOrigin: true
       },
       '/emp': {
-        target: 'http://localhost:8080',
-        changeOrigin: true
-      },
-      '/login': {
-        target: 'http://localhost:8080',
-        changeOrigin: true
-      },
-      '/register': {
-        target: 'http://localhost:8080',
-        changeOrigin: true
-      },
-      '/send-code': {
-        target: 'http://localhost:8080',
-        changeOrigin: true
-      },
-      '/logout': {
         target: 'http://localhost:8080',
         changeOrigin: true
       },

@@ -101,8 +101,8 @@ public class OrderServiceImpl implements OrderService {
      * @return
      */
     @Override
-    public List<Order> getOrders(String orderNo, Integer orderStatus) {
-        List<Order> orders = orderMapper.getOrders(orderNo, orderStatus);
+    public List<Order> getOrders(String orderNo, Integer orderStatus, String userAccount, String staffAccount) {
+        List<Order> orders = orderMapper.getOrders(orderNo, orderStatus, userAccount, staffAccount);
         // 填充封面URL
         for (Order order : orders) {
             UserImg userImg = userImgMapper.selectByOrderNo(order.getOrderNo());

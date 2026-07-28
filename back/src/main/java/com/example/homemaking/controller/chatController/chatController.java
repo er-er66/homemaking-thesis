@@ -15,7 +15,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/chat")
+@RequestMapping("/admin/chat")
 public class chatController {
     @Autowired
     private ChatService chatService;

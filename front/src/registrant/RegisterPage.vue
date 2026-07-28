@@ -122,7 +122,7 @@
             </el-radio-group>
           </el-form-item>
 
-          <el-form-item v-if="form.role === '002'" label="服务技能" prop="skills">
+          <el-form-item v-if="form.role === '02'" label="服务技能" prop="skills">
             <el-checkbox-group v-model="form.skills" class="skills-group">
               <el-checkbox v-for="skill in skillOptions" :key="skill" :value="skill" :label="skill" />
             </el-checkbox-group>
@@ -176,7 +176,7 @@ const form = reactive({
   code: '',
   password: '',
   confirmPassword: '',
- role: '001',
+ role: '01',
   skills: [],
   agreed: false
 })
@@ -186,6 +186,7 @@ const avatarPreview = ref('')
 const skillOptions = ref([])
 
 const fetchSkills = async () => {
+  if (skillOptions.value.length > 0) return
   try {
     const res = await getPackageListApi({ status: 1 })
     if (res && res.data && Array.isArray(res.data)) {
@@ -196,8 +197,16 @@ const fetchSkills = async () => {
   }
 }
 
+const handleRoleChange = (role) => {
+  if (role === '02') {
+    fetchSkills()
+  }
+}
+
 onMounted(() => {
-  fetchSkills()
+  if (form.role === '02') {
+    fetchSkills()
+  }
 })
 
 const beforeUpload = (file) => {

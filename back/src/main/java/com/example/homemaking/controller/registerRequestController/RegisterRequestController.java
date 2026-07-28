@@ -1,4 +1,4 @@
-package com.example.homemaking.controller.registerRequest;
+package com.example.homemaking.controller.registerRequestController;
 
 import com.example.homemaking.dto.RegisterRequestDTO;
 import com.example.homemaking.result.Result;
@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @Slf4j
-public class RegisterRequest {
+public class RegisterRequestController {
     @Autowired
     private RegisterRequestService registerRequestService;
 
@@ -29,20 +29,12 @@ public class RegisterRequest {
         }
         verificationCodeService.remove(phone);
 
-        log.info("用户注册：{}", registerRequestDTO.getRole());
-        log.info("用户注册：{}", registerRequestDTO.getUsername());
-        log.info("用户注册：{}", phone);
-        log.info("用户注册Code：{}", code);
-        log.info("用户注册getAccount：{}", registerRequestDTO.getAccount());
-        log.info("用户注册：{}", registerRequestDTO.getPassword());
-        log.info("用户注册：{}", registerRequestDTO.getConfirmPassword());
-        log.info("用户注册Skills：{}", registerRequestDTO.getSkills());
-        log.info("用户注册Gender：{}", registerRequestDTO.getGender());
-        log.info("用户注册Avatar：{}", registerRequestDTO.getAvatar());
-        Boolean msg = registerRequestService.register(registerRequestDTO);
+     String token = registerRequestService.register(registerRequestDTO);
 
-        if (msg) {
-            return Result.success("注册成功");
+        if ("PHONE_EXISTS".equals(token)) {
+            return Result.error("手机号已存在");
+        } else if (token != null) {
+            return Result.success(token);
         } else {
             return Result.error("注册失败");
         }

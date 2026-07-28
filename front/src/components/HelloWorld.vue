@@ -213,6 +213,8 @@ const checkLoginStatus = () => {
           fetchUnreadMessages(userInfo.account)
         }
       }
+      // 登录成功后获取服务套餐列表
+      fetchPackages()
     } catch {
       isLoggedIn.value = false
     }
@@ -235,7 +237,6 @@ const fetchUnreadMessages = async (userId) => {
 
 onMounted(() => {
   checkLoginStatus()
-  fetchPackages()
 })
 
 const handleLogout = () => {

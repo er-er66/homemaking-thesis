@@ -8,7 +8,11 @@ import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface RegisterRequestMapper {
-    Boolean insertSys_User(SysUser sysUser);
+    int insertSys_User(SysUser sysUser);
 
-    Boolean insertSys_Staff(SysStaff sysStaff);
+    int insertSys_Staff(SysStaff sysStaff);
+
+    int countByPhoneUser(String phone);
+
+    int countByPhoneStaff(String phone);
 }

@@ -25,7 +25,7 @@ public interface OrderService {
      * @param orderStatus 订单状态
      * @return
      */
-    List<Order> getOrders(String orderNo, Integer orderStatus);
+    List<Order> getOrders(String orderNo, Integer orderStatus, String userAccount, String staffAccount);
 
     /**
  * 根据id获取订单

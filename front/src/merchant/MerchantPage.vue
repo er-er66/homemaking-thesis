@@ -5,13 +5,13 @@
         <el-link type="info" :underline="false" @click="router.push('/')" class="back-link">
           ← 返回
         </el-link>
-        <h2>商家消息</h2>
+        <h2>{{ isStaff ? '用户消息' : '商家消息' }}</h2>
       </div>
     </div>
 
     <div :class="['merchant-body', { 'has-chat': currentMerchant.id }]" v-loading="loading">
       <div class="merchant-sidebar">
-        <div class="sidebar-title">商家列表</div>
+        <div class="sidebar-title">{{ isStaff ? '用户列表' : '商家列表' }}</div>
         <div class="merchant-list">
           <template v-if="merchantList.length > 0">
             <div
@@ -185,19 +185,34 @@ const takingOrder = ref(false)
 
 const merchantList = computed(() => getMerchants())
 
+const isStaff = computed(() => {
+  const userInfoStr = localStorage.getItem('userInfo')
+  if (userInfoStr) {
+    try {
+      const info = JSON.parse(userInfoStr)
+      return info.roleCode === '02'
+    } catch { /* ignore */ }
+  }
+  return false
+})
+
 const connectWebSocket = () => {
   const userInfoStr = localStorage.getItem('userInfo')
   let userId = ''
+  let role = 'merchant'
   if (userInfoStr) {
     try {
       const info = JSON.parse(userInfoStr)
       userId = info.account || ''
+      if (info.roleCode === '02') {
+        role = 'staff'
+      }
     } catch { /* ignore */ }
   }
 
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   const host = import.meta.env.VITE_WS_HOST || window.location.host
-  const wsUrl = `${protocol}//${host}/ws/chat?userId=${userId}&role=merchant`
+  const wsUrl = `${protocol}//${host}/ws/chat?userId=${userId}&role=${role}`
   ws = new WebSocket(wsUrl)
 
   ws.onopen = () => {

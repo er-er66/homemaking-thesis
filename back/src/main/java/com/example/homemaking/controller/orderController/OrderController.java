@@ -42,10 +42,12 @@ public class OrderController {
     @GetMapping("/order")
     public Result<List<Order>> getOrder(
             @RequestParam(required = false) String orderNo,
-            @RequestParam(required = false) Integer orderStatus
+            @RequestParam(required = false) Integer orderStatus,
+            @RequestParam(required = false) String userAccount,
+            @RequestParam(required = false) String staffAccount
     ) {
-        log.info("获取订单列表，订单编号：{}，订单状态：{}", orderNo, orderStatus);
-        List<Order> orders = orderService.getOrders(orderNo, orderStatus);
+        log.info("获取订单列表，订单编号：{}，订单状态：{}，用户账号：{}，员工账号：{}", orderNo, orderStatus, userAccount, staffAccount);
+        List<Order> orders = orderService.getOrders(orderNo, orderStatus, userAccount, staffAccount);
 
         return Result.success(orders);
     }

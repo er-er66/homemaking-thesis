@@ -17,6 +17,12 @@ public class ChatWebSocketHandler extends AbstractWebSocketHandler {
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
+    public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+        logger.info("WebSocket 连接建立: sessionId={}, uri={}", session.getId(), session.getUri());
+        super.afterConnectionEstablished(session);
+    }
+
+    @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         try {
             String payload = message.getPayload();

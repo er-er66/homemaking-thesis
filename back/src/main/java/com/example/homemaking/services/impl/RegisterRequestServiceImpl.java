@@ -5,6 +5,7 @@ import com.example.homemaking.entity.SysStaff;
 import com.example.homemaking.entity.SysUser;
 import com.example.homemaking.mapper.RegisterRequestMapper;
 import com.example.homemaking.services.RegisterRequestService;
+import com.example.homemaking.util.JwtUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,12 +14,15 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
-public class RegisterRequestImpl implements RegisterRequestService {
+public class RegisterRequestServiceImpl implements RegisterRequestService {
     @Autowired
     private RegisterRequestMapper registerRequestMapper;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
     @Override
-    public Boolean register(RegisterRequestDTO registerRequestDTO) {
+    public String register(RegisterRequestDTO registerRequestDTO) {
 
         String gender = registerRequestDTO.getGender();
 
@@ -32,6 +36,9 @@ public class RegisterRequestImpl implements RegisterRequestService {
         if ("00".equals(role)) {//注册管理员
 
         } else if ("01".equals(role)) {
+            if (registerRequestMapper.countByPhoneUser(registerRequestDTO.getPhone()) > 0) {
+                return "PHONE_EXISTS";
+            }
             SysUser user = new SysUser();
             BeanUtils.copyProperties(registerRequestDTO, user);
             user.setUsername(registerRequestDTO.getUsername());
@@ -44,8 +51,15 @@ public class RegisterRequestImpl implements RegisterRequestService {
             }
             user.setStatus(1);
             user.setIsDeleted(0);
-            return registerRequestMapper.insertSys_User(user) != null;
+            int rows = registerRequestMapper.insertSys_User(user);
+            if (rows > 0) {
+                return jwtUtil.generateToken(user.getId(), user.getAccount(), role);
+            }
+            return null;
         } else if ("02".equals(role)) {
+            if (registerRequestMapper.countByPhoneStaff(registerRequestDTO.getPhone()) > 0) {
+                return "PHONE_EXISTS";
+            }
             SysStaff staff = new SysStaff();
             BeanUtils.copyProperties(registerRequestDTO, staff);
             staff.setAccount(registerRequestDTO.getAccount());
@@ -67,8 +81,12 @@ public class RegisterRequestImpl implements RegisterRequestService {
             if (staff.getGender() == null) {
                 staff.setGender(0);
             }
-            return registerRequestMapper.insertSys_Staff(staff) != null;
+            int rows = registerRequestMapper.insertSys_Staff(staff);
+            if (rows > 0) {
+                return jwtUtil.generateToken(staff.getId(), staff.getAccount(), role);
+            }
+            return null;
         }
-        return false;
+        return null;
     }
 }

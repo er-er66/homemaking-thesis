@@ -5,13 +5,21 @@
 <mapper namespace="com.example.homemaking.mapper.RegisterRequestMapper">
 
 
-    <insert id="insertSys_User">
+    <insert id="insertSys_User" useGeneratedKeys="true" keyProperty="id">
         insert into sys_user(account,phone,password,username,gender,avatar,status,create_time,update_time,is_deleted)
         values(#{account},#{phone},#{password},#{username},#{gender},#{avatar},#{status},#{createTime},#{updateTime},#{isDeleted})
     </insert>
-    <insert id="insertSys_Staff">
+    <insert id="insertSys_Staff" useGeneratedKeys="true" keyProperty="id">
         insert into sys_staff(account,phone,password,username,gender,skills,avatar,status,create_time,update_time,is_deleted)
         values(#{account},#{phone},#{password},#{username},#{gender},#{skills},#{avatar},#{status},#{createTime},#{updateTime},#{isDeleted})
     </insert>
+
+    <select id="countByPhoneUser" resultType="int">
+        select count(*) from sys_user where phone = #{phone} and is_deleted = 0
+    </select>
+
+    <select id="countByPhoneStaff" resultType="int">
+        select count(*) from sys_staff where phone = #{phone} and is_deleted = 0
+    </select>
 
 </mapper>

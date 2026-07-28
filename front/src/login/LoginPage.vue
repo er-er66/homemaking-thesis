@@ -48,9 +48,11 @@
 
           <el-form-item label="登录身份">
             <el-radio-group v-model="form.role" class="role-group">
+              <el-radio value="000">管理员</el-radio>
               <el-radio value="001">普通用户</el-radio>
               <el-radio value="002">家政人员</el-radio>
-            </el-radio-group></el-form-item>
+            </el-radio-group>
+          </el-form-item>
 
           <div class="form-options">
             <el-checkbox v-model="form.remember" label="记住我" size="small" />
@@ -119,17 +121,6 @@ onMounted(() => {
   }
 })
 
-const parseRole = (code) => {
-  const str = String(code || '')
-  if (str.charAt(0) === '1') return 'super_admin'
-  if (str.charAt(0) === '0') {
-    if (str.charAt(1) === '1') return 'admin'
-    if (str.charAt(1) === '2') return 'staff'
-    if (str.charAt(1) === '3') return 'user'
-  }
-  return 'user'
-}
-
 const handleLogin = async () => {
   if (!formRef.value) return
   try {
@@ -140,18 +131,16 @@ const handleLogin = async () => {
 
   loading.value = true
   try {
-    // 判断输入的是手机号还是账号
     const isPhone = /^1\d{10}$/.test(form.account)
     const res = await loginApi({
       account: isPhone ? '' : form.account,
       phone: isPhone ? form.account : '',
       password: form.password,
-      role: form.role || '000'
+      role: form.role || '001'
     })
 
-    if (res.code === 200) {
-      const data = res.data || {}
-      console.log('后端返回 data:', JSON.stringify(data, null, 2))
+    if (res && res.data) {
+      const data = res.data
 
       if (form.remember) {
         localStorage.setItem('loginUser', JSON.stringify({ account: form.account, password: form.password }))
@@ -159,30 +148,32 @@ const handleLogin = async () => {
         localStorage.removeItem('loginUser')
       }
 
-      const token = data.token || 'token-' + Date.now()
+      const token = data.token || ''
       localStorage.setItem('token', token)
 
-      const roleCode = data.role || data.roleCode || data.code || ''
-      const userRole = parseRole(roleCode)
+      const roleCode = data.roleCode || ''
 
       const userInfo = {
-        username: data.realName || data.username || data.name || form.account,
+        username: data.username || form.account,
         account: data.account || form.account,
         avatar: data.avatar || '',
-        role: userRole,
-        roleCode: roleCode
+        roleCode: roleCode,
+        phone: data.phone || ''
       }
-      console.log('保存 userInfo:', JSON.stringify(userInfo, null, 2))
       localStorage.setItem('userInfo', JSON.stringify(userInfo))
       ElMessage.success('登录成功')
-      if (userInfo.role === 'super_admin' || userInfo.role === 'admin') {
+
+      if (roleCode === '10' || roleCode === '01') {
         router.replace('/admin/dashboard')
       } else {
         router.replace('/')
       }
+    } else {
+      ElMessage.error(res.message || '登录失败')
     }
   } catch (error) {
     console.error('请求失败:', error)
+    ElMessage.error(error.response?.data?.message || '登录失败，请重试')
   }
   loading.value = false
 }

@@ -44,6 +44,12 @@
         <if test="orderStatus != null">
             and order_status = #{orderStatus}
         </if>
+        <if test="userAccount != null and userAccount != ''">
+            and user_account = #{userAccount}
+        </if>
+        <if test="staffAccount != null and staffAccount != ''">
+            and staff_account = #{staffAccount}
+        </if>
     </select>
     <select id="getOrderById" resultType="com.example.homemaking.entity.Order">
         select *
