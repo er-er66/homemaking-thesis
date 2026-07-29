@@ -356,3 +356,22 @@ export const changeAdminPhoneApi = (data) => {
     data
   })
 }
+
+export const sendResetCodeApi = (phone) => {
+  return request({
+    url: '/reset-password/send-code',
+    method: 'post',
+    data: phone,
+    headers: {
+      'Content-Type': 'text/plain'
+    }
+  })
+}
+
+export const resetPasswordApi = (data) => {
+  return request({
+    url: '/reset-password',
+    method: 'post',
+    data
+  })
+}

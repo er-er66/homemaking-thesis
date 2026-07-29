@@ -98,4 +98,19 @@ public class ChatWebSocketHandler extends AbstractWebSocketHandler {
     public static int getOnlineCount() {
         return webSocketMap.size();
     }
+
+    /**
+     * 踢掉指定用户的旧WebSocket连接（用于单点登录场景）
+     */
+    public void closeSessionByUserId(String userId) {
+        WebSocketSession oldSession = webSocketMap.remove(userId);
+        if (oldSession != null && oldSession.isOpen()) {
+            try {
+                oldSession.close(CloseStatus.NORMAL.withReason("账号已在其他设备登录"));
+                logger.info("已关闭旧WebSocket连接: userId={}, sessionId={}", userId, oldSession.getId());
+            } catch (Exception e) {
+                logger.error("关闭旧WebSocket连接失败: userId={}", userId, e);
+            }
+        }
+    }
 }

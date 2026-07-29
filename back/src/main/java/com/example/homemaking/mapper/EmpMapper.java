@@ -35,4 +35,19 @@ public interface EmpMapper {
      */
     List<SysStaff> searchEmps(@Param("name") String name, @Param("phone") String phone,
                               @Param("startTime") LocalDateTime startTime, @Param("endTime") LocalDateTime endTime);
+
+    /**
+     * 根据手机号查询员工数量(重置密码需要)
+     * @param phone 手机号
+     * @return 员工数量
+     */
+    int selectCountByPhone(String phone);
+
+    /**
+     * 修改密码
+     * @param phone 手机号
+     * @param newPassword 新密码
+     * @return 修改结果
+     */
+    int updatePassword(String phone, String newPassword);
 }

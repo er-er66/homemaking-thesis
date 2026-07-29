@@ -68,4 +68,15 @@ public class VerificationCode {
         }
         return Result.error("验证码错误");
     }
+    @PostMapping("/reset-password/send-code")
+    public Result<String> sendCodeForResetPassword(@RequestBody String  phone) {
+        log.info("发送验证码，phone={}", phone);
+        String code = "";
+        for (int i = 0; i < 6; i++) {
+            code += (int) (Math.random() * 10);
+        }
+        verificationCodeService.save(phone, code);
+        log.info("向手机{}发送验证码：{}", phone, code);
+        return Result.success(code);
+    }
 }

@@ -394,6 +394,15 @@ const connectWs = (staffAccount) => {
       
       clearReconnectTimer()
       
+      // 被踢下线：不重连，提示并跳转登录页
+      if (event.reason && event.reason.includes('其他设备登录')) {
+        ElMessage.error('账号已在其他设备登录，请重新登录')
+        localStorage.removeItem('token')
+        localStorage.removeItem('userInfo')
+        window.location.href = '/login'
+        return
+      }
+      
       if (event.code !== 1000) {
         console.log('3秒后重连')
         reconnectTimer = setTimeout(() => connectWs(staffAccount), 3000)

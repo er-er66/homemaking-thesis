@@ -1,5 +1,6 @@
 package com.example.homemaking.services.impl;
 
+import com.example.homemaking.config.ChatWebSocketHandler;
 import com.example.homemaking.dto.LoginRequestDTO;
 import com.example.homemaking.entity.SysAdmin;
 import com.example.homemaking.entity.SysStaff;
@@ -10,7 +11,11 @@ import com.example.homemaking.util.JwtUtil;
 import com.example.homemaking.vo.LoginResultVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -19,6 +24,12 @@ public class LoginServiceImpl implements LoginService {
         private LoginMapper loginMapper;
         @Autowired
         private JwtUtil jwtUtil;
+        @Autowired
+        private StringRedisTemplate stringRedisTemplate;
+        @Autowired
+        private ChatWebSocketHandler chatWebSocketHandler;
+        @Value("${jwt.expiration}")
+        private Long jwtExpiration;
         @Override
         public Object login(LoginRequestDTO loginRequestDTO) {
             //"000"管理员,"001"普通用户,"002"家政人员
@@ -47,6 +58,8 @@ public class LoginServiceImpl implements LoginService {
                         vo.setPhone(admin.getPhone());
                     }
                     log.info("管理员登录成功，返回: {}", vo);
+                    saveTokenToRedis(admin.getId(), role, vo.getToken());
+                    closeOldWebSocket(account);
                     return vo;
                 }
             } else if ("001".equals(role)) {
@@ -59,6 +72,8 @@ public class LoginServiceImpl implements LoginService {
                     vo.setRoleCode("03");
                     vo.setAccount(user.getAccount());
                     vo.setPhone(user.getPhone());
+                    saveTokenToRedis(user.getId(), role, vo.getToken());
+                    closeOldWebSocket(account);
                     return vo;
                 }
             } else if ("002".equals(role)) {
@@ -71,9 +86,29 @@ public class LoginServiceImpl implements LoginService {
                     vo.setRoleCode("02");
                     vo.setAccount(staff.getAccount());
                     vo.setPhone(staff.getPhone());
+                    saveTokenToRedis(staff.getId(), role, vo.getToken());
+                    closeOldWebSocket(account);
                     return vo;
                 }
             }
             return null;
+        }
+
+        private void saveTokenToRedis(Long userId, String role, String token) {
+            try {
+                String redisKey = "login:token:" + role + ":" + userId;
+                stringRedisTemplate.opsForValue().set(redisKey, token, jwtExpiration, TimeUnit.SECONDS);
+                log.info("Token已存入Redis, key={}", redisKey);
+            } catch (Exception e) {
+                log.error("Token存入Redis失败: {}", e.getMessage());
+            }
+        }
+
+        private void closeOldWebSocket(String account) {
+            try {
+                chatWebSocketHandler.closeSessionByUserId(account);
+            } catch (Exception e) {
+                log.error("关闭旧WebSocket连接失败: account={}, error={}", account, e.getMessage());
+            }
         }
     }

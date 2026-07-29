@@ -33,4 +33,13 @@ public interface AdminMapper {
      * @return 受影响的行数
      */
     int toggleAdminStatus(Long id);
+
+    /**
+     * 根据手机号查询管理员数量
+     * @param phone 手机号
+     * @return 数量
+     */
+    int selectCountByPhone(String phone);
+
+    int updatePassword(String phone, String newPassword);
 }

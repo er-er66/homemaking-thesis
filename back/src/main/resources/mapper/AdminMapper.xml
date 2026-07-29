@@ -32,10 +32,18 @@
             ]]>
         </if>
     </select>
+    <select id="selectCountByPhone" resultType="java.lang.Integer">
+        select count(*) from sys_admin where phone = #{phone}
+    </select>
 
     <update id="toggleAdminStatus">
         update sys_admin
         set status = case when status = 1 then 0 else 1 end
         where id = #{id}
+    </update>
+    <update id="updatePassword">
+        update sys_admin
+        set password = #{newPassword}
+        where phone = #{phone}
     </update>
 </mapper>

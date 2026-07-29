@@ -234,13 +234,24 @@ const connectWebSocket = () => {
   }
 
   ws.onclose = (event) => {
-    console.log('WebSocket 连接关闭，代码:', event.code)
-    if (event.code !== 1000) {
-      setTimeout(() => {
-        console.log('尝试重新连接...')
-        connectWebSocket()
-      }, 3000)
+    console.log('WebSocket 连接关闭，代码:', event.code, '原因:', event.reason)
+    // 被踢下线：不重连，提示并跳转登录页
+    if (event.reason && event.reason.includes('其他设备登录')) {
+      ElMessage.error('账号已在其他设备登录，请重新登录')
+      localStorage.removeItem('token')
+      localStorage.removeItem('userInfo')
+      window.location.href = '/login'
+      return
     }
+    // 正常关闭（页面离开等）：不重连
+    if (event.code === 1000) {
+      return
+    }
+    // 异常断开：3秒后重连
+    setTimeout(() => {
+      console.log('尝试重新连接...')
+      connectWebSocket()
+    }, 3000)
   }
 }
 

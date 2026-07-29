@@ -74,4 +74,20 @@ public String generateToken(Long Id, String account, String role) {
             return false;
         }
     }
+
+    /**
+     * 从token中解析Claims，用于获取userId、role等信息
+     * 仅在token签名合法且未过期时返回Claims，否则返回null
+     */
+    public Claims getClaimsFromToken(String token) {
+        try {
+            Claims claims = parseToken(token);
+            if (claims.getExpiration().before(new Date())) {
+                return null;
+            }
+            return claims;
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }

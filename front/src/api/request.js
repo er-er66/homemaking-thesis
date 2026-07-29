@@ -38,8 +38,10 @@ request.interceptors.response.use(
       const { status } = error.response
       switch (status) {
         case 401:
-          ElMessage.error('登录已过期，请重新登录')
+          const msg = error.response.data?.message || '登录已过期，请重新登录'
+          ElMessage.error(msg)
           localStorage.removeItem('token')
+          localStorage.removeItem('userInfo')
           window.location.href = '/login'
           break
         case 403:

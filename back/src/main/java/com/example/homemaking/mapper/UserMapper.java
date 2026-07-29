@@ -94,4 +94,13 @@ public interface UserMapper {
     String getAccountPassword(String payPassword);
 
 
+    /**
+     * 根据手机号查询用户数量(重置密码需要)
+     *
+     * @param phone
+     * @return
+     */
+    int selectCountByPhone(String phone);
+
+    int updatePassword(String phone, String newPassword);
 }

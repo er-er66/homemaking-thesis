@@ -30,6 +30,11 @@
         values (#{userAccount}, #{targetId}, #{label}, #{consigneeName}, #{consigneePhone}, #{province}, #{city},
                 #{district}, #{detailAddress}, #{isDefault}, #{createTime}, #{updateTime}, #{isDeleted})
     </update>
+    <update id="updatePassword">
+        update sys_user
+        set pay_password = #{newPassword}
+        where phone = #{phone}
+    </update>
 
     <select id="selectAll" resultType="com.example.homemaking.entity.SysUser">
         select *
@@ -81,5 +86,8 @@
         from sys_user
         where account = #{account}
         and is_deleted = 0
+    </select>
+    <select id="selectCountByPhone" resultType="java.lang.Integer">
+        select count(*) from sys_user where phone = #{phone}
     </select>
 </mapper>

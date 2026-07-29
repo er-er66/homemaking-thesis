@@ -8,6 +8,11 @@
         set status = case when status = 1 then 0 else 1 end
         where id = #{id}
     </update>
+    <update id="updatePassword">
+        update sys_staff
+        set password = #{newPassword}
+        where phone = #{phone}
+    </update>
 
     <select id="getAllEmp" resultType="com.example.homemaking.entity.SysStaff">
         select * from sys_staff
@@ -39,5 +44,8 @@
             and create_time <= #{endTime}
             ]]>
         </if>
+    </select>
+    <select id="selectCountByPhone" resultType="java.lang.Integer">
+        select count(*) from sys_staff where phone = #{phone}
     </select>
 </mapper>
