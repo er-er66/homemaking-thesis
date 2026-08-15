@@ -143,7 +143,7 @@ public class UserController {
         verificationCodeService.remove(newPhone);
 
         // 根据角色修改手机号
-        if ("user".equals(role)) {
+        if ("03".equals(role)) {
             SysUser sysUser = userService.getUserByAccount(account);
             if (sysUser != null) {
                 sysUser.setPhone(newPhone);
@@ -156,6 +156,30 @@ public class UserController {
         }
 
         return Result.error("未知角色");
+    }
+
+    @PostMapping("/user/change-name")
+    public Result<String> changeName(
+            @RequestParam String account,
+            @RequestParam String role,
+            @RequestParam String newName) {
+        log.info("修改用户名，account={}, role={}, newName={}", account, role, newName);
+
+        // 根据角色修改用户名
+        if ("03".equals(role)) {
+            SysUser sysUser = userService.getUserByAccount(account);
+            if (sysUser != null) {
+                sysUser.setUsername(newName);
+                int count = userService.updateUserName(sysUser);
+                if (count > 0) {
+                    return Result.success("用户名修改成功");
+                } else {
+                    return Result.error("用户名修改失败");
+                }
+            }
+    }
+        return Result.error("用户不存在");
+
     }
 
     /**
@@ -221,6 +245,7 @@ public class UserController {
             return Result.error("地址删除失败");
         }
     }
+
     @GetMapping("/user/account/{account}")
     public Result<SysUser> getUserByAccount(@PathVariable String account) {
         log.info("查询用户信息，account={}", account);

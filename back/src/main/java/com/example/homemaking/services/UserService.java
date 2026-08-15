@@ -89,4 +89,12 @@ public interface UserService {
  * @return
  */
     int deleteAddress(Long id);
+
+
+    /**
+     * 修改用户名
+     * @param sysUser 用户实体
+     * @return
+     */
+    int updateUserName(SysUser sysUser);
 }

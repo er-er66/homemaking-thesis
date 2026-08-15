@@ -94,6 +94,16 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
+     * 修改用户名
+     * @param sysUser
+     * @return
+     */
+    @Override
+    public int updateUserName(SysUser sysUser) {
+        return userMapper.updateUserName(sysUser);
+    }
+
+    /**
      * 保存地址
      * @param addressSaveDTO 地址保存DTO
      * @return

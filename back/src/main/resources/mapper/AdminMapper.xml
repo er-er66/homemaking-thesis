@@ -46,4 +46,9 @@
         set password = #{newPassword}
         where phone = #{phone}
     </update>
+    <update id="changeName">
+        update sys_admin
+        set username = #{newName}
+        where account = #{account}
+    </update>
 </mapper>

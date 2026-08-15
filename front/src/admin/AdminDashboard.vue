@@ -87,6 +87,7 @@
             </el-form-item>
           </el-form>
           <el-table :data="userList" style="width: 100%" v-loading="userLoading" stripe>
+            <el-table-column prop="account" label="用户账号" />
             <el-table-column prop="username" label="用户名称" />
             <el-table-column prop="phone" label="手机号" />
             <el-table-column label="状态">
@@ -522,6 +523,11 @@
                     {{ row.userAccount || '-' }}
                   </template>
                 </el-table-column>
+                <el-table-column label="用户名称" width="120">
+                  <template #default="{ row }">
+                    {{ row.userName || '-' }}
+                  </template>
+                </el-table-column>
                 <el-table-column label="最新消息" show-overflow-tooltip>
                   <template #default="{ row }">
                     {{ row.lastMessage || '-' }}
@@ -547,6 +553,11 @@
                 <el-table-column label="员工账号" width="150">
                   <template #default="{ row }">
                     {{ row.staffAccount || '-' }}
+                  </template>
+                </el-table-column>
+                <el-table-column label="家政人员名称" width="120">
+                  <template #default="{ row }">
+                    {{ row.staffName || '-' }}
                   </template>
                 </el-table-column>
                 <el-table-column label="最新消息" show-overflow-tooltip>
@@ -1478,6 +1489,7 @@ const fetchUserMessageList = async () => {
           const room = rooms.find(r => r.account === userAccount)
           return {
             userAccount: userAccount,
+            userName: user.username || user.realName || '-',
             lastMessage: room ? (room.lastMsg || '') : '',
             lastTime: room ? (room.lastTime || '') : (user.createTime || '')
           }
@@ -1486,6 +1498,7 @@ const fetchUserMessageList = async () => {
         // 如果获取会话列表失败，使用默认数据
         userMessageList.value = users.map(user => ({
           userAccount: user.account || user.username || '',
+          userName: user.username || user.realName || '-',
           lastMessage: '',
           lastTime: user.createTime || ''
         }))
@@ -1493,6 +1506,7 @@ const fetchUserMessageList = async () => {
     } else {
       userMessageList.value = users.map(user => ({
         userAccount: user.account || user.username || '',
+        userName: user.username || user.realName || '-',
         lastMessage: '',
         lastTime: user.createTime || ''
       }))
@@ -1532,6 +1546,7 @@ const fetchStaffMessageList = async () => {
           const room = rooms.find(r => r.account === staffAccount)
           return {
             staffAccount: staffAccount,
+            staffName: staff.realName || staff.username || '-',
             lastMessage: room ? (room.lastMsg || '') : '',
             lastTime: room ? (room.lastTime || '') : (staff.createTime || '')
           }
@@ -1540,6 +1555,7 @@ const fetchStaffMessageList = async () => {
         // 如果获取会话列表失败，使用默认数据
         staffMessageList.value = staffs.map(staff => ({
           staffAccount: staff.account || staff.username || '',
+          staffName: staff.realName || staff.username || '-',
           lastMessage: '',
           lastTime: staff.createTime || ''
         }))
@@ -1547,6 +1563,7 @@ const fetchStaffMessageList = async () => {
     } else {
       staffMessageList.value = staffs.map(staff => ({
         staffAccount: staff.account || staff.username || '',
+        staffName: staff.realName || staff.username || '-',
         lastMessage: '',
         lastTime: staff.createTime || ''
       }))

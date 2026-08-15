@@ -41,5 +41,19 @@ public interface AdminMapper {
      */
     int selectCountByPhone(String phone);
 
+    /**
+     * 修改管理员密码
+     * @param phone 手机号
+     * @param newPassword 新密码
+     * @return 受影响的行数
+     */
     int updatePassword(String phone, String newPassword);
+
+    /**
+     * 修改管理员名称
+     * @param account 管理员账号
+     * @param newName 新名称
+     * @return 受影响的行数
+     */
+    int changeName(String account, String newName);
 }

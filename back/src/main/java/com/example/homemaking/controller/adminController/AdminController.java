@@ -72,4 +72,17 @@ public class AdminController {
             return Result.error("状态切换失败，管理员不存在");
         }
     }
+    @PostMapping("/admin/change-name")
+    public Result<String> changeName(String account, String role, String newName) {
+        if (role.equals("01")) {
+            int count = adminService.changeName(account, newName);
+            if (count > 0) {
+                return Result.success("修改成功");
+            } else {
+                return Result.error("修改失败，管理员不存在");
+            }
+        }
+        return Result.error("角色错误");
+
+    }
 }

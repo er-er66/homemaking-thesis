@@ -59,11 +59,12 @@ public class LoginServiceImpl implements LoginService {
                     }
                     log.info("管理员登录成功，返回: {}", vo);
                     saveTokenToRedis(admin.getId(), role, vo.getToken());
-                    closeOldWebSocket(account);
+                    closeOldWebSocket(admin.getAccount());
                     return vo;
                 }
             } else if ("001".equals(role)) {
                 SysUser user = loginMapper.selectSys_User(phone, account, password);
+                log.info("查询普通用户结果: {}", user);
                 if (user != null) {
                     LoginResultVO vo = new LoginResultVO();
                     vo.setToken(jwtUtil.generateToken(user.getId(), user.getAccount(), role));
@@ -73,11 +74,12 @@ public class LoginServiceImpl implements LoginService {
                     vo.setAccount(user.getAccount());
                     vo.setPhone(user.getPhone());
                     saveTokenToRedis(user.getId(), role, vo.getToken());
-                    closeOldWebSocket(account);
+                    closeOldWebSocket(user.getAccount());
                     return vo;
                 }
             } else if ("002".equals(role)) {
                 SysStaff staff = loginMapper.selectSys_Staff(phone, account, password);
+                log.info("查询家政人员结果: {}", staff);
                 if (staff != null) {
                     LoginResultVO vo = new LoginResultVO();
                     vo.setToken(jwtUtil.generateToken(staff.getId(), staff.getAccount(), role));
@@ -87,7 +89,7 @@ public class LoginServiceImpl implements LoginService {
                     vo.setAccount(staff.getAccount());
                     vo.setPhone(staff.getPhone());
                     saveTokenToRedis(staff.getId(), role, vo.getToken());
-                    closeOldWebSocket(account);
+                    closeOldWebSocket(staff.getAccount());
                     return vo;
                 }
             }

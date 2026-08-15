@@ -1,10 +1,10 @@
-<template>
+﻿<template>
   <div class="order-chat-page">
     <div class="header">
       <el-link type="info" :underline="false" @click="router.back()" class="back-link">
-        ← 返回
+        �?返回
       </el-link>
-      <h2>订单与聊天</h2>
+      <h2>订单与聊�?/h2>
     </div>
 
     <div class="body">
@@ -13,7 +13,7 @@
         <div v-loading="loading" class="order-detail" v-if="orderData">
           <div class="order-info-card">
             <div class="info-row">
-              <span class="label">订单号</span>
+              <span class="label">订单�?/span>
               <span class="value">{{ orderData.orderNo }}</span>
             </div>
             <div class="info-row">
@@ -41,9 +41,9 @@
               <span class="value">{{ orderData.userAccount }}</span>
             </div>
             <div class="info-row">
-              <span class="label">状态</span>
+              <span class="label">状�?/span>
               <el-tag size="small" :type="orderData.orderStatus === 0 ? 'warning' : 'success'">
-                {{ orderData.orderStatus === 0 ? '待接单' : '已接单' }}
+                {{ orderData.orderStatus === 0 ? '待接�? : '已接�? }}
               </el-tag>
             </div>
           </div>
@@ -54,7 +54,7 @@
             </el-button>
           </div>
         </div>
-        <el-empty v-else description="加载中..." />
+        <el-empty v-else description="加载�?.." />
       </div>
 
       <div class="chat-panel">
@@ -70,7 +70,7 @@
                   <el-icon size="18"><Document /></el-icon>
                   <span class="order-card-title">订单详情</span>
                   <el-tag size="small" :type="msg.orderData.orderStatus === 0 ? 'warning' : 'success'">
-                    {{ msg.orderData.orderStatus === 0 ? '待接单' : '已接单' }}
+                    {{ msg.orderData.orderStatus === 0 ? '待接�? : '已接�? }}
                   </el-tag>
                 </div>
                 <div class="order-card-body">
@@ -107,7 +107,7 @@
         <div class="chat-footer">
           <div class="chat-input-row">
             <el-input v-model="newMsg" placeholder="输入消息..." @keyup.enter="sendMsg" />
-            <el-button type="primary" @click="sendMsg">发送</el-button>
+            <el-button type="primary" @click="sendMsg">发�?/el-button>
           </div>
         </div>
       </div>
@@ -121,7 +121,7 @@
     >
       <div class="order-detail-pop" v-if="selectedOrder">
         <div class="info-row">
-          <span class="label">订单号</span>
+          <span class="label">订单�?/span>
           <span class="value">{{ selectedOrder.orderNo }}</span>
         </div>
         <div class="info-row">
@@ -217,7 +217,7 @@ const connectWs = () => {
   const wsUrl = `${protocol}//${window.location.host}/ws/chat?from=${staffAccount}&to=${userAccount.value}&role=staff`
   try {
     ws = new WebSocket(wsUrl)
-    ws.onopen = () => console.log('WebSocket 已连接')
+    ws.onopen = () => console.log('WebSocket 已连�?)
     ws.onmessage = (event) => {
       const staffInfoStr = localStorage.getItem('userInfo')
       let staffAccount = ''
@@ -261,7 +261,7 @@ const connectWs = () => {
       }
     }
     ws.onclose = () => {
-      console.log('WebSocket 断开，3秒重连')
+      console.log('WebSocket 断开�?秒重�?)
       setTimeout(connectWs, 3000)
     }
   } catch (e) {
@@ -301,7 +301,7 @@ const handleTakeOrder = async () => {
     const time = formatTime(now)
     const successMsg = {
       from: 'me',
-      text: `我已接单，订单号：${orderData.value.orderNo}`,
+      text: `我已接单，订单号�?{orderData.value.orderNo}`,
       time
     }
     messages.value.push(successMsg)
@@ -314,7 +314,8 @@ const handleTakeOrder = async () => {
         to: userAccount.value,
         text: successMsg.text,
         type: 'message',
-        role: 'staff'
+        role: 'staff',
+        merchantId: staffAccount
       }))
     }
 
@@ -358,7 +359,8 @@ const sendMsg = () => {
       to: userAccount.value,
       text,
       type: 'message',
-      role: 'staff'
+      role: 'staff',
+      merchantId: staffAccount
     }))
   }
 

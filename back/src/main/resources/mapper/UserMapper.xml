@@ -32,8 +32,13 @@
     </update>
     <update id="updatePassword">
         update sys_user
-        set pay_password = #{newPassword}
+        set password = #{newPassword}
         where phone = #{phone}
+    </update>
+    <update id="updateUserName" parameterType="com.example.homemaking.entity.SysUser">
+        update sys_user
+        set username = #{username}
+        where id = #{id}
     </update>
 
     <select id="selectAll" resultType="com.example.homemaking.entity.SysUser">

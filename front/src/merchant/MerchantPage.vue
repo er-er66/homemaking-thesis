@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="merchant-page">
     <div class="merchant-header">
       <div class="header-left">
@@ -256,9 +256,20 @@ const connectWebSocket = () => {
 }
 
 const handleIncomingMessage = (data) => {
-  const { type, merchantId, merchantName, merchantAvatar, message, orderData } = data
+  const { type, from, to, merchantId, merchantName, merchantAvatar, message, orderData } = data
+  const myId = getMyId()
+  
+  console.log('[MerchantPage] 收到消息:', { type, from, to, merchantId, message, myId })
+  console.log('[MerchantPage] 当前聊天对象:', currentMerchant.value.id)
+  
+  // 忽略自己发送的消息（避免重复显示）
+  if (from === myId) {
+    console.log('[MerchantPage] 忽略自己发送的消息')
+    return
+  }
 
   if (type === 'order' && merchantId && orderData) {
+    console.log('[MerchantPage] 处理订单消息')
     const now = new Date()
     const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
     const orderMsg = {
@@ -267,11 +278,12 @@ const handleIncomingMessage = (data) => {
       orderData,
       time
     }
-    if (currentMerchant.value.id === merchantId) {
+    if (currentMerchant.value.account === merchantId) {
       chatMessages.value.push(orderMsg)
       updateLastMsg(merchantId, '[订单] ' + (orderData.serviceItem || '新订单'), time)
       nextTick(scrollToBottom)
-      markChatReadApi({ userId: getMyId(), merchantId: merchantId }).catch(() => {})
+      const roomId = merchantId.includes('_') ? merchantId : `${merchantId}_${myId}`
+      markChatReadApi({ room_id: roomId, userId: myId }).catch(() => {})
     } else {
       recvMsgFromMerchant({
         merchantId,
@@ -284,21 +296,16 @@ const handleIncomingMessage = (data) => {
   }
 
   if (type === 'message' && merchantId && message) {
-    if (currentMerchant.value.id === merchantId) {
-      const now = new Date()
-      const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
-      chatMessages.value.push({ from: 'merchant', text: message, time, isRead: true })
-      updateLastMsg(merchantId, message, time)
-      nextTick(scrollToBottom)
-      markChatReadApi({ userId: getMyId(), merchantId: merchantId }).catch(() => {})
-    } else {
-      recvMsgFromMerchant({
-        merchantId,
-        merchantName,
-        merchantAvatar,
-        text: message
-      })
-    }
+    console.log('[MerchantPage] 处理普通消息')
+    const now = new Date()
+    const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
+    chatMessages.value.push({ from: 'merchant', text: message, time, isRead: true })
+    updateLastMsg(merchantId, message, time)
+    nextTick(scrollToBottom)
+    const roomId = merchantId.includes('_') ? merchantId : `${merchantId}_${myId}`
+    markChatReadApi({ room_id: roomId, userId: myId }).catch(() => {})
+  } else {
+    console.log('[MerchantPage] 消息条件不满足:', { type, merchantId, message })
   }
 }
 const getMyId = () => {
@@ -374,8 +381,11 @@ const handleTakeOrder = async () => {
 
     sendMessage({
       type: 'message',
-      merchantId: currentMerchant.value.id,
-      message: `商家已接单，订单号：${selectedOrder.value.orderNo || selectedOrder.value.id}`
+      from: staffAccount,
+      to: currentMerchant.value.id,
+      merchantId: staffAccount,
+      message: `商家已接单，订单号：${selectedOrder.value.orderNo || selectedOrder.value.id}`,
+      text: `商家已接单，订单号：${selectedOrder.value.orderNo || selectedOrder.value.id}`
     })
   } catch {
     takingOrder.value = false
@@ -533,23 +543,16 @@ const sendMsg = async () => {
   newMsg.value = ''
   nextTick(scrollToBottom)
 
-  try {
-    await saveChatMsgApi({
-      roomId: roomId,
-      senderId: myId,
-      content: text,
-      msgType: 'text'
-    })
-  } catch (e) {
-    console.error('保存消息失败:', e)
-    ElMessage.error('消息发送失败')
-  }
-
+  // 只通过 WebSocket 发送消息，让后端处理保存逻辑（避免重复插入 DB）
   const success = sendMessage({
-    type: 'message',
-    merchantId: currentMerchant.value.id,
-    message: text
-  })
+  type: 'message',
+  from: myId,           // 发送者 account
+  to: currentMerchant.value.account,  // 接收者 account（不是 roomId）
+  merchantId: myId,     // 发送者 account
+  message: text,
+  text: text,
+  roomId: roomId
+});
   if (!success) {
     ElMessage.error('实时推送失败，连接已断开')
   }

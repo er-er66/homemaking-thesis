@@ -1,5 +1,8 @@
 package com.example.homemaking.config;
 
+import com.example.homemaking.dto.ChatMessageDTO;
+import com.example.homemaking.services.ChatService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -16,9 +19,26 @@ public class ChatWebSocketHandler extends AbstractWebSocketHandler {
     private static final ConcurrentHashMap<String, WebSocketSession> webSocketMap = new ConcurrentHashMap<>();
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
+    @Autowired
+    private ChatService chatService;
+
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         logger.info("WebSocket 连接建立: sessionId={}, uri={}", session.getId(), session.getUri());
+
+        // 从 URI 中解析 userId 参数并注册
+        String uri = session.getUri().toString();
+        if (uri != null && uri.contains("userId=")) {
+            int start = uri.indexOf("userId=") + 7;
+            int end = uri.indexOf("&", start);
+            if (end == -1) {
+                end = uri.length();
+            }
+            String userId = uri.substring(start, end);
+            webSocketMap.put(userId, session);
+            logger.info("WebSocket 用户注册: userId={}, sessionId={}", userId, session.getId());
+        }
+
         super.afterConnectionEstablished(session);
     }
 
@@ -50,7 +70,11 @@ public class ChatWebSocketHandler extends AbstractWebSocketHandler {
             String from = json.has("from") ? json.get("from").asText() : null;
             String to = json.has("to") ? json.get("to").asText() : null;
             String text = json.has("text") ? json.get("text").asText() : null;
+            if (text == null) {
+                text = json.has("message") ? json.get("message").asText() : null;
+            }
             String roomId = json.has("roomId") ? json.get("roomId").asText() : null;
+            String merchantId = json.has("merchantId") ? json.get("merchantId").asText() : null;
 
             if (from == null || from.isEmpty()) {
                 sendError(session, "参数 'from' 不能为空");
@@ -59,12 +83,33 @@ public class ChatWebSocketHandler extends AbstractWebSocketHandler {
 
             webSocketMap.put(from, session);
 
+            if ("message".equals(type) && text != null && !text.isEmpty()) {
+                try {
+                    ChatMessageDTO dto = new ChatMessageDTO();
+                    dto.setRoomId(roomId != null ? roomId : "");
+                    dto.setSenderId(from);
+                    dto.setSenderType(1);
+                    dto.setContent(text);
+                    dto.setMsgType("text");
+                    chatService.sendMessage(dto);
+                    logger.info("WebSocket消息已保存到数据库: from={}, roomId={}", from, roomId);
+                } catch (Exception e) {
+                    logger.error("保存WebSocket消息失败: {}", e.getMessage(), e);
+                }
+            }
+
+            String safeText = text != null ? text.replace("\\", "\\\\").replace("\"", "\\\"") : "";
+            String safeRoomId = roomId != null ? roomId : "";
+            String safeType = type != null ? type : "message";
+
             String responseJson = String.format(
-                    "{\"from\":\"%s\",\"type\":\"%s\",\"text\":\"%s\",\"roomId\":\"%s\"}",
+                    "{\"from\":\"%s\",\"type\":\"%s\",\"text\":\"%s\",\"message\":\"%s\",\"roomId\":\"%s\",\"merchantId\":\"%s\"}",
                     from,
-                    type != null ? type : "message",
-                    text != null ? text.replace("\"", "\\\"") : "",
-                    roomId != null ? roomId : ""
+                    safeType,
+                    safeText,
+                    safeText,
+                    safeRoomId,
+                    from
             );
 
             if (to != null && !to.isEmpty()) {

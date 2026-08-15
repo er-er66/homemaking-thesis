@@ -54,7 +54,7 @@ public interface UserMapper {
     SysUser getUserByAccount(String account);
 
     /**
-     * 修改密码
+     * 修改支付密码
      *
      * @param sysUser 用户信息
      * @return 修改结果
@@ -102,5 +102,20 @@ public interface UserMapper {
      */
     int selectCountByPhone(String phone);
 
+    /**
+     * 修改账号密码
+     *
+     * @param phone
+     * @param newPassword
+     * @return
+     */
     int updatePassword(String phone, String newPassword);
+
+    /**
+     * 修改用户名
+     *
+     * @param sysUser
+     * @return
+     */
+    int updateUserName(SysUser sysUser);
 }

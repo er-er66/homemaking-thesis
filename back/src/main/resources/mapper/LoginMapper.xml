@@ -6,12 +6,33 @@
 
 
     <select id="selectSys_Admin" resultType="com.example.homemaking.entity.SysAdmin">
-        select * from sys_admin where (phone=#{phone} or account=#{account} ) and password=#{password}
+        select * from sys_admin
+        where password = #{password}
+        <if test="phone != null and phone != ''">
+            and phone = #{phone}
+        </if>
+        <if test="account != null and account != ''">
+            and account = #{account}
+        </if>
     </select>
     <select id="selectSys_User" resultType="com.example.homemaking.entity.SysUser">
-        select * from sys_user where (phone=#{phone} or account=#{account} ) and password=#{password}
+        select * from sys_user
+        where password = #{password}
+        <if test="phone != null and phone != ''">
+            and phone = #{phone}
+        </if>
+        <if test="account != null and account != ''">
+            and account = #{account}
+        </if>
     </select>
     <select id="selectSys_Staff" resultType="com.example.homemaking.entity.SysStaff">
-        select * from sys_staff where (phone=#{phone} or account=#{account} ) and password=#{password}
+        select * from sys_staff
+        where password = #{password}
+        <if test="phone != null and phone != ''">
+            and phone = #{phone}
+        </if>
+        <if test="account != null and account != ''">
+            and account = #{account}
+        </if>
     </select>
 </mapper>
