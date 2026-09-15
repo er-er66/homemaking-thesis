@@ -36,7 +36,8 @@ public class JwtAuthFilter implements Filter {
             "/upload-package-cover",// 上传套餐封面
             "/ws",// WebSocket
             "/admin/reset-password/send-code",// 重置密码发送验证码
-            "/admin/reset-password"// 重置密码
+            "/admin/reset-password",// 重置密码
+            "/admin/package/list"// 获取套餐列表
     );
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
@@ -50,7 +51,7 @@ public class JwtAuthFilter implements Filter {
                 return;
             }
         }
-        log.info("JWT过滤器拦截: {}", requestURI);
+
         String authHeader = httpRequest.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);

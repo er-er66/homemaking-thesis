@@ -24,6 +24,7 @@ public class HomemakingPackage implements Serializable {
 
     private String packageName;
 
+    private Integer serviceType;//套餐类型：1保洁清洁类，2家务保姆类，3母婴护理类，4老人/病患照护类，5新兴细分家政服务，6其他配套家政
 
     private BigDecimal packagePrice;
 

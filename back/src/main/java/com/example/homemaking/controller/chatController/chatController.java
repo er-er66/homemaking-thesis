@@ -62,6 +62,7 @@ public class chatController {
     @PostMapping("/read")
     public Result<String> markRead(@RequestParam("room_id") String roomId,
                                    @RequestParam("userId") String userId) {
+        log.info("标记已读，roomId：{}", roomId);
         chatService.markRead(roomId, userId);
         return Result.success("标记已读成功");
     }

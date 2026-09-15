@@ -76,6 +76,18 @@
     <!-- 服务项目 -->
     <section id="services" class="services">
       <h2 class="section-title">服务项目</h2>
+      <div class="service-type-tabs">
+        <el-tag
+          v-for="type in serviceTypes"
+          :key="type.value"
+          :type="selectedServiceType === type.value ? 'primary' : 'info'"
+          :effect="selectedServiceType === type.value ? 'dark' : 'plain'"
+          class="service-type-tab"
+          @click="selectedServiceType = type.value; filterServices()"
+        >
+          {{ type.label }}
+        </el-tag>
+      </div>
       <el-row :gutter="20" justify="center">
         <el-col :xs="24" :sm="12" :md="8" v-for="service in services" :key="service.id">
           <el-card shadow="hover" class="service-card" @click="goToOrder(service)">
@@ -166,6 +178,19 @@ const isAdmin = ref(false)
 const userName = ref('')
 const userAvatar = ref('')
 const services = ref([])
+const allServices = ref([])
+
+const serviceTypes = [
+  { value: 0, label: '全部' },
+  { value: 1, label: '保洁清洁类' },
+  { value: 2, label: '家务保姆类' },
+  { value: 3, label: '母婴护理类' },
+  { value: 4, label: '老人/病患照护类' },
+  { value: 5, label: '新兴细分家政服务' },
+  { value: 6, label: '其他配套家政' }
+]
+
+const selectedServiceType = ref(0)
 
 const userInitial = computed(() => {
   return userName.value ? userName.value.charAt(0).toUpperCase() : 'U'
@@ -176,8 +201,8 @@ const totalUnread = computed(() => getTotalUnread())
 const fetchPackages = async () => {
   try {
     const res = await getPackageListApi({ status: 1 })
-    if (res && res.data && Array.isArray(res.data)) {
-      services.value = res.data.map((pkg, index) => {
+    if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
+      allServices.value = res.data.map((pkg, index) => {
         const desc = pkg.packageDesc || ''
         return {
           id: pkg.id,
@@ -185,12 +210,59 @@ const fetchPackages = async () => {
           description: desc.length > 15 ? desc.slice(0, 15) + '...' : desc,
           price: `¥${pkg.packagePrice}${pkg.unitText || ''}`,
           image: (pkg.packageImg || '').replace(/`/g, ''),
-          icon: ['🧹', '✨', '🔧', '👶', '‍', '⏰'][index % 6]
+          icon: ['🧹', '✨', '🔧', '👶', '‍', '⏰'][index % 6],
+          serviceType: pkg.serviceType || 0
         }
       })
+    } else {
+      allServices.value = getDefaultServices()
     }
+    filterServices()
   } catch (e) {
     console.warn('获取套餐列表失败:', e)
+    allServices.value = getDefaultServices()
+    filterServices()
+  }
+}
+
+const getDefaultServices = () => {
+  return [
+    { id: 1, name: '日常钟点保洁', description: '全屋除尘、拖地、擦台面', price: '¥50/小时', icon: '🧹', serviceType: 1 },
+    { id: 2, name: '深度保洁', description: '清理卫生死角、油污、水垢', price: '¥200起', icon: '✨', serviceType: 1 },
+    { id: 3, name: '新房开荒保洁', description: '装修后精细清洁', price: '¥300起', icon: '🧹', serviceType: 1 },
+    { id: 4, name: '擦玻璃', description: '专业玻璃清洁服务', price: '¥100起', icon: '✨', serviceType: 1 },
+    { id: 5, name: '油烟机清洗', description: '深度拆洗油烟机', price: '¥80起', icon: '🔧', serviceType: 1 },
+    { id: 6, name: '空调清洗', description: '挂机/柜机清洗', price: '¥60起', icon: '🔧', serviceType: 1 },
+    { id: 7, name: '地板打蜡', description: '木质地板保养护理', price: '¥150起', icon: '✨', serviceType: 1 },
+    { id: 8, name: '除甲醛', description: '专业甲醛检测治理', price: '¥500起', icon: '🌿', serviceType: 1 },
+    { id: 9, name: '商业保洁', description: '办公室、门店清洁', price: '¥200起', icon: '🏢', serviceType: 1 },
+    { id: 10, name: '住家保姆', description: '做饭、洗衣、打扫收纳', price: '¥5000起', icon: '👩‍🍳', serviceType: 2 },
+    { id: 11, name: '白班保姆', description: '固定时段家务服务', price: '¥3500起', icon: '👩‍🍳', serviceType: 2 },
+    { id: 12, name: '钟点家务', description: '做饭+简单家务', price: '¥40/小时', icon: '⏰', serviceType: 2 },
+    { id: 13, name: '月嫂', description: '产妇护理+新生儿照护', price: '¥12000起', icon: '👶', serviceType: 3 },
+    { id: 14, name: '育婴师', description: '0-3岁宝宝照料早教', price: '¥8000起', icon: '👶', serviceType: 3 },
+    { id: 15, name: '催乳师', description: '专业通乳按摩服务', price: '¥300起', icon: '💆', serviceType: 3 },
+    { id: 16, name: '陪产护理', description: '医院陪产护理服务', price: '¥300/天', icon: '🏥', serviceType: 3 },
+    { id: 17, name: '养老陪护', description: '居家老人日常照料', price: '¥4000起', icon: '👴', serviceType: 4 },
+    { id: 18, name: '病患护理', description: '住院/居家病人看护', price: '¥300/天', icon: '🏥', serviceType: 4 },
+    { id: 19, name: '医院护工', description: '专业陪护服务', price: '¥280/天', icon: '🏥', serviceType: 4 },
+    { id: 20, name: '康复护理', description: '术后康复护理', price: '¥350/天', icon: '💪', serviceType: 4 },
+    { id: 21, name: '整理收纳师', description: '全屋空间规划收纳', price: '¥200起', icon: '📦', serviceType: 5 },
+    { id: 22, name: '搬家服务', description: '打包搬运一站式服务', price: '¥300起', icon: '🚚', serviceType: 5 },
+    { id: 23, name: '宠物家政', description: '上门喂养遛狗服务', price: '¥50起', icon: '🐕', serviceType: 5 },
+    { id: 24, name: '高端家庭管家', description: '统筹家务管理服务', price: '¥10000起', icon: '🎩', serviceType: 5 },
+    { id: 25, name: '家电维修', description: '各种家电故障维修', price: '¥50起', icon: '🔧', serviceType: 6 },
+    { id: 26, name: '管道疏通', description: '厨房卫生间管道疏通', price: '¥80起', icon: '🔧', serviceType: 6 },
+    { id: 27, name: '上门做饭', description: '私厨上门烹饪服务', price: '¥150起', icon: '🍳', serviceType: 6 },
+    { id: 28, name: '绿植养护', description: '室内绿植定期养护', price: '¥100起', icon: '🌿', serviceType: 6 }
+  ]
+}
+
+const filterServices = () => {
+  if (selectedServiceType.value === 0) {
+    services.value = allServices.value
+  } else {
+    services.value = allServices.value.filter(item => item.serviceType === selectedServiceType.value)
   }
 }
 
@@ -205,7 +277,7 @@ const checkLoginStatus = () => {
       userAvatar.value = userInfo.avatar || ''
       const role = userInfo.role || userInfo.roleCode || ''
       isAdmin.value = role.startsWith('10') || role.startsWith('01') || role === 'super_admin' || role === 'admin'
-      if (userInfo.role === 'staff' || userInfo.roleCode === '002') {
+      if (userInfo.roleCode === '002' || userInfo.roleCode === '02' || userInfo.role === 'staff') {
         router.replace('/staff/home')
       } else {
         // 普通用户和管理员：获取未读消息（管理员不自动跳转）
@@ -221,6 +293,7 @@ const checkLoginStatus = () => {
   } else {
     isLoggedIn.value = false
   }
+  fetchPackages()
 }
 
 const fetchUnreadMessages = async (userId) => {
@@ -418,6 +491,20 @@ const goToProfile = () => {
   text-align: center;
   margin-bottom: 40px;
   font-size: 32px;
+}
+
+.service-type-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 30px;
+}
+
+.service-type-tab {
+  cursor: pointer;
+  padding: 10px 20px;
+  font-size: 15px;
 }
 
 .service-card {

@@ -21,7 +21,10 @@
             <span class="change-text">更换头像</span>
           </el-upload>
           <div class="user-base">
-            <h3>{{ userName }}</h3>
+            <h3>
+              {{ userName }}
+              <el-icon class="edit-name-icon" @click="showNameEditDialog = true"><Edit /></el-icon>
+            </h3>
             <p>{{ userPhone }}</p>
           </div>
         </div>
@@ -91,7 +94,7 @@
           <div class="order-tabs">
             <el-radio-group v-model="orderFilter" @change="fetchOrders">
               <el-radio-button value="all">全部</el-radio-button>
-              <el-radio-button value="pending">待接单</el-radio-button>
+              <el-radio-button value="accepted">已接订单</el-radio-button>
               <el-radio-button value="progress">进行中</el-radio-button>
               <el-radio-button value="completed">已完成</el-radio-button>
               <el-radio-button value="cancelled">已取消</el-radio-button>
@@ -124,10 +127,10 @@
                       <el-button size="small" text type="primary" @click="viewOrderDetail(order)">
                         查看详情
                       </el-button>
-                      <el-button v-if="canContactMerchant(order)" size="small" text type="success" @click="contactMerchant(order)">
-                        联系商家
+                      <el-button v-if="canContactUser(order)" size="small" text type="success" @click="contactUser(order)">
+                        联系用户
                       </el-button>
-                      <el-button v-if="canCancelOrder(order)" size="small" text type="danger" @click="cancelOrder(order.id)">
+                      <el-button v-if="canCancelOrder(order)" size="small" text type="danger" :loading="cancelLoadingId === (order.orderNo || order.id)" @click="cancelOrder(order.orderNo || order.id)">
                         取消订单
                       </el-button>
                     </div>
@@ -143,7 +146,7 @@
         <div class="menu-item" @click="toggleAddressPanel">
           <div class="menu-left">
             <el-icon size="20" color="#f56c6c"><MapLocation /></el-icon>
-            <span>服务地址</span>
+            <span>当前所在地址</span>
           </div>
           <el-icon class="menu-arrow" :class="{ open: activePanel === 'address' }"><ArrowRight /></el-icon>
         </div>
@@ -163,7 +166,7 @@
                 <el-button size="small" text type="danger" @click="handleDeleteAddress(addr.id)">删除</el-button>
               </div>
             </div>
-            <el-empty v-if="!addrLoading && addressList.length === 0" description="暂无服务地址" />
+            <el-empty v-if="!addrLoading && addressList.length === 0" description="暂无所属地址" />
             <el-button type="primary" plain class="add-addr-btn" @click="editAddress(null)">添加地址</el-button>
           </div>
         </div>
@@ -221,15 +224,58 @@
         <el-button type="primary" :loading="addrSaving" @click="handleSaveAddress">保存</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="showNameEditDialog" title="修改用户名" width="360px" destroy-on-close>
+      <el-form :model="nameForm" label-position="top" size="large">
+        <el-form-item label="新用户名">
+          <el-input v-model="nameForm.newName" placeholder="请输入新用户名（至少2个字符）" maxlength="20" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showNameEditDialog = false">取消</el-button>
+        <el-button type="primary" :loading="nameLoading" @click="handleChangeName">确认修改</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="orderDetailVisible" title="订单详情" width="600px" destroy-on-close>
+      <div v-loading="orderDetailLoading" class="order-detail-content" style="min-height: 120px;">
+        <el-descriptions v-if="currentOrder" :column="2" border>
+          <el-descriptions-item label="订单号">{{ currentOrder.id || currentOrder.orderNo }}</el-descriptions-item>
+          <el-descriptions-item label="订单状态">
+            <el-tag :type="getOrderStatusType(currentOrder)">{{ getOrderStatusText(currentOrder) }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="服务项目">{{ currentOrder.serviceItem || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="订单金额">
+            <span style="color: #ff6b6b; font-weight: bold; font-size: 18px;">¥{{ currentOrder.orderAmount || '0.00' }}</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="服务地址" :span="2">{{ currentOrder.serviceAddress || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="预约时间" :span="2">{{ formatDateTime(currentOrder.serviceTime) }}</el-descriptions-item>
+          <el-descriptions-item label="下单时间" :span="2">{{ formatDateTime(currentOrder.createTime) }}</el-descriptions-item>
+          <el-descriptions-item label="用户账号" :span="2">{{ currentOrder.userAccount || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="服务人员" :span="2">{{ currentOrder.staffAccount || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="备注" :span="2">{{ currentOrder.remark || '无' }}</el-descriptions-item>
+        </el-descriptions>
+        <el-empty v-else-if="!orderDetailLoading" description="未获取到订单详情" :image-size="80" />
+
+        <div class="order-detail-actions" style="margin-top: 20px; text-align: right;">
+          <el-button v-if="currentOrder && canContactUser(currentOrder)" type="success" @click="contactUser(currentOrder); orderDetailVisible = false">
+            联系用户
+          </el-button>
+          <el-button v-if="currentOrder && canCancelOrder(currentOrder)" type="danger" :loading="cancelLoadingId === currentOrder.id" @click="cancelOrder(currentOrder.id)">
+            取消订单
+          </el-button>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Lock, ArrowRight, Phone, List, MapLocation } from '@element-plus/icons-vue'
+import { Lock, ArrowRight, Phone, List, MapLocation, Edit } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { uploadAvatarApi, checkPayPasswordApi, setPayPasswordApi, updatePayPasswordApi, sendCodeForUserApi, sendCodeForStaffApi, changePhoneApi, getAddressListApi, saveAddressApi, updateAddressApi, deleteAddressApi, getOrderListApi } from '../api/admin'
+import { uploadAvatarApi, checkPayPasswordApi, setPayPasswordApi, updatePayPasswordApi, sendCodeForUserApi, sendCodeForStaffApi, changePhoneApi, changeNameApi, getAddressListApi, saveAddressApi, updateAddressApi, deleteAddressApi, getOrderListApi, getOrderDetailApi, cancelOrderApi } from '../api/admin'
 import regionData from '../data/china-region'
 
 const router = useRouter()
@@ -250,13 +296,17 @@ const pwdChecking = ref(false)
 
 const userRole = ref('')
 const userRoleCode = ref('')
-const isStaff = computed(() => userRole.value === 'staff' || userRoleCode.value === '002')
+const isStaff = computed(() => userRole.value === 'staff' || userRoleCode.value === '002' || userRoleCode.value === '02')
 const userAccount = ref('')
 const userId = ref('')
 
 const phoneForm = ref({ newPhone: '', code: '' })
 const phoneLoading = ref(false)
 const phoneCountdown = ref(0)
+
+const nameForm = ref({ newName: '' })
+const nameLoading = ref(false)
+const showNameEditDialog = ref(false)
 
 const orderList = ref([])
 const orderLoading = ref(false)
@@ -268,6 +318,11 @@ const addrDialogVisible = ref(false)
 const addrSaving = ref(false)
 const editingAddr = ref(null)
 const addrForm = ref({ label: '家', consigneeName: '', consigneePhone: '', province: '', city: '', district: '', detailAddress: '', isDefault: false })
+
+const orderDetailVisible = ref(false)
+const currentOrder = ref(null)
+const orderDetailLoading = ref(false)
+const cancelLoadingId = ref(null)
 
 const provinces = regionData
 const cities = computed(() => {
@@ -305,8 +360,10 @@ const loadUserInfo = () => {
       userName.value = info.username || info.account || '用户'
       avatar.value = info.avatar || ''
       userPhone.value = info.phone || info.account || ''
-      userRole.value = info.role || ''
+      // 后端家政人员 roleCode 为 '02'（登录页跳转判断的也是 '02'），同时兼容 '002'
       userRoleCode.value = info.roleCode || ''
+      const staffRole = info.role === 'staff' || userRoleCode.value === '002' || userRoleCode.value === '02'
+      userRole.value = staffRole ? 'staff' : (info.role || 'user')
       userAccount.value = info.account || ''
       userId.value = info.id || ''
     } catch { /* ignore */ }
@@ -391,7 +448,7 @@ const handleChangePhone = async () => {
   if (!code || code.length < 6) return ElMessage.warning('请输入6位验证码')
   phoneLoading.value = true
   try {
-    await changePhoneApi({ account: userAccount.value, role: userRole.value, newPhone, code })
+    await changePhoneApi({ account: userAccount.value, role: userRoleCode.value, newPhone, code })
     userPhone.value = newPhone
     updateUserInfo({ phone: newPhone })
     ElMessage.success('手机号换绑成功')
@@ -401,6 +458,25 @@ const handleChangePhone = async () => {
     ElMessage.error('换绑失败，请重试')
   } finally {
     phoneLoading.value = false
+  }
+}
+
+const handleChangeName = async () => {
+  const { newName } = nameForm.value
+  if (!newName || !newName.trim()) return ElMessage.warning('请输入新用户名')
+  if (newName.trim().length < 2) return ElMessage.warning('用户名至少2个字符')
+  nameLoading.value = true
+  try {
+    await changeNameApi({ account: userAccount.value, role: userRoleCode.value, newName: newName.trim() })
+    userName.value = newName.trim()
+    updateUserInfo({ username: newName.trim() })
+    ElMessage.success('用户名修改成功')
+    nameForm.value = { newName: '' }
+    showNameEditDialog.value = false
+  } catch {
+    ElMessage.error('修改失败，请重试')
+  } finally {
+    nameLoading.value = false
   }
 }
 
@@ -434,12 +510,10 @@ const sendPhoneCode = async () => {
 const fetchOrders = async () => {
   orderLoading.value = true
   try {
-    const params = userRole.value === 'staff'
-      ? { staffAccount: userAccount.value }
-      : { userAccount: userAccount.value }
+    const params = { staffAccount: userAccount.value }
     
     if (orderFilter.value !== 'all') {
-      const statusMap = { pending: 0, progress: 1, completed: 2, cancelled: 3 }
+      const statusMap = { accepted: 1, progress: 1, completed: 2, cancelled: 3 }
       params.orderStatus = statusMap[orderFilter.value]
     }
     
@@ -466,20 +540,24 @@ const getOrderIcon = (serviceName) => {
   return ''
 }
 
+const getOrderStatus = (order) => {
+  if (!order) return null
+  return order.orderStatus ?? order.status
+}
+
 const getOrderStatusText = (order) => {
-  const status = order.orderStatus ?? order.status
-  switch (status) {
+  // orderStatus：0 待接单，1 已接单，2 服务完成，3 已取消
+  switch (getOrderStatus(order)) {
     case 0: return '待接单'
-    case 1: return '进行中'
-    case 2: return '已完成'
+    case 1: return '已接单'
+    case 2: return '服务完成'
     case 3: return '已取消'
     default: return '未知'
   }
 }
 
 const getOrderStatusType = (order) => {
-  const status = order.orderStatus ?? order.status
-  switch (status) {
+  switch (getOrderStatus(order)) {
     case 0: return 'warning'
     case 1: return 'primary'
     case 2: return 'success'
@@ -489,42 +567,108 @@ const getOrderStatusType = (order) => {
 }
 
 const canCancelOrder = (order) => {
-  const status = order.orderStatus ?? order.status
+  const status = getOrderStatus(order)
   return status === 0 || status === 1
 }
 
-const canContactMerchant = (order) => {
-  const status = order.orderStatus ?? order.status
-  return status === 1 && order.staffAccount
+const canContactUser = (order) => {
+  const status = getOrderStatus(order)
+  return status === 1 && order.userAccount
 }
 
-const contactMerchant = (order) => {
-  if (!order.staffAccount) {
-    ElMessage.warning('暂无可联系的商家')
+const contactUser = (order) => {
+  if (!order.userAccount) {
+    ElMessage.warning('暂无可联系的用户')
     return
   }
+  // 家政人员聊天页路由是 /staff/chat（/staff 与 /staff/order-chat 都不是「用户聊天」入口）
   router.push({
-    path: '/merchant',
-    query: { merchantId: order.staffAccount }
+    path: '/staff/chat',
+    query: {
+      userAccount: order.userAccount,
+      userName: order.userAccount,
+      userAvatar: order.userAvatar || '',
+      orderId: order.id,
+      orderNo: order.orderNo || order.id
+    }
   })
 }
 
 const getEmptyDescription = () => {
   if (userRole.value === 'staff') return '暂无接单记录'
-  const filterText = { all: '暂无订单', pending: '暂无待接单', progress: '暂无进行中', completed: '暂无已完成', cancelled: '暂无已取消' }
+  const filterText = { all: '暂无订单', accepted: '暂无已接订单', progress: '暂无进行中', completed: '暂无已完成', cancelled: '暂无已取消' }
   return filterText[orderFilter.value] || '暂无订单'
 }
 
-const viewOrderDetail = (order) => {
-  router.push({ path: '/order', query: { id: order.id } })
+const viewOrderDetail = async (order) => {
+  if (!order) {
+    ElMessage.warning('订单信息不完整，无法查看详情')
+    return
+  }
+  
+  // 先用列表里的这条订单撑住弹窗，避免打开瞬间空白
+  currentOrder.value = { ...order }
+  orderDetailVisible.value = true
+  orderDetailLoading.value = true
+  
+  try {
+    // 后端 @GetMapping("/order/{id}") 期望的是数据库主键 ID（Long类型），不是订单编号
+    const orderId = order.id
+    
+    console.log('[ProfilePage] 查询订单详情，orderId:', orderId, 'orderNo:', order.orderNo, '完整订单:', order)
+    
+    // 用订单ID拉取完整详情并回显（GET /admin/order/{id}）
+    const res = await getOrderDetailApi(orderId)
+    
+    if (res && res.data) {
+      currentOrder.value = res.data
+      console.log('[ProfilePage] 订单详情获取成功:', res.data)
+    } else {
+      console.warn('[ProfilePage] 订单详情返回数据为空，使用列表数据')
+    }
+  } catch (error) {
+    console.error('[ProfilePage] 获取订单详情失败:', error)
+    console.error('[ProfilePage] 错误详情:', error.response?.data || error.message)
+    ElMessage.error('获取订单详情失败，已显示列表中的数据')
+  } finally {
+    orderDetailLoading.value = false
+  }
 }
 
-const cancelOrder = async (id) => {
+const cancelOrder = async (orderNo) => {
   try {
-    await ElMessageBox.confirm('确定要取消该订单吗？', '提示', { type: 'warning' })
-    ElMessage.success('订单已取消')
-    fetchOrders()
-  } catch { /* cancelled */ }
+    await ElMessageBox.confirm(
+      '确定要取消该订单吗？',
+      '提示',
+      { confirmButtonText: '确定取消', cancelButtonText: '再想想', type: 'warning' }
+    )
+  } catch {
+    return
+  }
+
+  if (!userAccount.value) {
+    ElMessage.error('未获取到当前登录账号，请重新登录后再试')
+    return
+  }
+
+  cancelLoadingId.value = orderNo
+  try {
+    const res = await cancelOrderApi({ 
+      orderNo, 
+      staffAccount: userAccount.value 
+    })
+    
+    if (res && (res.code === 200 || (res.data || '').includes('成功'))) {
+      ElMessage.success(res.data || '订单取消成功')
+      await fetchOrders()
+    } else {
+      ElMessage.error((res && res.data) || '取消失败，请重试')
+    }
+  } catch {
+    ElMessage.error('取消订单失败，请重试')
+  } finally {
+    cancelLoadingId.value = null
+  }
 }
 
 const toggleAddressPanel = () => {
@@ -658,6 +802,17 @@ h2 {
 .user-base p {
   color: var(--text-light);
   font-size: 14px;
+}
+
+.edit-name-icon {
+  cursor: pointer;
+  margin-left: 8px;
+  color: #409eff;
+  vertical-align: middle;
+}
+
+.edit-name-icon:hover {
+  color: #66b1ff;
 }
 
 .menu-card {
@@ -933,5 +1088,14 @@ h2 {
   display: flex;
   gap: 8px;
   margin-top: 8px;
+}
+
+.order-detail-content {
+  min-height: 120px;
+}
+
+.order-detail-actions {
+  margin-top: 20px;
+  text-align: right;
 }
 </style>

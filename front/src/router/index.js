@@ -81,7 +81,7 @@ router.beforeEach((to, from) => {
     if (!isAdmin) return '/'
   }
 
-  if (to.meta.requiresStaff && userInfo.role !== 'staff' && userInfo.roleCode !== '002') {
+  if (to.meta.requiresStaff && userInfo.role !== 'staff' && userInfo.roleCode !== '002' && userInfo.roleCode !== '02') {
     return '/'
   }
 

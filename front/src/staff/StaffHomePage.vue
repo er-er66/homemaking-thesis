@@ -54,7 +54,10 @@
 
       <div class="right-panel">
         <div class="panel-title">
-          <span>用户发布的订单</span>
+          <el-radio-group v-model="orderTab" @change="changeOrderTab" class="order-tab-group">
+            <el-radio-button value="pending">待接订单</el-radio-button>
+            <el-radio-button value="accepted">已接订单</el-radio-button>
+          </el-radio-group>
           <el-tag v-if="orders.length" type="info" size="small">共 {{ orders.length }} 单</el-tag>
         </div>
         <div class="order-list" v-loading="orderLoading">
@@ -70,8 +73,11 @@
                 <el-tag v-if="order.dispatchStatus === 1 && order.dispatchAdminAccount && order.staffAccount === staffAccount" type="danger" size="small">
                   派送订单
                 </el-tag>
-                <el-tag :type="order.orderStatus === 0 ? 'warning' : 'success'" size="small">
-                  {{ order.orderStatus === 0 ? '待接单' : '已接单' }}
+                <el-tag v-if="orderTab === 'pending'" type="warning" size="small">
+                  待接单
+                </el-tag>
+                <el-tag v-else type="success" size="small">
+                  已接单
                 </el-tag>
               </div>
               <div class="order-body">
@@ -88,9 +94,13 @@
                 <span class="order-amount">¥{{ order.orderAmount }}</span>
                 <span class="order-user">{{ order.userAccount }}</span>
               </div>
+              <div class="order-actions" v-if="orderTab === 'accepted'" @click.stop>
+                <el-button type="danger" size="small" @click="handleCancelOrder(order)">取消订单</el-button>
+                <el-button type="success" size="small" @click="showCompleteDialog(order)">完成订单</el-button>
+              </div>
             </div>
           </div>
-          <el-empty v-if="!orderLoading && orders.length === 0" description="暂无用户发布的订单" />
+          <el-empty v-if="!orderLoading && orders.length === 0" :description="orderTab === 'pending' ? '暂无待接订单' : '暂无已接订单'" />
         </div>
 
         <!-- 管理员派单区域 -->
@@ -140,16 +150,68 @@
         </div>
       </div>
     </div>
+
+    <!-- 完成订单弹窗 -->
+    <el-dialog v-model="completeDialogVisible" title="完成订单" width="700px" destroy-on-close>
+      <div class="complete-order-content">
+        <el-descriptions :column="1" border size="small" class="order-info">
+          <el-descriptions-item label="订单编号">{{ completeForm.orderNo }}</el-descriptions-item>
+          <el-descriptions-item label="服务项目">{{ completeForm.serviceItem }}</el-descriptions-item>
+          <el-descriptions-item label="服务地址">{{ completeForm.serviceAddress }}</el-descriptions-item>
+          <el-descriptions-item label="用户账号">{{ completeForm.userAccount }}</el-descriptions-item>
+        </el-descriptions>
+
+        <el-divider content-position="left">上传服务完成图片</el-divider>
+
+        <el-form :model="completeForm" label-width="100px">
+          <el-form-item label="打扫前图片">
+            <el-upload
+              v-model:file-list="beforeCleanFiles"
+              action="#"
+              list-type="picture-card"
+              :auto-upload="false"
+              :limit="5"
+              accept="image/*"
+              :on-change="(file) => handleImageChange(file, 'before')"
+              :on-remove="(file) => handleImageRemove(file, 'before')"
+            >
+              <el-icon><Plus /></el-icon>
+            </el-upload>
+            <div class="upload-tip">最多上传5张图片，支持jpg、png格式</div>
+          </el-form-item>
+
+          <el-form-item label="打扫后图片">
+            <el-upload
+              v-model:file-list="afterCleanFiles"
+              action="#"
+              list-type="picture-card"
+              :auto-upload="false"
+              :limit="5"
+              accept="image/*"
+              :on-change="(file) => handleImageChange(file, 'after')"
+              :on-remove="(file) => handleImageRemove(file, 'after')"
+            >
+              <el-icon><Plus /></el-icon>
+            </el-upload>
+            <div class="upload-tip">最多上传5张图片，支持jpg、png格式</div>
+          </el-form-item>
+        </el-form>
+      </div>
+      <template #footer>
+        <el-button @click="completeDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="completeLoading" @click="handleCompleteOrder">确认完成</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowDown, Location, Clock, User } from '@element-plus/icons-vue'
+import { ArrowDown, Location, Clock, User, Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getOrderListApi, getUserNameApi, rejectOrderApi, getChatRoomListApi } from '../api/admin'
-
+import { getOrderListApi, getUserNameApi, rejectOrderApi, getChatRoomListApi, completeOrderApi, cancelOrderApi, uploadOrderImgApi } from '../api/admin'
+import { messagePreview, formatListTime } from '../utils/chatMessage'
 const router = useRouter()
 
 const userName = ref('')
@@ -158,20 +220,45 @@ const avatar = ref('')
 const staffAccount = ref('')
 
 const chatUsers = ref([])
-const userLoading = ref(false)
 const orders = ref([])
 const orderLoading = ref(false)
+const userLoading = ref(false)
 const activeUser = ref('')
 const activeUserName = ref('')
 const dispatchSectionVisible = ref(true)
+const orderTab = ref('pending')
+
+const pendingOrders = computed(() => {
+  return allOrders.value.filter(o => o.orderStatus === 0)
+})
+
+const acceptedOrders = computed(() => {
+  return allOrders.value.filter(o => o.orderStatus === 1 && o.staffAccount === staffAccount.value)
+})
 
 const dispatchedOrders = computed(() => {
-  return orders.value.filter(o => 
+  return allOrders.value.filter(o => 
     o.dispatchStatus === 1 && 
     o.dispatchAdminAccount && 
     o.staffAccount === staffAccount.value
   )
 })
+
+const allOrders = ref([])
+
+const completeDialogVisible = ref(false)
+const completeLoading = ref(false)
+const completeForm = ref({
+  orderId: '',
+  orderNo: '',
+  serviceItem: '',
+  serviceAddress: '',
+  userAccount: ''
+})
+const beforeCleanFiles = ref([])
+const afterCleanFiles = ref([])
+const beforeCleanImages = ref([])
+const afterCleanImages = ref([])
 
 onMounted(() => {
   const userInfoStr = localStorage.getItem('userInfo')
@@ -207,13 +294,36 @@ const fetchChatUsers = async () => {
           
           // 合并后端数据和本地数据
           const mergedUsers = []
-          const processedAccounts = new Set()
+          const processedKeys = new Set()
+          
+          // 生成唯一标识：优先用 account，其次用 id 或 roomId，最后用 name
+          const getUniqueKey = (room) => {
+            return room.account ||
+                   room.id ||
+                   room.roomId ||
+                   room.room_id ||
+                   room.name ||
+                   ''
+          }
           
           // 先处理后端数据
           for (const room of backendRooms) {
-            const account = room.account || room.id || ''
-            if (!account || processedAccounts.has(account)) continue
-            processedAccounts.add(account)
+            const key = getUniqueKey(room)
+            if (!key) continue
+            
+            // 标准化 key：去除下划线分隔符的顺序差异（如 "a_b" 和 "b_a" 视为相同）
+            const normalizedKey = key.includes('_') 
+              ? key.split('_').sort().join('_') 
+              : key
+              
+            if (processedKeys.has(normalizedKey)) {
+              console.log('[StaffHomePage] 跳过重复用户:', { key, normalizedKey, room })
+              continue
+            }
+            processedKeys.add(normalizedKey)
+            
+            // 确定真实的 account（用于后续 API 调用）
+            const account = room.account || (key.includes('_') ? key.split('_').find(p => p !== staffAccount.value) : key) || key
             
             const user = {
               account: account,
@@ -223,15 +333,24 @@ const fetchChatUsers = async () => {
               lastTime: room.lastTime || '',
               unread: room.unread || 0,
               lastTimestamp: room.lastTime ? new Date(room.lastTime).getTime() : 0,
-              type: room.type || 'user' // 'user' 或 'cs'（客服/管理员）
+              type: room.type || 'user',
+              roomId: room.roomId || room.room_id || room.id || ''
             }
             mergedUsers.push(user)
+            
+            // 同时用原始 account 也标记为已处理（防止同一用户用不同字段出现两次）
+            if (account && account !== normalizedKey) {
+              processedKeys.add(account)
+            }
           }
+          
+          console.log('[StaffHomePage] 后端返回', backendRooms.length, '条记录，去重后', mergedUsers.length, '个用户')
           
           // 再添加本地数据中后端没有的
           for (const localUser of localUsers) {
-            if (!processedAccounts.has(localUser.account)) {
+            if (!processedKeys.has(localUser.account)) {
               mergedUsers.push(localUser)
+              processedKeys.add(localUser.account)
             }
           }
           
@@ -250,9 +369,14 @@ const fetchChatUsers = async () => {
             }
           }
           
+          // 订单详情消息的 lastMsg 是 "Xiangqing{...}" 原文，列表里要显示成「订单详情」
+          mergedUsers.forEach(u => {
+            u.lastMsg = messagePreview(u.lastMsg)
+            u.lastTime = formatListTime(u.lastTime)
+          })
+
           chatUsers.value = mergedUsers
           chatUsers.value.sort((a, b) => new Date(b.lastTimestamp || 0) - new Date(a.lastTimestamp || 0))
-          
           // 更新 localStorage
           localStorage.setItem('staff_chat_users', JSON.stringify(mergedUsers))
           return
@@ -277,6 +401,10 @@ const fetchChatUsers = async () => {
           }
         }
       }
+      localUsers.forEach(u => {
+        u.lastMsg = messagePreview(u.lastMsg)
+        u.lastTime = formatListTime(u.lastTime)
+      })
       chatUsers.value = localUsers
       chatUsers.value.sort((a, b) => new Date(b.lastTimestamp || 0) - new Date(a.lastTimestamp || 0))
       localStorage.setItem('staff_chat_users', JSON.stringify(localUsers))
@@ -311,12 +439,26 @@ const fetchOrders = async () => {
   orderLoading.value = true
   try {
     const res = await getOrderListApi()
-    const allOrders = Array.isArray(res.data) ? res.data : []
-    orders.value = allOrders.filter(o => o.orderStatus === 0)
+    allOrders.value = Array.isArray(res.data) ? res.data : []
+    if (orderTab.value === 'pending') {
+      orders.value = pendingOrders.value
+    } else {
+      orders.value = acceptedOrders.value
+    }
   } catch {
+    allOrders.value = []
     orders.value = []
   } finally {
     orderLoading.value = false
+  }
+}
+
+const changeOrderTab = (tab) => {
+  orderTab.value = tab
+  if (tab === 'pending') {
+    orders.value = pendingOrders.value
+  } else {
+    orders.value = acceptedOrders.value
   }
 }
 
@@ -331,7 +473,7 @@ const handleRejectOrder = async (order) => {
         type: 'warning'
       }
     )
-    
+
     const res = await rejectOrderApi({
       id: order.id,
       staffAccount: staffAccount.value
@@ -350,27 +492,147 @@ const handleRejectOrder = async (order) => {
   }
 }
 
-const goChat = async (order) => {
-  let userName = order.userAccount
-  let userAvatar = ''
-  
-  // 获取用户真实姓名
+const showCompleteDialog = (order) => {
+  completeForm.value = {
+    orderId: order.id,
+    orderNo: order.orderNo,
+    serviceItem: order.serviceItem,
+    serviceAddress: order.serviceAddress,
+    userAccount: order.userAccount
+  }
+  beforeCleanFiles.value = []
+  afterCleanFiles.value = []
+  beforeCleanImages.value = []
+  afterCleanImages.value = []
+  completeDialogVisible.value = true
+}
+
+const handleImageChange = (file, type) => {
+  if (type === 'before') {
+    beforeCleanImages.value.push(file.raw)
+  } else {
+    afterCleanImages.value.push(file.raw)
+  }
+}
+
+const handleImageRemove = (file, type) => {
+  if (type === 'before') {
+    const index = beforeCleanImages.value.findIndex(img => img.name === file.name)
+    if (index > -1) {
+      beforeCleanImages.value.splice(index, 1)
+    }
+  } else {
+    const index = afterCleanImages.value.findIndex(img => img.name === file.name)
+    if (index > -1) {
+      afterCleanImages.value.splice(index, 1)
+    }
+  }
+}
+
+const uploadImageToOss = async (file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+
   try {
-    const res = await getUserNameApi(order.userAccount)
+    const res = await uploadOrderImgApi(formData)
     if (res.code === 200 && res.data) {
-      userName = res.data.username || res.data.name || order.userAccount
-      userAvatar = res.data.avatar || ''
+      return res.data
+    } else {
+      throw new Error(res.message || '上传失败')
+    }
+  } catch (error) {
+    throw error
+  }
+}
+
+const handleCompleteOrder = async () => {
+  if (beforeCleanImages.value.length === 0 && afterCleanImages.value.length === 0) {
+    ElMessage.warning('请至少上传一张服务图片（打扫前或打扫后）')
+    return
+  }
+
+  try {
+    completeLoading.value = true
+
+    const beforeImgUrls = []
+    const afterImgUrls = []
+
+    for (const file of beforeCleanImages.value) {
+      const url = await uploadImageToOss(file)
+      beforeImgUrls.push(url)
+    }
+
+    for (const file of afterCleanImages.value) {
+      const url = await uploadImageToOss(file)
+      afterImgUrls.push(url)
+    }
+
+    const res = await completeOrderApi({
+      orderId: completeForm.value.orderId,
+      orderNo: completeForm.value.orderNo,
+      staffAccount: staffAccount.value,
+      userAccount: completeForm.value.userAccount,
+      beforeCleanImgs: beforeImgUrls,
+      afterCleanImgs: afterImgUrls
+    })
+
+    // 后端 Result.success 固定返回 code=200 / message='操作成功'，
+    // CompletedOrder 业务结果放在 data 里（"订单已完成成功" / "订单已完成失败"）
+    if (res.code === 200 && (!res.data || res.data === '订单已完成成功')) {
+      ElMessage.success('订单已完成')
+      completeDialogVisible.value = false
+      fetchOrders()
+    } else {
+      ElMessage.error(res.message || res.data || '订单完成失败')
     }
   } catch (e) {
-    console.error('获取用户信息失败:', e)
+    console.error('完成订单失败:', e)
+    ElMessage.error('订单完成失败：' + (e.message || '未知错误'))
+  } finally {
+    completeLoading.value = false
   }
-  
+}
+
+
+
+const handleCancelOrder = async (order) => {
+  try {
+    await ElMessageBox.confirm(
+      '确认要取消该订单吗？取消后订单将无法恢复。',
+      '取消订单确认',
+      {
+        confirmButtonText: '确认取消',
+        cancelButtonText: '返回',
+        type: 'warning'
+      }
+    )
+
+    const res = await cancelOrderApi({
+      id: order.id,
+      staffAccount: staffAccount.value
+    })
+
+    if (res.code === 200 || res.message === '订单取消成功') {
+      ElMessage.success('订单已取消')
+      orders.value = orders.value.filter(o => o.id !== order.id)
+      fetchOrders()
+    } else {
+      ElMessage.error(res.message || '取消失败')
+    }
+  } catch (e) {
+    if (e !== 'cancel') {
+      ElMessage.error('取消订单失败，请重试')
+    }
+  }
+}
+
+const goChat = (order) => {
   router.push({
     path: '/staff/order-chat',
     query: {
       userAccount: order.userAccount,
-      userName: userName,
-      userAvatar: userAvatar,
+      userName: order.userAccount,
+      userAvatar: '',
       orderId: order.id,
       orderNo: order.orderNo
     }
@@ -548,6 +810,13 @@ const handleLogout = () => {
 .right-panel .panel-title {
   background: #fff;
   padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.order-tab-group {
+  margin-right: auto;
 }
 
 .order-list {
@@ -745,5 +1014,39 @@ const handleLogout = () => {
   padding-top: 12px;
   margin-top: 10px;
   border-top: 1px solid #f0f0f0;
+}
+
+.order-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 12px;
+  margin-top: 10px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.complete-order-content {
+  padding: 10px 0;
+}
+
+.complete-order-content .order-info {
+  margin-bottom: 20px;
+}
+
+.upload-tip {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 5px;
+}
+
+:deep(.el-upload--picture-card) {
+  width: 100px;
+  height: 100px;
+  line-height: 100px;
+}
+
+:deep(.el-upload-list--picture-card .el-upload-list__item) {
+  width: 100px;
+  height: 100px;
 }
 </style>

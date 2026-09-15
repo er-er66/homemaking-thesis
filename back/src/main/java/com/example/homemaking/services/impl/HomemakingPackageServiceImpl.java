@@ -137,4 +137,9 @@ public class HomemakingPackageServiceImpl implements HomemakingPackageService {
         homemakingPackage.setUpdateTime(LocalDateTime.now());
         return homemakingPackageMapper.updateById(homemakingPackage);
     }
+
+    @Override
+    public List<HomemakingPackage> getOrderList(int account, int orderStatus) {
+      return homemakingPackageMapper.getOrderList(account,orderStatus);
+    }
 }

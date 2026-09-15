@@ -43,6 +43,34 @@
       </el-card>
 
       <el-card class="form-card">
+        <h4>服务项目</h4>
+        <div class="service-type-tabs">
+          <el-tag
+            v-for="type in serviceTypes"
+            :key="type.value"
+            :type="selectedServiceType === type.value ? 'primary' : 'info'"
+            :effect="selectedServiceType === type.value ? 'dark' : 'plain'"
+            class="service-type-tab"
+            @click="selectedServiceType = type.value; filterServiceItems()"
+          >
+            {{ type.label }}
+          </el-tag>
+        </div>
+        <div v-loading="serviceItemsLoading" class="service-items-grid">
+          <el-tag
+            v-for="item in serviceItems"
+            :key="item.id"
+            :type="selectedServiceItem?.id === item.id ? 'success' : 'info'"
+            :effect="selectedServiceItem?.id === item.id ? 'dark' : 'plain'"
+            class="service-item-card"
+            @click="selectServiceItem(item)"
+          >
+            {{ item.name }}
+          </el-tag>
+        </div>
+      </el-card>
+
+      <el-card class="form-card">
         <h4>订单名称</h4>
         <el-input
           v-model="orderName"
@@ -230,6 +258,57 @@ const coverUrl = ref('')
 const coverFile = ref(null)
 const selectedPresetIndex = ref(-1)
 const isPresetCover = ref(false)
+
+const serviceTypes = [
+  { value: 0, label: '全部' },
+  { value: 1, label: '保洁清洁类' },
+  { value: 2, label: '家务保姆类' },
+  { value: 3, label: '母婴护理类' },
+  { value: 4, label: '老人/病患照护类' },
+  { value: 5, label: '新兴细分家政服务' },
+  { value: 6, label: '其他配套家政' }
+]
+
+const selectedServiceType = ref(0)
+const serviceItems = ref([])
+const selectedServiceItem = ref(null)
+const serviceItemsLoading = ref(false)
+
+const allServiceItems = [
+  { id: 1, name: '日常保洁', serviceType: 1 },
+  { id: 2, name: '深度清洁', serviceType: 1 },
+  { id: 3, name: '开荒保洁', serviceType: 1 },
+  { id: 4, name: '家电清洗', serviceType: 1 },
+  { id: 5, name: '擦玻璃', serviceType: 1 },
+  { id: 6, name: '地板打蜡', serviceType: 1 },
+  { id: 7, name: '油烟机清洗', serviceType: 1 },
+  { id: 8, name: '空调清洗', serviceType: 1 },
+  { id: 9, name: '住家保姆', serviceType: 2 },
+  { id: 10, name: '白班保姆', serviceType: 2 },
+  { id: 11, name: '小时工', serviceType: 2 },
+  { id: 12, name: '做饭阿姨', serviceType: 2 },
+  { id: 13, name: '育儿嫂', serviceType: 3 },
+  { id: 14, name: '月嫂', serviceType: 3 },
+  { id: 15, name: '育婴师', serviceType: 3 },
+  { id: 16, name: '催乳师', serviceType: 3 },
+  { id: 17, name: '陪产护理', serviceType: 3 },
+  { id: 18, name: '老人护理', serviceType: 4 },
+  { id: 19, name: '病患护理', serviceType: 4 },
+  { id: 20, name: '康复护理', serviceType: 4 },
+  { id: 21, name: '陪诊服务', serviceType: 4 },
+  { id: 22, name: '养老护理', serviceType: 4 },
+  { id: 23, name: '整理收纳', serviceType: 5 },
+  { id: 24, name: '搬家服务', serviceType: 5 },
+  { id: 25, name: '甲醛治理', serviceType: 5 },
+  { id: 26, name: '灭虫除螨', serviceType: 5 },
+  { id: 27, name: '绿植养护', serviceType: 5 },
+  { id: 28, name: '宠物护理', serviceType: 5 },
+  { id: 29, name: '窗帘清洗', serviceType: 6 },
+  { id: 30, name: '沙发清洗', serviceType: 6 },
+  { id: 31, name: '地毯清洗', serviceType: 6 },
+  { id: 32, name: '衣物的洗涤与整理', serviceType: 6 }
+]
+
 const orderName = ref('')
 const orderDesc = ref('')
 const orderAmount = ref(0)
@@ -248,7 +327,32 @@ const pendingOrderData = ref(null)
 
 onMounted(() => {
   fetchAddressList()
+  fetchServiceItems()
 })
+
+const fetchServiceItems = async () => {
+  serviceItemsLoading.value = true
+  try {
+    serviceItems.value = allServiceItems
+  } catch (e) {
+    console.error('获取服务项目列表失败:', e)
+  }
+  serviceItemsLoading.value = false
+}
+
+const filterServiceItems = () => {
+  if (selectedServiceType.value === 0) {
+    serviceItems.value = allServiceItems
+  } else {
+    serviceItems.value = allServiceItems.filter(item => item.serviceType === selectedServiceType.value)
+  }
+  selectedServiceItem.value = null
+}
+
+const selectServiceItem = (item) => {
+  selectedServiceItem.value = item
+  orderName.value = item.name
+}
 
 const fetchAddressList = async () => {
   const userInfoStr = localStorage.getItem('userInfo')
@@ -390,6 +494,10 @@ const emojiToImageBlob = (emoji, label) => {
 }
 
 const handleSubmit = async () => {
+  if (!selectedServiceItem.value) {
+    ElMessage.warning('请选择服务项目')
+    return
+  }
   if (!orderName.value.trim()) {
     ElMessage.warning('请输入订单名称')
     return
@@ -421,6 +529,7 @@ const handleSubmit = async () => {
 
   pendingOrderData.value = {
     serviceItem: orderName.value,
+    serviceType: selectedServiceType.value,
     serviceAddress: serviceAddress,
     serviceTime: serviceTime.value,
     orderAmount: orderAmount.value,
@@ -541,6 +650,29 @@ h2 {
   margin-bottom: 16px;
   color: #333;
   font-size: 16px;
+}
+
+.service-type-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.service-type-tab {
+  cursor: pointer;
+  padding: 8px 16px;
+}
+
+.service-items-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  min-height: 60px;
+}
+
+.service-item-card {
+  cursor: pointer;
 }
 
 .cover-upload {

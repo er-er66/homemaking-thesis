@@ -43,4 +43,23 @@ public class OssUtil {
 
         return "https://" + bucketName + "." + endpoint + "/" + objectName;
     }
+    public String orderImg(MultipartFile file) throws Exception {
+        String originalFilename = file.getOriginalFilename();
+        String suffix = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            suffix = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+        String objectName = "orderImg/" + UUID.randomUUID().toString() + suffix;
+
+        OSS ossClient = new OSSClientBuilder().build(
+                "https://" + endpoint, accessKeyId, accessKeySecret);
+
+        try (InputStream inputStream = file.getInputStream()) {
+            ossClient.putObject(bucketName, objectName, inputStream);
+        } finally {
+            ossClient.shutdown();
+        }
+
+        return "https://" + bucketName + "." + endpoint + "/" + objectName;
+    }
 }

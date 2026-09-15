@@ -9,6 +9,12 @@ import java.time.LocalDateTime;
 public class OrderDTO {
 
     private Long id;
+
+    /**
+     * 订单编号
+     */
+    private String orderNo;
+
     /**
      * 下单用户账号
      */

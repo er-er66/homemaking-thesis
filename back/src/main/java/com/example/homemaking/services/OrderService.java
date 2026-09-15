@@ -1,5 +1,6 @@
 package com.example.homemaking.services;
 
+import com.example.homemaking.dto.HomemakingOrderImgDTO;
 import com.example.homemaking.dto.OrderDTO;
 import com.example.homemaking.entity.Order;
 
@@ -48,7 +49,7 @@ public interface OrderService {
  * @param staffAccount
  * @return
  */
-    String dispatchOrder(Long id, String staffAccount);
+    String dispatchOrder(Long id, String staffAccount,String dispatchAdminAccount);
 
     /**
  * 拒单
@@ -57,4 +58,14 @@ public interface OrderService {
  * @return
  */
     String rejectOrder(Long id, String staffAccount);
+
+    /**
+ * 取消订单
+ * @param orderNo 订单编号
+ * @param staffAccount
+ * @return
+ */
+    String cancelOrder(String orderNo, String staffAccount);
+
+    String CompletedOrder(HomemakingOrderImgDTO homemakingOrderImgDTO);
 }

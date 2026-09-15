@@ -1,10 +1,10 @@
-﻿<template>
+<template>
   <div class="order-chat-page">
     <div class="header">
       <el-link type="info" :underline="false" @click="router.back()" class="back-link">
-        �?返回
+        ← 返回
       </el-link>
-      <h2>订单与聊�?/h2>
+      <h2>订单与聊天</h2>
     </div>
 
     <div class="body">
@@ -13,7 +13,7 @@
         <div v-loading="loading" class="order-detail" v-if="orderData">
           <div class="order-info-card">
             <div class="info-row">
-              <span class="label">订单�?/span>
+              <span class="label">订单号</span>
               <span class="value">{{ orderData.orderNo }}</span>
             </div>
             <div class="info-row">
@@ -41,20 +41,34 @@
               <span class="value">{{ orderData.userAccount }}</span>
             </div>
             <div class="info-row">
-              <span class="label">状�?/span>
+              <span class="label">状态</span>
               <el-tag size="small" :type="orderData.orderStatus === 0 ? 'warning' : 'success'">
-                {{ orderData.orderStatus === 0 ? '待接�? : '已接�? }}
+                {{ orderData.orderStatus === 0 ? '待接单' : '已接单' }}
               </el-tag>
             </div>
           </div>
 
-          <div class="action-buttons" v-if="orderData.orderStatus === 0">
-            <el-button type="primary" size="large" :loading="takingOrder" @click="handleTakeOrder">
+          <div class="action-buttons">
+            <el-button 
+              v-if="orderData.orderStatus === 0" 
+              type="primary" 
+              size="large" 
+              :loading="takingOrder" 
+              @click="handleTakeOrder"
+            >
               接单
+            </el-button>
+            <el-button 
+              type="success" 
+              size="large" 
+              :loading="sendingOrder" 
+              @click="handleSendOrderDetail"
+            >
+              发送订单详情
             </el-button>
           </div>
         </div>
-        <el-empty v-else description="加载�?.." />
+        <el-empty v-else description="加载中..." />
       </div>
 
       <div class="chat-panel">
@@ -64,13 +78,47 @@
         </div>
         <div class="chat-messages" ref="msgBox">
           <template v-for="(msg, idx) in messages" :key="idx">
-            <div v-if="msg.type === 'order'" class="chat-msg item-left">
+            <div v-if="msg.msgType === 'order_detail'" :class="['chat-msg', msg.from === 'me' ? 'item-right' : 'item-left']" :style="msg.from === 'me' ? (msg.msgType === 'order_detail' ? orderDetailStyleRight : {}) : (msg.msgType === 'order_detail' ? orderDetailStyleLeft : {})">
+              <div class="order-card" :class="msg.from === 'me' ? 'sent-order-card-right' : 'sent-order-card-left'" :style="msg.from === 'me' ? cardStyleRight : cardStyleLeft">
+                <div class="order-card-header" :style="msg.from === 'me' ? headerStyleRight : headerStyleLeft">
+                  <el-icon size="18" color="white"><Document /></el-icon>
+                  <span class="order-card-title" style="color: white">订单详情</span>
+                  <el-tag size="small">
+                    {{ (msg.orderData?.orderStatus || msg.orderData?.orderStatus === 0) === 0 ? '待接单' : '已接单' }}
+                  </el-tag>
+                </div>
+                <div class="order-card-body" style="padding: 12px">
+                  <div class="order-card-row" v-if="msg.orderData?.orderNo">
+                    <span class="order-label">订单号</span>
+                    <span class="order-value">{{ msg.orderData.orderNo }}</span>
+                  </div>
+                  <div class="order-card-row" v-if="msg.orderData?.serviceItem">
+                    <span class="order-label">服务项目</span>
+                    <span class="order-value">{{ msg.orderData.serviceItem }}</span>
+                  </div>
+                  <div class="order-card-row" v-if="msg.orderData?.serviceAddress">
+                    <span class="order-label">服务地址</span>
+                    <span class="order-value">{{ msg.orderData.serviceAddress }}</span>
+                  </div>
+                  <div class="order-card-row" v-if="msg.orderData?.serviceTime">
+                    <span class="order-label">预约时间</span>
+                    <span class="order-value">{{ msg.orderData.serviceTime }}</span>
+                  </div>
+                  <div class="order-card-row" v-if="msg.orderData?.orderAmount">
+                    <span class="order-label">订单金额</span>
+                    <span class="order-amount">¥{{ msg.orderData.orderAmount }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="msg-time">{{ msg.time }}</div>
+            </div>
+            <div v-else-if="msg.type === 'order'" class="chat-msg item-left">
               <div class="order-card" @click="showOrderDetail(msg.orderData)">
                 <div class="order-card-header">
                   <el-icon size="18"><Document /></el-icon>
                   <span class="order-card-title">订单详情</span>
                   <el-tag size="small" :type="msg.orderData.orderStatus === 0 ? 'warning' : 'success'">
-                    {{ msg.orderData.orderStatus === 0 ? '待接�? : '已接�? }}
+                    {{ msg.orderData.orderStatus === 0 ? '待接单' : '已接单' }}
                   </el-tag>
                 </div>
                 <div class="order-card-body">
@@ -107,7 +155,7 @@
         <div class="chat-footer">
           <div class="chat-input-row">
             <el-input v-model="newMsg" placeholder="输入消息..." @keyup.enter="sendMsg" />
-            <el-button type="primary" @click="sendMsg">发�?/el-button>
+            <el-button type="primary" @click="sendMsg">发送</el-button>
           </div>
         </div>
       </div>
@@ -121,7 +169,7 @@
     >
       <div class="order-detail-pop" v-if="selectedOrder">
         <div class="info-row">
-          <span class="label">订单�?/span>
+          <span class="label">订单号</span>
           <span class="value">{{ selectedOrder.orderNo }}</span>
         </div>
         <div class="info-row">
@@ -153,7 +201,8 @@ import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Document } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { getOrderDetailApi, takeOrderApi } from '../api/admin'
+import { getOrderDetailApi, takeOrderApi, markChatReadApi, saveChatMsgApi } from '../api/admin'
+import { normalizeChatMessage, resolveOrderDetail, buildOrderDetailContent } from '../utils/chatMessage'
 
 const route = useRoute()
 const router = useRouter()
@@ -165,10 +214,60 @@ const userAvatar = ref(route.query.userAvatar || '')
 
 const loading = ref(true)
 const takingOrder = ref(false)
+const sendingOrder = ref(false)
 const orderData = ref(null)
 const messages = ref([])
 const newMsg = ref('')
 const msgBox = ref(null)
+
+const orderDetailStyleLeft = {
+  display: 'flex',
+  justifyContent: 'flex-start'
+}
+
+const orderDetailStyleRight = {
+  display: 'flex',
+  justifyContent: 'flex-end'
+}
+
+const cardStyleLeft = {
+  background: 'linear-gradient(135deg, #e6f7ff 0%, #fff1f0 100%)',
+  border: '1px solid #91d5ff',
+  borderRadius: '12px',
+  padding: '0',
+  minWidth: '300px',
+  maxWidth: '90%'
+}
+
+const cardStyleRight = {
+  background: 'linear-gradient(135deg, #f6ffed 0%, #e6f7ff 100%)',
+  border: '1px solid #b7eb8f',
+  borderRadius: '12px',
+  padding: '0',
+  minWidth: '300px',
+  maxWidth: '90%'
+}
+
+const headerStyleLeft = {
+  background: 'linear-gradient(90deg, #1890ff, #36cfc9)',
+  padding: '10px 12px',
+  borderRadius: '12px 12px 0 0',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  margin: '0'
+}
+
+const headerStyleRight = {
+  background: 'linear-gradient(90deg, #52c41a, #73d13d)',
+  padding: '10px 12px',
+  borderRadius: '12px 12px 0 0',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  margin: '0'
+}
+
 const typing = ref(false)
 const showOrderDialog = ref(false)
 const selectedOrder = ref(null)
@@ -209,7 +308,8 @@ const connectWs = () => {
   const saved = localStorage.getItem(`chat_${staffAccount}_${userAccount.value}`)
   if (saved) {
     try {
-      messages.value = JSON.parse(saved)
+      // 老缓存里的订单详情只有文本没有 msgType，统一走 normalize 补成卡片结构
+      messages.value = JSON.parse(saved).map(msg => normalizeChatMessage(msg, staffAccount))
     } catch { /* ignore */ }
   }
 
@@ -217,7 +317,7 @@ const connectWs = () => {
   const wsUrl = `${protocol}//${window.location.host}/ws/chat?from=${staffAccount}&to=${userAccount.value}&role=staff`
   try {
     ws = new WebSocket(wsUrl)
-    ws.onopen = () => console.log('WebSocket 已连�?)
+    ws.onopen = () => console.log('WebSocket 已连接')
     ws.onmessage = (event) => {
       const staffInfoStr = localStorage.getItem('userInfo')
       let staffAccount = ''
@@ -241,6 +341,17 @@ const connectWs = () => {
           })
           saveMessages(staffAccount)
           nextTick(scrollToBottom)
+        } else if (resolveOrderDetail(data.msgType, data.text, data.type)) {
+          // 订单详情卡片：优先看 msgType，后端推送里没有时靠 "Xiangqing" 前缀识别
+          messages.value.push({
+            from: 'user',
+            msgType: 'order_detail',
+            orderData: resolveOrderDetail(data.msgType, data.text, data.type),
+            text: '',
+            time: formatTime(new Date())
+          })
+          saveMessages(staffAccount)
+          nextTick(scrollToBottom)
         } else {
           messages.value.push({
             from: 'user',
@@ -261,7 +372,7 @@ const connectWs = () => {
       }
     }
     ws.onclose = () => {
-      console.log('WebSocket 断开�?秒重�?)
+      console.log('WebSocket 断开，3秒后重连')
       setTimeout(connectWs, 3000)
     }
   } catch (e) {
@@ -301,13 +412,17 @@ const handleTakeOrder = async () => {
     const time = formatTime(now)
     const successMsg = {
       from: 'me',
-      text: `我已接单，订单号�?{orderData.value.orderNo}`,
+      text: `我已接单，订单号：${orderData.value.orderNo}`,
       time
     }
     messages.value.push(successMsg)
     updateChatUserList(staffAccount, userAccount.value, successMsg.text, time)
     nextTick(scrollToBottom)
 
+    const roomId = `${userAccount.value}_${staffAccount}`
+
+    // 后端 ChatWebSocketHandler 收到 type='message' 会自行入库，
+    // 这里再调 saveChatMsgApi 会造成同一条消息入库两次，所以 WS 可用时不重复保存
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({
         from: staffAccount,
@@ -315,9 +430,25 @@ const handleTakeOrder = async () => {
         text: successMsg.text,
         type: 'message',
         role: 'staff',
-        merchantId: staffAccount
+        merchantId: staffAccount,
+        // 后端 WebSocket 只认 camelCase 的 roomId，用 room_id 会导致转发给对方的房间号为空
+        roomId: roomId
       }))
+    } else {
+      await saveChatMsgApi({
+        roomId: roomId,
+        senderId: staffAccount,
+        senderType: 1,
+        content: successMsg.text,
+        msgType: 'text',
+        attachUrl: ''
+      }).catch(error => console.error('保存消息失败:', error))
     }
+
+    await markChatReadApi({
+      room_id: roomId,
+      userId: staffAccount
+    })
 
     if (orderData.value && !messages.value.some(m => m.type === 'order' && m.orderData.id === orderData.value.id)) {
       messages.value.unshift({
@@ -333,7 +464,88 @@ const handleTakeOrder = async () => {
   }
 }
 
-const sendMsg = () => {
+const handleSendOrderDetail = async () => {
+  if (!orderData.value) return
+
+  const staffInfoStr = localStorage.getItem('userInfo')
+  let staffAccount = ''
+  if (staffInfoStr) {
+    try {
+      staffAccount = JSON.parse(staffInfoStr).account || ''
+    } catch { /* ignore */ }
+  }
+
+  if (!staffAccount) {
+    ElMessage.error('请先登录')
+    return
+  }
+
+  sendingOrder.value = true
+
+  const orderDetailData = {
+    orderNo: orderData.value.orderNo,
+    serviceItem: orderData.value.serviceItem,
+    serviceAddress: orderData.value.serviceAddress,
+    serviceTime: orderData.value.serviceTime,
+    orderAmount: orderData.value.orderAmount,
+    orderStatus: orderData.value.orderStatus
+  }
+  const roomId = `${userAccount.value}_${staffAccount}`
+  const orderDetailContent = buildOrderDetailContent(orderDetailData)
+
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
+      from: staffAccount,
+      to: userAccount.value,
+      text: orderDetailContent,
+      type: 'order_detail',
+      role: 'staff',
+      merchantId: staffAccount,
+      roomId: roomId
+    }))
+  }
+
+  // 注意：后端 ChatWebSocketHandler 只对 type='message' 入库，order_detail 不落库，
+  // 所以这里必须保留 saveChatMsgApi，否则订单详情卡片不会进历史记录。
+  try {
+    await saveChatMsgApi({
+      roomId: roomId,
+      senderId: staffAccount,
+      senderType: 1,
+      content: orderDetailContent,
+      msgType: 'order_detail',
+      attachUrl: ''
+    })
+
+    await markChatReadApi({
+      room_id: roomId,
+      userId: staffAccount
+    })
+
+    const now = new Date()
+    const time = formatTime(now)
+    const newMsg = {
+      from: 'me',
+      text: '',
+      msgType: 'order_detail',
+      orderData: orderDetailData,
+      time
+    }
+    messages.value.push(newMsg)
+    saveMessages(staffAccount)
+    updateChatUserList(staffAccount, userAccount.value, '订单详情', time)
+    nextTick(scrollToBottom)
+
+    ElMessage.success('订单详情已发送')
+  } catch (error) {
+    console.error('发送订单详情失败:', error)
+    ElMessage.error('发送失败')
+  } finally {
+    sendingOrder.value = false
+  }
+}
+
+const sendMsg = async () => {
   const text = newMsg.value.trim()
   if (!text) return
 
@@ -353,6 +565,9 @@ const sendMsg = () => {
   nextTick(scrollToBottom)
   saveMessages(staffAccount)
 
+  const roomId = `${userAccount.value}_${staffAccount}`
+
+  // 同上：WS 可达时由后端入库，避免双写产生重复消息
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({
       from: staffAccount,
@@ -360,9 +575,28 @@ const sendMsg = () => {
       text,
       type: 'message',
       role: 'staff',
-      merchantId: staffAccount
+      merchantId: staffAccount,
+      roomId: roomId
     }))
+  } else {
+    try {
+      await saveChatMsgApi({
+        roomId: roomId,
+        senderId: staffAccount,
+        senderType: 1,
+        content: text,
+        msgType: 'text',
+        attachUrl: ''
+      })
+    } catch (error) {
+      console.error('保存消息失败:', error)
+    }
   }
+
+  await markChatReadApi({
+    room_id: roomId,
+    userId: staffAccount
+  })
 
   updateChatUserList(staffAccount, userAccount.value, text, time)
 }
@@ -591,6 +825,55 @@ onUnmounted(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   cursor: pointer;
   transition: all 0.2s;
+}
+
+.sent-order-card {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e6f7ff 100%) !important;
+  border: 1px solid #91d5ff !important;
+  cursor: default !important;
+}
+
+.chat-msg.item-left .sent-order-card .order-card-header {
+  background: linear-gradient(90deg, #1890ff, #36cfc9) !important;
+  margin: -12px -14px 8px -14px !important;
+  padding: 10px 14px !important;
+  border-radius: 8px 8px 0 0 !important;
+  border-bottom: none !important;
+}
+
+.chat-msg.item-left .sent-order-card .order-card-title {
+  color: white !important;
+}
+
+.chat-msg.item-left .sent-order-card .el-tag {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: none !important;
+}
+
+.chat-msg.item-right .sent-order-card {
+  background: linear-gradient(135deg, #e6f7ff 0%, #d9f7be 100%) !important;
+  border-color: #b7eb8f !important;
+}
+
+.chat-msg.item-right .sent-order-card .order-card-header {
+  background: linear-gradient(90deg, #52c41a, #73d13d) !important;
+  margin: -12px -14px 8px -14px !important;
+  padding: 10px 14px !important;
+  border-radius: 8px 8px 0 0 !important;
+  border-bottom: none !important;
+}
+
+.chat-msg.item-right .sent-order-card .order-card-title {
+  color: white !important;
+}
+
+.chat-msg.item-right .sent-order-card .el-tag {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: none !important;
+}
+
+.chat-msg .sent-order-card .order-card-header .el-icon {
+  color: white !important;
 }
 
 .order-card:hover {

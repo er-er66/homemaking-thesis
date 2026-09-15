@@ -84,9 +84,6 @@ public class ChatServiceImpl implements ChatService {
             log.info("批量插入已读记录 {} 条", readList.size());
         }
 
-        redisTemplate.opsForList().leftPush(CHAT_QUEUE_KEY, message);
-        log.info("消息已写入Redis队列: msgId={}, roomId={}", msgId, messageDTO.getRoomId());
-
         return 1;
     }
 

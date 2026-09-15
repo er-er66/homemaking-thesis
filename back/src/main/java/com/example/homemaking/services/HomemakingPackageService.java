@@ -28,4 +28,12 @@ public interface HomemakingPackageService {
      * @return
      */
     int updatePackage(HomemakingPackageDTO homemakingPackageDTO);
+
+    /**
+     * 获取家政人员已接订单列表
+     * @param account
+     * @param orderStatus
+     * @return
+     */
+    List<HomemakingPackage> getOrderList(int account, int orderStatus);
 }

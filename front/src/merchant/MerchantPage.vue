@@ -1,4 +1,4 @@
-﻿<template>
+﻿﻿<template>
   <div class="merchant-page">
     <div class="merchant-header">
       <div class="header-left">
@@ -41,54 +41,110 @@
 
       <div class="merchant-chat" v-if="currentMerchant.id">
         <div class="chat-header">
+          <el-avatar :size="36" :src="peerAvatar" shape="square">{{ peerInitial }}</el-avatar>
           <span class="chat-title">{{ currentMerchant.name }}<span v-if="currentMerchant.type === 'cs' && !currentMerchant.name.includes('客服')" class="cs-tag">（客服）</span></span>
         </div>
         <div class="chat-body">
           <div class="chat-messages" ref="msgBox">
             <template v-for="(msg, idx) in chatMessages" :key="idx">
-              <div v-if="msg.type === 'order'" class="chat-msg msg-left">
-                <div class="order-card" @click="showOrderDetail(msg.orderData)">
-                  <div class="order-card-header">
-                    <el-icon size="18"><Document /></el-icon>
-                    <span class="order-card-title">订单详情</span>
-                    <el-tag size="small" :type="msg.orderData.orderStatus === 0 ? 'warning' : 'success'">
-                      {{ msg.orderData.orderStatus === 0 ? '待接单' : '已接单' }}
-                    </el-tag>
-                  </div>
-                  <div class="order-card-body">
-                    <div class="order-card-row">
-                      <span class="order-label">服务项目</span>
-                      <span class="order-value">{{ msg.orderData.serviceItem }}</span>
-                    </div>
-                    <div class="order-card-row">
-                      <span class="order-label">服务地址</span>
-                      <span class="order-value">{{ msg.orderData.serviceAddress }}</span>
-                    </div>
-                    <div class="order-card-row">
-                      <span class="order-label">预约时间</span>
-                      <span class="order-value">{{ msg.orderData.serviceTime }}</span>
-                    </div>
-                    <div class="order-card-row">
-                      <span class="order-label">订单金额</span>
-                      <span class="order-amount">¥{{ msg.orderData.orderAmount }}</span>
-                    </div>
-                  </div>
-                  <div class="order-card-footer">
-                    <span class="order-click-hint">点击查看详情 →</span>
-                  </div>
+              <div v-if="msg.msgType === 'order_detail'" :class="['chat-msg', msg.from === 'me' ? 'msg-right' : 'msg-left']">
+                <div class="msg-avatar" v-if="msg.from !== 'me'">
+                  <el-avatar :size="36" :src="peerAvatar" shape="square">{{ peerInitial }}</el-avatar>
                 </div>
-                <div class="msg-time">{{ msg.time }}</div>
+                <div class="msg-content">
+                  <div class="order-card" :style="msg.from === 'me' ? cardStyleMerchantRight : cardStyleMerchantLeft">
+                    <div class="order-card-header" :style="msg.from === 'me' ? headerStyleMerchantRight : headerStyleMerchantLeft">
+                      <el-icon size="18" color="white"><Document /></el-icon>
+                      <span class="order-card-title" style="color: white">订单详情</span>
+                      <el-tag size="small">
+                        {{ (msg.orderData?.orderStatus || msg.orderData?.orderStatus === 0) === 0 ? '待接单' : '已接单' }}
+                      </el-tag>
+                    </div>
+                    <div class="order-card-body" style="padding: 12px">
+                      <div class="order-card-row" v-if="msg.orderData?.orderNo">
+                        <span class="order-label">订单号</span>
+                        <span class="order-value">{{ msg.orderData.orderNo }}</span>
+                      </div>
+                      <div class="order-card-row" v-if="msg.orderData?.serviceItem">
+                        <span class="order-label">服务项目</span>
+                        <span class="order-value">{{ msg.orderData.serviceItem }}</span>
+                      </div>
+                      <div class="order-card-row" v-if="msg.orderData?.serviceAddress">
+                        <span class="order-label">服务地址</span>
+                        <span class="order-value">{{ msg.orderData.serviceAddress }}</span>
+                      </div>
+                      <div class="order-card-row" v-if="msg.orderData?.serviceTime">
+                        <span class="order-label">预约时间</span>
+                        <span class="order-value">{{ msg.orderData.serviceTime }}</span>
+                      </div>
+                      <div class="order-card-row" v-if="msg.orderData?.orderAmount">
+                        <span class="order-label">订单金额</span>
+                        <span class="order-amount">¥{{ msg.orderData.orderAmount }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="msg-time">{{ msg.time }}</div>
+                </div>
+                <div class="msg-avatar" v-if="msg.from === 'me'">
+                  <el-avatar :size="36" :src="myAvatar" shape="square">{{ myInitial }}</el-avatar>
+                </div>
+              </div>
+              <div v-else-if="msg.type === 'order'" class="chat-msg msg-left">
+                <div class="msg-avatar">
+                  <el-avatar :size="36" :src="peerAvatar" shape="square">{{ peerInitial }}</el-avatar>
+                </div>
+                <div class="msg-content">
+                  <div class="order-card" @click="showOrderDetail(msg.orderData)">
+                    <div class="order-card-header">
+                      <el-icon size="18"><Document /></el-icon>
+                      <span class="order-card-title">订单详情</span>
+                      <el-tag size="small" :type="msg.orderData.orderStatus === 0 ? 'warning' : 'success'">
+                        {{ msg.orderData.orderStatus === 0 ? '待接单' : '已接单' }}
+                      </el-tag>
+                    </div>
+                    <div class="order-card-body">
+                      <div class="order-card-row">
+                        <span class="order-label">服务项目</span>
+                        <span class="order-value">{{ msg.orderData.serviceItem }}</span>
+                      </div>
+                      <div class="order-card-row">
+                        <span class="order-label">服务地址</span>
+                        <span class="order-value">{{ msg.orderData.serviceAddress }}</span>
+                      </div>
+                      <div class="order-card-row">
+                        <span class="order-label">预约时间</span>
+                        <span class="order-value">{{ msg.orderData.serviceTime }}</span>
+                      </div>
+                      <div class="order-card-row">
+                        <span class="order-label">订单金额</span>
+                        <span class="order-amount">¥{{ msg.orderData.orderAmount }}</span>
+                      </div>
+                    </div>
+                    <div class="order-card-footer">
+                      <span class="order-click-hint">点击查看详情 →</span>
+                    </div>
+                  </div>
+                  <div class="msg-time">{{ msg.time }}</div>
+                </div>
               </div>
               <div
                 v-else
                 :class="['chat-msg', msg.from === 'me' ? 'msg-right' : 'msg-left']"
               >
-                <div class="msg-bubble">{{ msg.text }}</div>
-                <div class="msg-status-row">
-                  <span class="msg-time">{{ msg.time }}</span>
-                  <span v-if="msg.from === 'merchant'" class="msg-read-status">
-                    {{ msg.isRead ? '已读' : '未读' }}
-                  </span>
+                <div class="msg-avatar" v-if="msg.from !== 'me'">
+                  <el-avatar :size="36" :src="peerAvatar" shape="square">{{ peerInitial }}</el-avatar>
+                </div>
+                <div class="msg-content">
+                  <div class="msg-bubble">{{ msg.text }}</div>
+                  <div class="msg-status-row">
+                    <span class="msg-time">{{ msg.time }}</span>
+                    <span v-if="msg.from === 'merchant'" class="msg-read-status">
+                      {{ msg.isRead ? '已读' : '未读' }}
+                    </span>
+                  </div>
+                </div>
+                <div class="msg-avatar" v-if="msg.from === 'me'">
+                  <el-avatar :size="36" :src="myAvatar" shape="square">{{ myInitial }}</el-avatar>
                 </div>
               </div>
             </template>
@@ -167,15 +223,64 @@ import { ref, nextTick, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Document } from '@element-plus/icons-vue'
-import { getMerchants, clearUnread, updateLastMsg, recvMsgFromMerchant, setMerchants, addMerchant } from '../store/merchantStore'
-import { getOrderDetailApi, takeOrderApi, getChatHistoryApi, getMerchantListApi, getUserNameApi, saveChatMsgApi, markChatReadApi, getChatRoomListApi } from '../api/admin'
+import { getMerchants, clearUnread, updateLastMsg, recvMsgFromMerchant, setMerchants, addMerchant, findMerchant } from '../store/merchantStore'
+import { getOrderDetailApi, takeOrderApi, getChatHistoryApi, markChatReadApi, getChatRoomListApi } from '../api/admin'
+import { parseOrderDetailPayload, resolveOrderDetail } from '../utils/chatMessage'
 const route = useRoute()
 const router = useRouter()
 
 const loading = ref(false)
 const currentMerchant = ref({})
+const currentRoomId = ref('')
 const newMsg = ref('')
 const chatMessages = ref([])
+const processedMessageIds = new Set()
+const MAX_PROCESSED_IDS = 200
+
+// 聊天头像：自己（右侧）取登录信息，对方（左侧）取当前会话对象
+const myAvatar = ref('')
+const myName = ref('')
+const myInitial = computed(() => (myName.value || '').charAt(0) || '我')
+const peerAvatar = computed(() => currentMerchant.value.avatar || '')
+const peerInitial = computed(() => (currentMerchant.value.name || '').charAt(0) || '商')
+
+const cardStyleMerchantLeft = {
+  background: 'linear-gradient(135deg, #e6f7ff 0%, #fff1f0 100%)',
+  border: '1px solid #91d5ff',
+  borderRadius: '12px',
+  padding: '0',
+  minWidth: '300px',
+  maxWidth: '90%'
+}
+
+const cardStyleMerchantRight = {
+  background: 'linear-gradient(135deg, #f6ffed 0%, #e6f7ff 100%)',
+  border: '1px solid #b7eb8f',
+  borderRadius: '12px',
+  padding: '0',
+  minWidth: '300px',
+  maxWidth: '90%'
+}
+
+const headerStyleMerchantLeft = {
+  background: 'linear-gradient(90deg, #1890ff, #36cfc9)',
+  padding: '10px 12px',
+  borderRadius: '12px 12px 0 0',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  margin: '0'
+}
+
+const headerStyleMerchantRight = {
+  background: 'linear-gradient(90deg, #52c41a, #73d13d)',
+  padding: '10px 12px',
+  borderRadius: '12px 12px 0 0',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  margin: '0'
+}
 const msgBox = ref(null)
 let ws = null
 
@@ -222,7 +327,9 @@ const connectWebSocket = () => {
   ws.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data)
-      handleIncomingMessage(data)
+      Promise.resolve(handleIncomingMessage(data)).catch(e => {
+        console.error('处理消息失败:', e)
+      })
     } catch (e) {
       console.error('解析消息失败:', e)
     }
@@ -255,57 +362,248 @@ const connectWebSocket = () => {
   }
 }
 
-const handleIncomingMessage = (data) => {
-  const { type, from, to, merchantId, merchantName, merchantAvatar, message, orderData } = data
+// 消息去重：生成唯一标识符并检查是否已处理过
+const isMessageDuplicate = (msgKey) => {
+  if (processedMessageIds.has(msgKey)) {
+    console.log('[MerchantPage] 检测到重复消息，已忽略:', msgKey)
+    return true
+  }
+  processedMessageIds.add(msgKey)
+  if (processedMessageIds.size > MAX_PROCESSED_IDS) {
+    const iterator = processedMessageIds.values()
+    const first = iterator.next().value
+    processedMessageIds.delete(first)
+  }
+  return false
+}
+
+// 解析订单详情消息体统一走公共工具（见 src/utils/chatMessage.js），
+// 避免各处聊天页各写一套解析逻辑、漏掉前缀判断就退化成 JSON 文本
+
+let refreshTimer = null
+
+// 会话列表以后端为准，用于拿到对方真实昵称/头像和未读数
+const refreshMerchantList = async () => {
   const myId = getMyId()
-  
-  console.log('[MerchantPage] 收到消息:', { type, from, to, merchantId, message, myId })
-  console.log('[MerchantPage] 当前聊天对象:', currentMerchant.value.id)
-  
+  if (!myId) return
+  try {
+    const res = await getChatRoomListApi(myId)
+    if (res && Array.isArray(res.data)) {
+      setMerchants(res.data)
+      const currentKey = currentMerchant.value.roomId || currentMerchant.value.id
+      const mine = findMerchant({ id: currentKey, roomId: currentKey, account: currentMerchant.value.account })
+      if (mine) currentMerchant.value = mine
+    }
+  } catch (e) {
+    console.warn('[MerchantPage] 刷新会话列表失败:', e)
+  }
+}
+
+// 新会话刚创建时后端可能还没写完，稍后再刷新一次列表
+const scheduleMerchantListRefresh = (delay = 800) => {
+  if (refreshTimer) return
+  refreshTimer = setTimeout(() => {
+    refreshTimer = null
+    refreshMerchantList()
+  }, delay)
+}
+
+// 后端房间号约定是 `用户账号_家政人员/管理员账号`。
+// 已经有 roomId 就直接复用；只有对方账号时按自己的角色拼接，
+// 否则同一段对话两侧会拼出顺序相反的 roomId，后端就会当成两个会话。
+const buildRoomId = (merchant, myId) => {
+  if (!merchant) return ''
+  if (merchant.roomId) return merchant.roomId
+  const peer = String(merchant.id || '')
+  if (!peer) return ''
+  if (peer.includes('_')) return peer
+  return isStaff.value
+    ? [peer, myId].filter(Boolean).join('_')
+    : [myId, peer].filter(Boolean).join('_')
+}
+
+// 只有对方账号时，先在后端会话列表里找已存在的房间，避免房间号顺序不同建出重复会话
+const resolveRoomId = async (merchant, myId) => {
+  const fallback = buildRoomId(merchant, myId)
+  if (!merchant || merchant.roomId || String(merchant.id || '').includes('_')) {
+    return fallback
+  }
+  try {
+    const res = await getChatRoomListApi(myId)
+    const rooms = res && Array.isArray(res.data) ? res.data : []
+    const room = rooms.find(r =>
+      r.roomId === merchant.id ||
+      r.account === merchant.id ||
+      (merchant.account && r.account === merchant.account)
+    )
+    if (room && room.roomId) {
+      merchant.roomId = room.roomId
+      if (!merchant.account) merchant.account = room.account || ''
+      if (room.name && (!merchant.name || merchant.name === merchant.id)) merchant.name = room.name
+      return room.roomId
+    }
+  } catch (e) {
+    console.warn('[MerchantPage] 获取会话房间失败:', e)
+  }
+  return fallback
+}
+
+// 当前会话必须在左侧列表里有对应条目，否则消息只出现在聊天区、列表和会话对不上
+const ensureCurrentInList = async (roomId) => {
+  const current = currentMerchant.value
+  if (!current || (!current.id && !current.account)) return null
+
+  const key = roomId || current.roomId || (String(current.id || '').includes('_') ? current.id : '')
+  const existing = findMerchant({ id: key, roomId: key, account: current.account || current.id })
+  if (existing) {
+    currentMerchant.value = existing
+    return existing
+  }
+  // 还没有真实房间号时不占位，等收到带 roomId 的消息或后端会话列表返回后再展示
+  if (!key || !key.includes('_')) return null
+
+  const created = addMerchant({
+    id: key,
+    roomId: key,
+    account: current.account || '',
+    name: current.name,
+    avatar: current.avatar
+  })
+  if (created) currentMerchant.value = created
+  scheduleMerchantListRefresh()
+  return created
+}
+
+const handleIncomingMessage = async (data) => {
+  const myId = getMyId()
+  const from = data.from || data.senderId || data.sender || ''
+  const peerAccount = data.merchantId || data.to || from
+  const incomingRoomId = data.roomId || data.room_id || ''
+  const type = data.type || (data.msgType === 'order_detail' ? 'order_detail' : 'message')
+  const message = data.message || data.text || data.content || ''
+  const orderData = data.orderData
+  const merchantName = data.merchantName || data.name || data.senderName || ''
+  const merchantAvatar = data.merchantAvatar || data.avatar || ''
+
+  console.log('[MerchantPage] 收到完整消息数据:', JSON.stringify(data))
+  console.log('[MerchantPage] 解析后的消息:', { type, from, peerAccount, roomId: incomingRoomId, myId })
+
   // 忽略自己发送的消息（避免重复显示）
-  if (from === myId) {
+  if (from && from === myId) {
     console.log('[MerchantPage] 忽略自己发送的消息')
     return
   }
 
-  if (type === 'order' && merchantId && orderData) {
-    console.log('[MerchantPage] 处理订单消息')
-    const now = new Date()
-    const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
-    const orderMsg = {
-      from: 'merchant',
-      type: 'order',
-      orderData,
-      time
+  if (!peerAccount && !incomingRoomId) {
+    console.warn('[MerchantPage] 消息缺少发送者信息，尝试使用备用字段:', data)
+    // 尝试从其他可能的字段获取标识
+    const fallbackId = data.userId || data.user_id || data.account || ''
+    if (!fallbackId) {
+      console.error('[MerchantPage] 无法确定消息发送者，忽略消息:', data)
+      return
     }
-    if (currentMerchant.value.account === merchantId) {
-      chatMessages.value.push(orderMsg)
-      updateLastMsg(merchantId, '[订单] ' + (orderData.serviceItem || '新订单'), time)
-      nextTick(scrollToBottom)
-      const roomId = merchantId.includes('_') ? merchantId : `${merchantId}_${myId}`
-      markChatReadApi({ room_id: roomId, userId: myId }).catch(() => {})
-    } else {
-      recvMsgFromMerchant({
-        merchantId,
-        merchantName,
-        merchantAvatar,
-        text: '[订单] ' + (orderData.serviceItem || '新订单')
+    // 动态更新 peerAccount
+    data._fallbackPeerAccount = fallbackId
+  }
+
+  // 使用 fallbackId 如果原始 peerAccount 为空
+  const effectivePeerAccount = peerAccount || data._fallbackPeerAccount || ''
+  
+  // 后端推送的 merchantId 是发送者 account，会话列表里的 id 却是 roomId，
+  // 这里统一按 roomId / id / account 三种键定位，找不到才新增，避免重复建会话
+  const existing = findMerchant({ id: incomingRoomId, roomId: incomingRoomId, account: effectivePeerAccount })
+  const resolvedRoomId = existing ? buildRoomId(existing, myId) : incomingRoomId
+  console.log('[MerchantPage] 会话匹配:', {
+    existingId: existing && existing.id,
+    resolvedRoomId,
+    currentId: currentMerchant.value.id,
+    currentRoomId: currentRoomId.value,
+    effectivePeerAccount
+  })
+
+  const current = currentMerchant.value || {}
+  const isCurrent = Boolean(current.id || current.account) && (
+    (resolvedRoomId && currentRoomId.value && resolvedRoomId === currentRoomId.value) ||
+    (incomingRoomId && (current.id === incomingRoomId || current.roomId === incomingRoomId)) ||
+    (effectivePeerAccount && (current.account === effectivePeerAccount || current.id === effectivePeerAccount))
+  )
+
+  if (!isCurrent) {
+    // 不是当前聊天：只更新左侧列表（命中已有会话就更新，没有才新增），不切换聊天
+    console.log('[MerchantPage] 不是当前聊天会话，更新列表, effectivePeerAccount:', effectivePeerAccount)
+    const listText = type === 'order_detail'
+      ? '订单详情'
+      : type === 'order'
+        ? '[订单] ' + ((orderData && orderData.serviceItem) || '新订单')
+        : message
+    
+    const addResult = recvMsgFromMerchant({
+      merchantId: effectivePeerAccount,
+      merchantName: merchantName || effectivePeerAccount,
+      merchantAvatar,
+      text: listText,
+      roomId: incomingRoomId
+    })
+    
+    console.log('[MerchantPage] recvMsgFromMerchant 返回结果:', addResult)
+    console.log('[MerchantPage] 当前 merchantList 长度:', merchantList.value.length)
+    
+    if (!existing && !addResult) {
+      console.warn('[MerchantPage] 会话添加失败，尝试强制添加')
+      // 强制添加：如果正常流程失败，直接调用 addMerchant
+      const forcedMerchant = addMerchant({
+        id: incomingRoomId || effectivePeerAccount,
+        roomId: incomingRoomId,
+        account: effectivePeerAccount,
+        name: merchantName || effectivePeerAccount || '未知用户',
+        avatar: merchantAvatar,
+        lastMsg: listText,
+        time: new Date().toTimeString().slice(0, 5),
+        unread: 1
       })
+      console.log('[MerchantPage] 强制添加结果:', forcedMerchant)
+    }
+    
+    if (!existing) {
+      scheduleMerchantListRefresh()
     }
     return
   }
 
-  if (type === 'message' && merchantId && message) {
-    console.log('[MerchantPage] 处理普通消息')
-    const now = new Date()
-    const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
+  await ensureCurrentInList(incomingRoomId)
+
+  const time = formatTime(new Date())
+  const msgKey = `${type}:${effectivePeerAccount}:${message || JSON.stringify(orderData || '')}:${time}`
+  
+  if (isMessageDuplicate(msgKey)) {
+    return
+  }
+  
+  if (type === 'order_detail') {
+    chatMessages.value.push({
+      from: 'merchant',
+      msgType: 'order_detail',
+      orderData: parseOrderDetailPayload(message) || orderData || {},
+      text: message,
+      time
+    })
+    updateLastMsg(incomingRoomId || effectivePeerAccount, '订单详情', time)
+  } else if (type === 'order' && orderData) {
+    chatMessages.value.push({ from: 'merchant', type: 'order', orderData, time })
+    updateLastMsg(incomingRoomId || effectivePeerAccount, '[订单] ' + (orderData.serviceItem || '新订单'), time)
+  } else if (message) {
     chatMessages.value.push({ from: 'merchant', text: message, time, isRead: true })
-    updateLastMsg(merchantId, message, time)
-    nextTick(scrollToBottom)
-    const roomId = merchantId.includes('_') ? merchantId : `${merchantId}_${myId}`
-    markChatReadApi({ room_id: roomId, userId: myId }).catch(() => {})
+    updateLastMsg(incomingRoomId || effectivePeerAccount, message, time)
   } else {
-    console.log('[MerchantPage] 消息条件不满足:', { type, merchantId, message })
+    console.log('[MerchantPage] 消息条件不满足:', data)
+    return
+  }
+
+  nextTick(scrollToBottom)
+
+  const room = currentRoomId.value || resolvedRoomId
+  if (room) {
+    markChatReadApi({ room_id: room, userId: myId }).catch(() => {})
   }
 }
 const getMyId = () => {
@@ -382,8 +680,9 @@ const handleTakeOrder = async () => {
     sendMessage({
       type: 'message',
       from: staffAccount,
-      to: currentMerchant.value.id,
+      to: currentMerchant.value.account || currentMerchant.value.id,
       merchantId: staffAccount,
+      roomId: currentRoomId.value || undefined,
       message: `商家已接单，订单号：${selectedOrder.value.orderNo || selectedOrder.value.id}`,
       text: `商家已接单，订单号：${selectedOrder.value.orderNo || selectedOrder.value.id}`
     })
@@ -402,6 +701,9 @@ onMounted(async () => {
     try {
       const info = JSON.parse(userInfoStr)
       userId = info.account || ''
+      // 自己的头像/昵称用于聊天里右侧气泡
+      myAvatar.value = info.avatar || ''
+      myName.value = info.username || info.account || ''
     } catch { /* ignore */ }
   }
   
@@ -441,7 +743,7 @@ onMounted(async () => {
       if (targetMerchant) {
         await openChat(targetMerchant)
       } else {
-        // 如果商家不在列表中，创建一个临时商家对象并打开聊天
+        // 如果商家不在列表中，先尝试用后端会话记录打开，避免用账号当房间号建出重复会话
         console.log('[MerchantPage] creating tempMerchant')
         const tempMerchant = {
           id: targetMerchantId,
@@ -453,6 +755,7 @@ onMounted(async () => {
           unread: 0
         }
         await openChat(tempMerchant)
+        await ensureCurrentInList()
       }
     }
     
@@ -466,6 +769,10 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  if (refreshTimer) {
+    clearTimeout(refreshTimer)
+    refreshTimer = null
+  }
   if (ws) {
     ws.close(1000, '页面离开')
   }
@@ -476,66 +783,68 @@ const openChat = async (merchant) => {
     ElMessage.error('商家信息不完整')
     return
   }
-  
-  currentMerchant.value = merchant
-  clearUnread(merchant.id)
 
   const myId = getMyId()
+  // 会话房间号：优先复用后端会话列表里的 roomId，只有对方账号时先去后端找已有房间
+  const roomId = await resolveRoomId(merchant, myId)
 
-  // 构造正确的 roomId 格式：家政人员账号_管理员账号
-  const roomId = merchant.id.includes('_') 
-    ? merchant.id 
-    : `${merchant.id}_${myId}`
+  currentMerchant.value = merchant
+  currentRoomId.value = roomId
+  clearUnread(merchant.id)
 
   chatMessages.value = []
-  try {
-    const res = await getChatHistoryApi({
-      room_id: roomId
-    })
-    if (res && res.data && Array.isArray(res.data)) {
-      res.data.forEach(msg => {
-        const isMe = String(msg.senderId) === String(myId)
-        chatMessages.value.push({
-          from: isMe ? 'me' : 'merchant',
-          type: msg.msgType || 'text',
-          text: msg.content,
-          orderData: msg.orderData,
-          time: formatTime(new Date(msg.createdAt)),
-          isRead: msg.isRead === true || msg.isRead === 1 || msg.isRead === '1'
-        })
+  if (roomId) {
+    try {
+      const res = await getChatHistoryApi({
+        room_id: roomId
       })
+      if (res && res.data && Array.isArray(res.data)) {
+        res.data.forEach(msg => {
+          const isMe = String(msg.senderId) === String(myId)
+          const msgType = msg.msgType || 'text'
+          // 订单详情要按卡片渲染：优先看 msg_type，早期只有文本、没有 msg_type 的记录
+          // 靠 "Xiangqing" 前缀兜底识别，否则会显示成一串 JSON
+          const orderData = resolveOrderDetail(msgType, msg.content)
+          chatMessages.value.push({
+            from: isMe ? 'me' : 'merchant',
+            type: orderData ? 'order_detail' : msgType,
+            msgType: orderData ? 'order_detail' : 'text',
+            text: orderData ? '' : msg.content,
+            orderData: orderData || msg.orderData,
+            time: formatTime(new Date(msg.createdAt)),
+            isRead: msg.isRead === true || msg.isRead === 1 || msg.isRead === '1'
+          })
+        })
+      }
+    } catch {
+      console.warn('获取历史消息失败')
     }
-  } catch {
-    console.warn('获取历史消息失败')
+
+    // 使用正确的 roomId 标记已读
+    markChatReadApi({ room_id: roomId, userId: myId }).catch(() => {})
   }
 
   nextTick(scrollToBottom)
 
-  // 使用正确的 roomId 标记已读
-  markChatReadApi({ room_id: roomId, userId: myId }).catch(() => {})
-  
   // 标记已读后，更新本地消息的已读状态
   chatMessages.value.forEach(msg => {
     if (msg.from === 'merchant') {
       msg.isRead = true
     }
   })
-  
+
   // 同时清除本地未读计数
   clearUnread(merchant.id)
 }
 
 const sendMsg = async () => {
   const text = newMsg.value.trim()
-  if (!text) return
-  
+  if (!text || !currentMerchant.value.id) return
+
   const myId = getMyId()
-  
-  // 构造正确的 roomId 格式：家政人员账号_管理员账号
-  const roomId = currentMerchant.value.id.includes('_') 
-    ? currentMerchant.value.id 
-    : `${currentMerchant.value.id}_${myId}`
-  
+  const roomId = currentRoomId.value || await resolveRoomId(currentMerchant.value, myId)
+  currentRoomId.value = roomId
+
   const now = new Date()
   const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
   chatMessages.value.push({ from: 'me', text, time })
@@ -545,14 +854,14 @@ const sendMsg = async () => {
 
   // 只通过 WebSocket 发送消息，让后端处理保存逻辑（避免重复插入 DB）
   const success = sendMessage({
-  type: 'message',
-  from: myId,           // 发送者 account
-  to: currentMerchant.value.account,  // 接收者 account（不是 roomId）
-  merchantId: myId,     // 发送者 account
-  message: text,
-  text: text,
-  roomId: roomId
-});
+    type: 'message',
+    from: myId,           // 发送者 account
+    to: currentMerchant.value.account || currentMerchant.value.id,  // 接收者 account（不是 roomId）
+    merchantId: myId,     // 发送者 account
+    message: text,
+    text: text,
+    roomId: roomId
+  })
   if (!success) {
     ElMessage.error('实时推送失败，连接已断开')
   }
@@ -710,6 +1019,9 @@ const formatTime = (date) => {
   background: white;
   border-bottom: 1px solid #ebeef5;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .chat-title {
@@ -727,19 +1039,42 @@ const formatTime = (date) => {
 .chat-msg {
   margin-bottom: 16px;
   display: flex;
-  flex-direction: column;
+  /* 横向排：头像 + 内容列。不要用 row-reverse —— 模板里「自己发的」头像
+     本来就写在内容之后，反转后头像会跑到左边。 */
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
 }
 
 .msg-left {
-  align-items: flex-start;
+  justify-content: flex-start;
 }
 
 .msg-right {
+  justify-content: flex-end;
+}
+
+.msg-avatar {
+  flex-shrink: 0;
+}
+
+.msg-content {
+  display: flex;
+  flex-direction: column;
+  max-width: 70%;
+  min-width: 0;
+}
+
+.msg-left .msg-content {
+  align-items: flex-start;
+}
+
+.msg-right .msg-content {
   align-items: flex-end;
 }
 
 .msg-bubble {
-  max-width: 60%;
+  max-width: 100%;
   padding: 10px 14px;
   border-radius: 12px;
   font-size: 14px;

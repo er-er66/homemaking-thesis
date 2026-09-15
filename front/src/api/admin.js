@@ -57,6 +57,16 @@ export const uploadPackageCoverApi = (formData) => {
   })
 }
 
+export const uploadOrderImgApi = (formData) => {
+  return request({
+    url: '/upload-order-img',
+    method: 'post',
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}
 export const getUserListApi = (params) => {
   return request({
     url: '/users',
@@ -159,6 +169,20 @@ export const rejectOrderApi = (data) => {
   })
 }
 
+export const cancelOrderApi = (data) => {
+  return request({
+    url: '/order/cancel',
+    method: 'post',
+    data
+  })
+}
+export const completeOrderApi = (data) => {
+  return request({
+    url: '/order/Completed',
+    method: 'post',
+    data
+  })
+}
 export const checkPayPasswordApi = (account) => {
   return request({
     url: '/user/pay-password/check',
@@ -202,6 +226,22 @@ export const sendCodeForStaffApi = (phone) => {
 export const changePhoneApi = (params) => {
   return request({
     url: '/user/change-phone',
+    method: 'post',
+    params
+  })
+}
+
+export const changeNameApi = (params) => {
+  return request({
+    url: '/user/change-name',
+    method: 'post',
+    params
+  })
+}
+
+export const changeAdminNameApi = (params) => {
+  return request({
+    url: '/admin/change-name',
     method: 'post',
     params
   })

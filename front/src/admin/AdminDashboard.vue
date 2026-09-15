@@ -221,7 +221,7 @@
                     {{ row.staffAccount && row.staffAccount !== 'null' ? row.staffAccount : '-' }}
                   </template>
                 </el-table-column>
-                <el-table-column label="订单状态" width="100">
+                <el-table-column label="订单状态" width="130"  centent>
                   <template #default="{ row }">
                     <el-tag :type="orderStatusType(row)">
                       {{ orderStatusText(row) }}
@@ -238,18 +238,14 @@
                 <el-table-column prop="createTime" label="下单时间" width="180" />
                 <el-table-column label="操作" width="180">
                   <template #default="{ row }">
-                    <el-button v-if="row.orderStatus === 0 && row.dispatchStatus === 0" type="primary" size="small" @click="showDispatchDialog(row)">
-                      派单
-                    </el-button>
-                    <el-button v-if="row.orderStatus === 0 && row.dispatchStatus === 1" type="success" size="small" disabled>
-                      已派单
-                    </el-button>
-                    <el-button v-if="row.orderStatus === 0 && row.dispatchStatus === 3" type="primary" size="small" @click="showDispatchDialog(row)">
-                      派单
-                    </el-button>
-                    <el-button type="info" size="small" @click="showOrderDetail(row)">
+
+                         <el-button type="info" size="small" @click="showOrderDetail(row)">
                       详情
                     </el-button>
+                    <el-button v-if="row.orderStatus !== 1 && row.orderStatus !== 2" type="primary" size="small" @click="showDispatchDialog(row)">
+                      派单
+                    </el-button>
+               
                   </template>
                 </el-table-column>
               </el-table>
@@ -306,11 +302,8 @@
                 <el-table-column prop="createTime" label="下单时间" width="180" />
                 <el-table-column label="操作" width="180">
                   <template #default="{ row }">
-                    <el-button v-if="row.dispatchStatus === 0 || row.dispatchStatus === 3" type="primary" size="small" @click="showDispatchDialog(row)">
+                    <el-button v-if="row.orderStatus !== 1 && row.orderStatus !== 2" type="primary" size="small" @click="showDispatchDialog(row)">
                       派单
-                    </el-button>
-                    <el-button v-if="row.dispatchStatus === 1" type="success" size="small" disabled>
-                      已派单
                     </el-button>
                     <el-button type="info" size="small" @click="showOrderDetail(row)">
                       详情
@@ -755,6 +748,16 @@
             <el-option label="/月" value="/月" />
           </el-select>
         </el-form-item>
+        <el-form-item label="服务类别" prop="serviceType">
+          <el-select v-model="packageForm.serviceType" placeholder="请选择服务类别" style="width: 100%;">
+            <el-option
+              v-for="item in serviceTypeOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </el-form-item>
         <el-form-item label="排序权重" prop="sort">
           <el-input-number v-model="packageForm.sort" :min="0" style="width: 100%;" />
         </el-form-item>
@@ -890,12 +893,23 @@ const packageForm = ref({
   packageDesc: '',
   packageImg: '',
   unitText: '/次',
+  serviceType: 1,
   status: 0,
   sort: 0,
   expireStatus: 0,
   expireStartTime: '',
   expireEndTime: ''
 })
+
+const serviceTypeOptions = [
+  { value: 1, label: '保洁清洁类' },
+  { value: 2, label: '家务保姆类' },
+  { value: 3, label: '母婴护理类' },
+  { value: 4, label: '老人/病患照护类' },
+  { value: 5, label: '新兴细分家政服务' },
+  { value: 6, label: '其他配套家政' }
+]
+
 const packageRules = {
   packageName: [{ required: true, message: '请输入套餐名称', trigger: 'blur' }],
   packagePrice: [{ required: true, message: '请输入套餐价格', trigger: 'blur' }],
@@ -1032,6 +1046,7 @@ const orderStatusText = (row) => {
   const dispatchStatus = typeof row === 'object' ? row.dispatchStatus : undefined
   
   if (status === 3) return '用户已取消'
+  if (status === 4) return '家政人员已取消'
   if (dispatchStatus === 3) return '已拒单'
   
   const map = { 0: '待接单', 1: '已接单', 2: '服务完成' }
@@ -1043,6 +1058,7 @@ const orderStatusType = (row) => {
   const dispatchStatus = typeof row === 'object' ? row.dispatchStatus : undefined
   
   if (status === 3) return 'danger'
+  if (status === 4) return 'rgb(247, 137, 137)'
   if (dispatchStatus === 3) return 'warning'
   
   const map = { 0: 'info', 1: 'warning', 2: 'success' }
@@ -1300,6 +1316,7 @@ const showPackageDialog = (row) => {
       packageDesc: row.packageDesc || '',
       packageImg: row.packageImg || '',
       unitText: row.unitText || '/次',
+      serviceType: row.serviceType || 1,
       status: row.status !== undefined ? row.status : 0,
       sort: row.sort || 0,
       expireStatus: row.expireStatus !== undefined ? row.expireStatus : 0,
@@ -1316,6 +1333,7 @@ const showPackageDialog = (row) => {
       packageDesc: '',
       packageImg: '',
       unitText: '/次',
+      serviceType: 1,
       status: 0,
       sort: 0,
       expireStatus: 0,

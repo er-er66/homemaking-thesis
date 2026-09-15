@@ -21,7 +21,10 @@
             <span class="change-text">更换头像</span>
           </el-upload>
           <div class="user-base">
-            <h3>{{ userName }}</h3>
+            <h3>
+              {{ userName }}
+              <el-icon class="edit-name-icon" @click="showNameEditDialog = true"><Edit /></el-icon>
+            </h3>
             <p>{{ userPhone }}</p>
           </div>
         </div>
@@ -79,15 +82,27 @@
         </div>
       </el-card>
     </div>
+
+    <el-dialog v-model="showNameEditDialog" title="修改用户名" width="360px" destroy-on-close>
+      <el-form :model="nameForm" label-position="top" size="large">
+        <el-form-item label="新用户名">
+          <el-input v-model="nameForm.newName" placeholder="请输入新用户名（至少2个字符）" maxlength="20" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showNameEditDialog = false">取消</el-button>
+        <el-button type="primary" :loading="nameLoading" @click="handleChangeName">确认修改</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Lock, ArrowRight, Phone } from '@element-plus/icons-vue'
+import { Lock, ArrowRight, Phone, Edit } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { uploadAvatarApi, sendCodeForUserApi, changeAdminPasswordApi, changeAdminPhoneApi } from '../api/admin'
+import { uploadAvatarApi, sendCodeForUserApi, changeAdminPasswordApi, changeAdminPhoneApi, changeAdminNameApi } from '../api/admin'
 
 const router = useRouter()
 
@@ -108,6 +123,11 @@ const phoneForm = ref({ newPhone: '', code: '' })
 const phoneLoading = ref(false)
 const phoneCountdown = ref(0)
 
+const nameForm = ref({ newName: '' })
+const nameLoading = ref(false)
+const showNameEditDialog = ref(false)
+const userRoleCode = ref('')
+
 onMounted(() => {
   loadUserInfo()
 })
@@ -121,6 +141,7 @@ const loadUserInfo = () => {
       avatar.value = info.avatar || ''
       userPhone.value = info.phone || info.account || ''
       userAccount.value = info.account || ''
+      userRoleCode.value = info.roleCode || ''
     } catch { /* ignore */ }
   }
 }
@@ -237,6 +258,25 @@ const sendPhoneCode = async () => {
     ElMessage.error('发送验证码失败')
   }
 }
+
+const handleChangeName = async () => {
+  const { newName } = nameForm.value
+  if (!newName || !newName.trim()) return ElMessage.warning('请输入新用户名')
+  if (newName.trim().length < 2) return ElMessage.warning('用户名至少2个字符')
+  nameLoading.value = true
+  try {
+    await changeAdminNameApi({ account: userAccount.value, role:userRoleCode.value,newName: newName.trim() })
+    userName.value = newName.trim()
+    updateUserInfo({ username: newName.trim() })
+    ElMessage.success('用户名修改成功')
+    nameForm.value = { newName: '' }
+    showNameEditDialog.value = false
+  } catch {
+    ElMessage.error('修改失败，请重试')
+  } finally {
+    nameLoading.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -294,6 +334,17 @@ h2 {
   margin: 0;
   color: #999;
   font-size: 14px;
+}
+
+.edit-name-icon {
+  cursor: pointer;
+  margin-left: 8px;
+  color: #409eff;
+  vertical-align: middle;
+}
+
+.edit-name-icon:hover {
+  color: #66b1ff;
 }
 
 .menu-card {

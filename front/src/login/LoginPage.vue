@@ -297,6 +297,8 @@ const handleLogin = async () => {
 
       if (roleCode === '10' || roleCode === '01') {
         router.replace('/admin/dashboard')
+      } else if (roleCode === '002' || roleCode === '02') {
+        router.replace('/staff/home')
       } else {
         router.replace('/')
       }

@@ -1,10 +1,13 @@
 package com.example.homemaking.services.impl;
 
 import ch.qos.logback.core.joran.util.beans.BeanUtil;
+import com.example.homemaking.dto.HomemakingOrderImgDTO;
 import com.example.homemaking.dto.OrderDTO;
+import com.example.homemaking.entity.HomemakingOrderImg;
 import com.example.homemaking.entity.Order;
 import com.example.homemaking.entity.SysUser;
 import com.example.homemaking.entity.UserImg;
+import com.example.homemaking.mapper.HomemakingOrderImgMapper;
 import com.example.homemaking.mapper.OrderMapper;
 import com.example.homemaking.mapper.UserImgMapper;
 import com.example.homemaking.mapper.UserMapper;
@@ -14,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,6 +33,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private UserImgMapper userImgMapper;
+
+    @Autowired
+    private HomemakingOrderImgMapper homemakingOrderImgMapper;
 
     /**
      * 创建订单
@@ -152,10 +159,11 @@ public class OrderServiceImpl implements OrderService {
      * @return
      */
     @Override
-    public String dispatchOrder(Long id, String staffAccount) {
+    public String dispatchOrder(Long id, String staffAccount, String dispatchAdminAccount) {
         Integer orderStatus = 0;//0待接单 1已接单 2已完成 3已取消
+        Integer dispatchStatus = 1;//0未派单 1已派单 2已拒单
         LocalDateTime updateTime = LocalDateTime.now();//设置派单时间
-        int count = orderMapper.dispatchOrder(id, staffAccount, orderStatus, updateTime);
+        int count = orderMapper.dispatchOrder(id, staffAccount, orderStatus, updateTime, dispatchStatus, dispatchAdminAccount);
         if (count > 0) {
             return "订单派单成功";
         }
@@ -179,5 +187,84 @@ public class OrderServiceImpl implements OrderService {
             return "订单拒单成功";
         }
         return "订单拒单失败";
+    }
+
+    /**
+     * 取消订单
+     *
+     * @param orderNo      订单编号
+     * @param staffAccount
+     * @return
+     */
+    @Override
+    public String cancelOrder(String orderNo, String staffAccount) {
+        int orderStatus = 4;//3家政人员已取消
+        int dispatchStatus = 0;//0未派单
+        LocalDateTime updateTime = LocalDateTime.now();//设置取消时间
+        int count = orderMapper.cancelOrder(orderNo, staffAccount, orderStatus, updateTime, dispatchStatus);
+        if (count > 0) {
+            return "订单取消成功";
+        }
+        return "订单取消失败";
+    }
+
+    @Transactional //开启事务
+    @Override
+    public String CompletedOrder(HomemakingOrderImgDTO homemakingOrderImgDTO) {
+        String orderNo = homemakingOrderImgDTO.getOrderNo();
+        String staffAccount = homemakingOrderImgDTO.getStaffAccount();
+
+        HomemakingOrderImg homemakingOrderImg = new HomemakingOrderImg();
+        BeanUtils.copyProperties(homemakingOrderImgDTO, homemakingOrderImg);
+        LocalDateTime now = LocalDateTime.now();
+        homemakingOrderImg.setFinishTime(now);//设置服务已完成时间
+        homemakingOrderImg.setCreateTime(now);//设置上传时间
+        homemakingOrderImg.setUpdateTime(now);//设置更新时间
+        homemakingOrderImg.setIsDeleted(0);//0正常 1已删除
+
+        int orderStatus = 2;//2已完成 3已取消
+        int dispatchStatus = 0;//0未派单
+
+        //更新homemaking_order表中的字段
+        int count = orderMapper.updateOrderStatus(orderNo, staffAccount, orderStatus, dispatchStatus, now);
+        if (count <= 0) {
+            return "订单已完成失败";
+        }
+
+        //清理前图片 imgType=0
+        if (!saveOrderImgs(homemakingOrderImgDTO.getBeforeCleanImgs(), homemakingOrderImg, 0)) {
+            return "订单已完成失败";
+        }
+        //清理后图片 imgType=1
+        if (!saveOrderImgs(homemakingOrderImgDTO.getAfterCleanImgs(), homemakingOrderImg, 1)) {
+            return "订单已完成失败";
+        }
+
+        return "订单已完成成功";
+    }
+
+    /**
+     * 保存订单服务图片（单图一条记录）
+     *
+     * @param imgUrls 图片地址数组，允许为空
+     * @param img     复用的图片实体
+     * @param imgType 0打扫前 1打扫后
+     * @return 是否全部保存成功
+     */
+    private boolean saveOrderImgs(String[] imgUrls, HomemakingOrderImg img, int imgType) {
+        if (imgUrls == null || imgUrls.length == 0) {
+            return true;
+        }
+        img.setImgType(imgType);
+        for (String imgUrl : imgUrls) {
+            if (imgUrl == null || imgUrl.trim().isEmpty()) {
+                continue;
+            }
+            img.setImgUrl(imgUrl);
+            if (!Boolean.TRUE.equals(homemakingOrderImgMapper.CompletedOrderImg(img))) {
+                return false;
+            }
+        }
+        return true;
     }
 }

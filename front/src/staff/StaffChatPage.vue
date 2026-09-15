@@ -50,6 +50,53 @@
             <div class="msg-time">{{ msg.time }}</div>
           </div>
           <div
+            v-else-if="msg.type === 'order_detail'"
+            :class="['chat-item', msg.from === 'me' ? 'item-right' : 'item-left']"
+          >
+            <div class="msg-avatar" v-if="msg.from !== 'me'">
+              <el-avatar :size="36" :src="userAvatar" shape="square">{{ userName.charAt(0) }}</el-avatar>
+            </div>
+            <div class="msg-content">
+              <div class="msg-sender" v-if="msg.from !== 'me'">{{ userName }}</div>
+              <div class="msg-sender" v-else>{{ staffName }}</div>
+              <div class="order-card order-detail-card" :class="msg.from === 'me' ? 'card-me' : 'card-other'">
+                <div class="order-card-header">
+                  <el-icon size="18"><Document /></el-icon>
+                  <span class="order-card-title">订单详情</span>
+                  <el-tag size="small" :type="msg.orderData && msg.orderData.orderStatus === 0 ? 'warning' : 'success'">
+                    {{ msg.orderData && msg.orderData.orderStatus === 0 ? '待接单' : '已接单' }}
+                  </el-tag>
+                </div>
+                <div class="order-card-body">
+                  <div class="order-card-row" v-if="msg.orderData && msg.orderData.orderNo">
+                    <span class="order-label">订单号</span>
+                    <span class="order-value">{{ msg.orderData.orderNo }}</span>
+                  </div>
+                  <div class="order-card-row" v-if="msg.orderData && msg.orderData.serviceItem">
+                    <span class="order-label">服务项目</span>
+                    <span class="order-value">{{ msg.orderData.serviceItem }}</span>
+                  </div>
+                  <div class="order-card-row" v-if="msg.orderData && msg.orderData.serviceAddress">
+                    <span class="order-label">服务地址</span>
+                    <span class="order-value">{{ msg.orderData.serviceAddress }}</span>
+                  </div>
+                  <div class="order-card-row" v-if="msg.orderData && msg.orderData.serviceTime">
+                    <span class="order-label">预约时间</span>
+                    <span class="order-value">{{ msg.orderData.serviceTime }}</span>
+                  </div>
+                  <div class="order-card-row" v-if="msg.orderData && msg.orderData.orderAmount">
+                    <span class="order-label">订单金额</span>
+                    <span class="order-amount">¥{{ msg.orderData.orderAmount }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="msg-time">{{ msg.time }}</div>
+            </div>
+            <div class="msg-avatar" v-if="msg.from === 'me'">
+              <el-avatar :size="36" :src="staffAvatar" shape="square">{{ staffName.charAt(0) }}</el-avatar>
+            </div>
+          </div>
+          <div
             v-else
             :class="['chat-item', msg.from === 'me' ? 'item-right' : 'item-left']"
           >
@@ -145,7 +192,8 @@ import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Document } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { takeOrderApi, saveChatMsgApi, getChatHistoryApi, getUserNameApi, getChatRoomListApi } from '../api/admin'
+import { takeOrderApi, saveChatMsgApi, getChatHistoryApi, getUserNameApi, getChatRoomListApi, markChatReadApi } from '../api/admin'
+import { normalizeChatMessage, resolveOrderDetail } from '../utils/chatMessage'
 
 const route = useRoute()
 const router = useRouter()
@@ -273,26 +321,20 @@ const loadHistoryMessages = async (roomId, staffAccount) => {
       room_id: roomId
     })
     if (res && res.data && res.data.length > 0) {
-      messages.value = res.data.map(msg => {
-        const isCurrentStaffSender = String(msg.senderId) === String(staffAccount)
-        
-        return {
-          from: isCurrentStaffSender ? 'me' : 'user',
-          text: msg.content,
-          time: formatTime(new Date(msg.createdAt)),
-          type: msg.msgType || 'text'
-        }
-      })
+      // normalizeChatMessage 会把订单详情（Xiangqing+JSON）识别成卡片类型，
+      // 否则历史消息会被当成普通文本，直接显示成一大串 JSON
+      messages.value = res.data.map(msg => normalizeChatMessage(msg, staffAccount))
     }
   } catch (error) {
     console.error('加载历史消息失败:', error)
   }
 }
 
-const saveMessagesToBackend = async (senderId, content, msgType = 'text', attachUrl = '') => {
+const saveMessagesToBackend = async (senderId, content, msgType = 'text', attachUrl = '', roomId) => {
+  const finalRoomId = roomId || currentRoomId.value || `${userAccount.value}_${senderId}`
   try {
     await saveChatMsgApi({
-      roomId: currentRoomId.value,
+      roomId: finalRoomId,
       senderId: senderId,
       senderType: 1,
       content: content,
@@ -302,6 +344,30 @@ const saveMessagesToBackend = async (senderId, content, msgType = 'text', attach
   } catch (error) {
     console.error('保存消息失败:', error)
   }
+}
+
+/**
+ * 发送消息（含入库）
+ *
+ * 注意：后端 ChatWebSocketHandler 收到 type='message' 时会自己调 chatService.sendMessage 入库，
+ * 前端再打一次 /chat/send 就会让同一条消息在 chat_messages 里出现两条（UI 上表现为重复气泡）。
+ * 所以 WebSocket 可用时只走 WS，断开时用 REST 兜底。
+ */
+const deliverMessage = async (text, staffAccount, roomId) => {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
+      from: staffAccount,
+      to: userAccount.value,
+      text,
+      type: 'message',
+      role: 'staff',
+      merchantId: staffAccount,
+      // 后端 WebSocket 只认 camelCase 的 roomId，否则转发给对方的房间号为空
+      roomId: roomId
+    }))
+    return
+  }
+  await saveMessagesToBackend(staffAccount, text, 'text', '', roomId)
 }
 
 const connectWs = (staffAccount) => {
@@ -365,6 +431,17 @@ const connectWs = (staffAccount) => {
             type: 'order',
             orderData: data.orderData,
             time: formatTime(now)
+          })
+          nextTick(scrollToBottom)
+        } else if (resolveOrderDetail(data.msgType, data.text || data.content, data.type)) {
+          // 订单详情卡片：后端推送里没有 msgType，靠 "Xiangqing" 前缀识别
+          messages.value.push({
+            from: isFromMe ? 'me' : 'user',
+            type: 'order_detail',
+            msgType: 'order_detail',
+            orderData: resolveOrderDetail(data.msgType, data.text || data.content, data.type),
+            text: '',
+            time: formatTime(new Date())
           })
           nextTick(scrollToBottom)
         } else {
@@ -479,15 +556,15 @@ const handleTakeOrder = async () => {
     updateChatUserList(currentStaffAccount, userAccount.value, successMsg.text, time)
     nextTick(scrollToBottom)
 
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({
-        from: currentStaffAccount,
-        to: userAccount.value,
-        text: successMsg.text,
-        type: 'message',
-        role: 'staff'
-      }))
-    }
+    const roomId = `${userAccount.value}_${currentStaffAccount}`
+
+    // 走 deliverMessage：WS 可用时由后端入库，避免与 /chat/send 双写
+    await deliverMessage(successMsg.text, currentStaffAccount, roomId)
+
+    await markChatReadApi({
+      room_id: roomId,
+      userId: currentStaffAccount
+    })
   } catch {
     takingOrder.value = false
     ElMessage.error('接单失败，请重试')
@@ -511,17 +588,14 @@ const sendMsg = async () => {
       staffAccount = JSON.parse(staffInfoStr).account || ''
     } catch { /* ignore */ }
   }
-  await saveMessagesToBackend(staffAccount, text, 'text')
 
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({
-      from: staffAccount,
-      to: userAccount.value,
-      text,
-      type: 'message',
-      role: 'staff'
-    }))
-  }
+  const roomId = `${userAccount.value}_${staffAccount}`
+
+  await deliverMessage(text, staffAccount, roomId)
+  await markChatReadApi({
+    room_id: roomId,
+    userId: staffAccount
+  })
 
   updateChatUserList(staffAccount, userAccount.value, text, time)
 }
@@ -641,7 +715,9 @@ onUnmounted(() => {
 }
 
 .item-right {
-  flex-direction: row-reverse;
+  /* 不要用 row-reverse：模板里「自己发的」头像本来就写在 msg-content 之后，
+     反转后头像会跑到卡片左边。保持默认 row，头像自然落在最右侧。 */
+  flex-direction: row;
   align-self: flex-end;
 }
 
@@ -770,6 +846,22 @@ onUnmounted(() => {
   font-size: 12px;
   color: var(--text-light);
   text-align: right;
+}
+
+/* 订单详情卡片（由 Xiangqing 前缀消息渲染而来） */
+.order-detail-card {
+  width: 300px;
+  max-width: 100%;
+  min-width: 0;
+  cursor: default;
+}
+
+.order-detail-card.card-me {
+  border-color: var(--accent);
+}
+
+.order-detail-card.card-other {
+  border-color: #ebeef5;
 }
 
 .typing-bubble {

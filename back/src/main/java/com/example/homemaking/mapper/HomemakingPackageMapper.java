@@ -15,4 +15,6 @@ public interface HomemakingPackageMapper {
     List<HomemakingPackage> selectList();
 
     int updateById(HomemakingPackage homemakingPackage);
+
+    List<HomemakingPackage> getOrderList(int staffAccount, int orderStatus);
 }

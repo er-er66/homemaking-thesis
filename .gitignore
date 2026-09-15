@@ -18,6 +18,28 @@ front/unpackage/dist/
 front/.vscode/
 front/.env.local
 
+# ========= 敏感配置：禁止提交（含数据库密码 / OSS AccessKey / JWT Secret） =========
+back/src/main/resources/application.properties
+src/main/resources/application.properties
+back/src/main/resources/application-*.yml
+back/src/main/resources/application-*.yaml
+.env
+.env.*
+*.pem
+*.p12
+*.jks
+
+# ========= 密钥/凭据关键词文件 =========
+*secret*
+*credentials*
+*accesskey*
+
+# ========= 工具产物与临时文件 =========
+.workbuddy/
+front/.workbuddy/
+front/.tmp*
+dsh-plugin-install.log
+
 # ========= 系统通用临时文件 =========
 .DS_Store
 *.tmp
