@@ -48,7 +48,7 @@ public interface OrderMapper {
      * @param staffAccount
      * @return
      */
-    int takeOrder(Long orderId, String staffAccount, Integer orderStatus);
+    int takeOrder(Long orderId, String staffAccount, Integer orderStatus, Integer dispatchStatus, LocalDateTime updateTime);
 
     /**
      * 派单

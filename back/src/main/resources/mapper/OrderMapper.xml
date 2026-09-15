@@ -14,8 +14,8 @@
 
     </insert>
     <update id="takeOrder">
-    update homemaking_order
-        set staff_account = #{staffAccount}, order_status = #{orderStatus}
+        update homemaking_order
+        set staff_account = #{staffAccount}, order_status = #{orderStatus},dispatch_status = #{dispatchStatus},update_time = #{updateTime}
         where id = #{orderId}
     </update>
     <update id="dispatchOrder">

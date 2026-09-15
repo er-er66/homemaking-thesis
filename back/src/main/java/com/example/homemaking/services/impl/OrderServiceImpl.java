@@ -146,7 +146,9 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public String takeOrder(Long orderId, String staffAccount) {
         Integer orderStatus = 1;//1已接单 2已完成 3已取消
-        int count = orderMapper.takeOrder(orderId, staffAccount, orderStatus);
+        Integer dispatchStatus = 0;//0未派单 1已派单 2已拒单
+        LocalDateTime updateTime = LocalDateTime.now();//设置接单时间
+        int count = orderMapper.takeOrder(orderId, staffAccount, orderStatus, dispatchStatus, updateTime);
         if (count > 0) {
             return "订单接单成功";
         }
