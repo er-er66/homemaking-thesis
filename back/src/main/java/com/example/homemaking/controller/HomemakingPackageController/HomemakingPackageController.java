@@ -19,11 +19,22 @@ public class HomemakingPackageController {
 
     @Autowired
     private HomemakingPackageService homemakingPackageService;
+    /**
+     * 套餐列表
+     * <p>不传 pageNum/pageSize：返回数组（管理端、注册页沿用旧行为）</p>
+     * <p>传 pageNum/pageSize：返回 {total,pageNum,pageSize,records} 分页体（用户首页）</p>
+     */
     @RequestMapping("/list")
-    public Result<List<HomemakingPackage>> list(){
-
-      List<HomemakingPackage> list = homemakingPackageService.list();
-        return Result.success(list);
+    public Result<?> list(@RequestParam(required = false) Integer pageNum,
+                          @RequestParam(required = false) Integer pageSize,
+                          @RequestParam(required = false) Integer serviceType,
+                          @RequestParam(required = false) Integer status,
+                          @RequestParam(required = false) String packageName) {
+        if (pageNum == null || pageSize == null) {
+            List<HomemakingPackage> list = homemakingPackageService.list();
+            return Result.success(list);
+        }
+        return Result.success(homemakingPackageService.page(pageNum, pageSize, serviceType, status, packageName));
     }
     /**
      * 创建套餐

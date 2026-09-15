@@ -188,7 +188,8 @@ const skillOptions = ref([])
 const fetchSkills = async () => {
   if (skillOptions.value.length > 0) return
   try {
-    const res = await getPackageListApi({ status: 1 })
+    // 0 = 上架，只取在售套餐（原来传 1 是下架，属于笔误，后端目前忽略该参数才没暴露）
+    const res = await getPackageListApi({ status: 0 })
     if (res && res.data && Array.isArray(res.data)) {
       skillOptions.value = res.data.map(pkg => pkg.package_name)
     }

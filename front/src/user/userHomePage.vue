@@ -83,24 +83,42 @@
           :type="selectedServiceType === type.value ? 'primary' : 'info'"
           :effect="selectedServiceType === type.value ? 'dark' : 'plain'"
           class="service-type-tab"
-          @click="selectedServiceType = type.value; filterServices()"
+          @click="changeType(type.value)"
         >
           {{ type.label }}
         </el-tag>
       </div>
-      <el-row :gutter="20" justify="center">
-        <el-col :xs="24" :sm="12" :md="8" v-for="service in services" :key="service.id">
-          <el-card shadow="hover" class="service-card" @click="goToOrder(service)">
-            <div class="service-image">
-              <img v-if="service.image" :src="service.image" :alt="service.name" />
-              <div v-else class="service-icon">{{ service.icon }}</div>
-            </div>
-            <h3>{{ service.name }}</h3>
-            <p>{{ service.description }}</p>
-            <el-tag type="danger" size="large">{{ service.price }}</el-tag>
-          </el-card>
-        </el-col>
-      </el-row>
+      <div v-loading="listLoading" class="service-list-wrap">
+        <el-row :gutter="20" justify="center">
+          <el-col :xs="24" :sm="12" :md="8" v-for="service in services" :key="service.id">
+            <el-card shadow="hover" class="service-card" @click="goToOrder(service)">
+              <div class="service-image">
+                <img v-if="service.image" :src="service.image" :alt="service.name" />
+                <div v-else class="service-icon">{{ service.icon }}</div>
+              </div>
+              <h3>{{ service.name }}</h3>
+              <p>{{ service.description }}</p>
+              <el-tag type="danger" size="large">{{ service.price }}</el-tag>
+            </el-card>
+          </el-col>
+        </el-row>
+        <el-empty
+          v-if="!listLoading && services.length === 0"
+          description="该分类下暂无服务项目"
+          :image-size="80"
+        />
+      </div>
+      <div class="service-pagination" v-if="total > 0">
+        <el-pagination
+          background
+          layout="prev, pager, next, total"
+          :total="total"
+          :page-size="pageSize"
+          v-model:current-page="pageNum"
+          hide-on-single-page
+          @current-change="handlePageChange"
+        />
+      </div>
     </section>
 
     <!-- 关于我们 -->
@@ -164,7 +182,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { Phone, Message, Location, ArrowDown } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
@@ -177,8 +195,14 @@ const isLoggedIn = ref(false)
 const isAdmin = ref(false)
 const userName = ref('')
 const userAvatar = ref('')
-const services = ref([])
-const allServices = ref([])
+const services = ref([])        // 当前页展示的数据
+const allServices = ref([])     // 后端未分页时的本地全量缓存
+const total = ref(0)            // 记录总数（分页器用）
+const pageNum = ref(1)
+const pageSize = ref(9)
+const listLoading = ref(false)
+// true = 后端返回了分页结构，翻页/切分类都要重新请求；false = 本地切片
+const useServerPaging = ref(false)
 
 const serviceTypes = [
   { value: 0, label: '全部' },
@@ -198,30 +222,74 @@ const userInitial = computed(() => {
 
 const totalUnread = computed(() => getTotalUnread())
 
+const ICON_POOL = ['🧹', '✨', '🔧', '👶', '🍳', '⏰']
+
+// 后端套餐 -> 页面展示结构
+const mapPackage = (pkg, index = 0) => {
+  const desc = pkg.packageDesc || ''
+  return {
+    id: pkg.id,
+    name: pkg.packageName,
+    description: desc.length > 15 ? desc.slice(0, 15) + '...' : desc,
+    price: `¥${pkg.packagePrice}${pkg.unitText || ''}`,
+    image: (pkg.packageImg || '').replace(/`/g, ''),
+    icon: ICON_POOL[index % ICON_POOL.length],
+    serviceType: pkg.serviceType || 0
+  }
+}
+
+// 本地分页兜底：后端还没做分页时，先按分类过滤再切片
+const applyLocalPage = () => {
+  const filtered = selectedServiceType.value === 0
+    ? allServices.value
+    : allServices.value.filter(item => item.serviceType === selectedServiceType.value)
+  total.value = filtered.length
+  const start = (pageNum.value - 1) * pageSize.value
+  services.value = filtered.slice(start, start + pageSize.value)
+}
+
 const fetchPackages = async () => {
+  listLoading.value = true
   try {
-    const res = await getPackageListApi({ status: 1 })
-    if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
-      allServices.value = res.data.map((pkg, index) => {
-        const desc = pkg.packageDesc || ''
-        return {
-          id: pkg.id,
-          name: pkg.packageName,
-          description: desc.length > 15 ? desc.slice(0, 15) + '...' : desc,
-          price: `¥${pkg.packagePrice}${pkg.unitText || ''}`,
-          image: (pkg.packageImg || '').replace(/`/g, ''),
-          icon: ['🧹', '✨', '🔧', '👶', '‍', '⏰'][index % 6],
-          serviceType: pkg.serviceType || 0
-        }
-      })
-    } else {
-      allServices.value = getDefaultServices()
+    const params = {
+      // 0 = 上架（1 是下架）。之前传 1 是错的，只是后端没认这个参数才没暴露
+      status: 0,
+      pageNum: pageNum.value,
+      pageSize: pageSize.value
     }
-    filterServices()
+    // 分类 0 = 全部，不传 serviceType，交给后端查全量
+    if (selectedServiceType.value !== 0) {
+      params.serviceType = selectedServiceType.value
+    }
+
+    const res = await getPackageListApi(params)
+    const data = res && res.data
+
+    // 情况一：后端已分页（{ records|list: [], total }），直接用后端那一页
+    const rows = data && (data.records || data.list)
+    if (Array.isArray(rows)) {
+      useServerPaging.value = true
+      services.value = rows.map(mapPackage)
+      total.value = Number(data.total ?? data.totalCount ?? rows.length) || 0
+      return
+    }
+
+    // 情况二：后端仍返回全量数组，缓存下来本地切片（后端改好后无需再动前端）
+    if (Array.isArray(data)) {
+      useServerPaging.value = false
+      allServices.value = data.map(mapPackage)
+      applyLocalPage()
+      return
+    }
+
+    throw new Error('套餐列表数据格式异常')
   } catch (e) {
-    console.warn('获取套餐列表失败:', e)
+    console.warn('获取套餐列表失败，使用内置数据兜底:', e)
+    useServerPaging.value = false
     allServices.value = getDefaultServices()
-    filterServices()
+    applyLocalPage()
+  } finally {
+    listLoading.value = false
   }
 }
 
@@ -258,12 +326,33 @@ const getDefaultServices = () => {
   ]
 }
 
-const filterServices = () => {
-  if (selectedServiceType.value === 0) {
-    services.value = allServices.value
+// 切换分类：回到第 1 页。后端分页时重新请求，本地分页时只需重切片
+const changeType = (value) => {
+  if (selectedServiceType.value === value) return
+  selectedServiceType.value = value
+  pageNum.value = 1
+  if (useServerPaging.value) {
+    fetchPackages()
   } else {
-    services.value = allServices.value.filter(item => item.serviceType === selectedServiceType.value)
+    applyLocalPage()
   }
+}
+
+// 翻页
+const handlePageChange = (page) => {
+  pageNum.value = page
+  if (useServerPaging.value) {
+    fetchPackages()
+  } else {
+    applyLocalPage()
+  }
+  // 已经在视口上方才滚回去，避免页面莫名跳动
+  nextTick(() => {
+    const el = document.getElementById('services')
+    if (el && el.getBoundingClientRect().top < 0) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  })
 }
 
 const checkLoginStatus = () => {
@@ -285,14 +374,13 @@ const checkLoginStatus = () => {
           fetchUnreadMessages(userInfo.account)
         }
       }
-      // 登录成功后获取服务套餐列表
-      fetchPackages()
     } catch {
       isLoggedIn.value = false
     }
   } else {
     isLoggedIn.value = false
   }
+  // 未登录也要展示服务项目，所以放在登录分支外面，只请求一次
   fetchPackages()
 }
 
@@ -355,7 +443,9 @@ const goToOrder = (service) => {
       name: service.name,
       description: service.description,
       price: service.price,
-      icon: service.icon
+      icon: service.icon,
+      // 套餐图片也要带过去，否则确认订单页只能退回图标，和首页展示不一致
+      image: service.image || ''
     }
   })
 }
@@ -485,6 +575,19 @@ const goToProfile = () => {
   background: var(--bg-white);
   max-width: 1200px;
   margin: 0 auto;
+  /* 翻页后 scrollIntoView 不会被吸顶导航挡住 */
+  scroll-margin-top: 84px;
+}
+
+/* 加载/空状态时别让区块塌掉 */
+.service-list-wrap {
+  min-height: 220px;
+}
+
+.service-pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 28px;
 }
 
 .section-title {

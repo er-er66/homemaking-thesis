@@ -3,6 +3,7 @@ package com.example.homemaking.services.impl;
 import com.alibaba.fastjson.JSON;
 import com.example.homemaking.dto.HomemakingPackageDTO;
 import com.example.homemaking.dto.PackageCacheDTO;
+import com.example.homemaking.dto.PageResult;
 import com.example.homemaking.entity.HomemakingPackage;
 import com.example.homemaking.mapper.HomemakingPackageMapper;
 import com.example.homemaking.services.HomemakingPackageService;
@@ -45,6 +46,11 @@ public class HomemakingPackageServiceImpl implements HomemakingPackageService {
      * 设置时间为5分钟，如果5分钟内在来相同请求就会，直接返回空值，不会去MYSQL查询数据，从而避免了缓存穿透
      */
     private static final long NULL_TTL = 5 * 60;
+
+    //分页默认每页条数（前端 3 列 × 3 行）
+    private static final int DEFAULT_PAGE_SIZE = 9;
+    //分页每页条数上限，防止一次拉取过多数据
+    private static final int MAX_PAGE_SIZE = 50;
 
 
     public HomemakingPackage getPackageById(Long id) {
@@ -128,6 +134,17 @@ public class HomemakingPackageServiceImpl implements HomemakingPackageService {
     public List<HomemakingPackage> list() {
         List<HomemakingPackage> list = homemakingPackageMapper.selectList();
         return list;
+    }
+
+    @Override
+    public PageResult<HomemakingPackage> page(Integer pageNum, Integer pageSize,
+                                              Integer serviceType, Integer status, String packageName) {
+        int num = (pageNum == null || pageNum < 1) ? 1 : pageNum;
+        int size = (pageSize == null || pageSize < 1 || pageSize > MAX_PAGE_SIZE) ? DEFAULT_PAGE_SIZE : pageSize;
+        long total = homemakingPackageMapper.countByCondition(serviceType, status, packageName);
+        List<HomemakingPackage> records = total == 0 ? List.of()
+                : homemakingPackageMapper.selectPage(serviceType, status, packageName, (num - 1) * size, size);
+        return PageResult.of(total, num, size, records);
     }
 
     @Override

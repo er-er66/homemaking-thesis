@@ -18,6 +18,29 @@
     <select id="selectList" resultType="com.example.homemaking.entity.HomemakingPackage">
         select * from homemaking_package where is_deleted=0
     </select>
+
+    <!-- 套餐列表公共过滤条件：serviceType 为 null/0 视为「全部」，不参与过滤 -->
+    <sql id="listCondition">
+        <where>
+            is_deleted = 0
+            <if test="serviceType != null and serviceType != 0">and service_type = #{serviceType}</if>
+            <if test="status != null">and status = #{status}</if>
+            <if test="packageName != null and packageName != ''">and package_name like concat('%', #{packageName}, '%')</if>
+        </where>
+    </sql>
+
+    <select id="countByCondition" resultType="long">
+        select count(*) from homemaking_package
+        <include refid="listCondition"/>
+    </select>
+
+    <select id="selectPage" resultType="com.example.homemaking.entity.HomemakingPackage">
+        select * from homemaking_package
+        <include refid="listCondition"/>
+        order by sort desc, id desc
+        limit #{offset}, #{pageSize}
+    </select>
+
     <select id="getOrderList" resultType="com.example.homemaking.entity.HomemakingPackage">
         select * from homemaking_order where staff
     </select>

@@ -9,7 +9,8 @@
 
       <el-card class="service-card">
         <div class="service-header">
-          <span class="service-icon">{{ service.icon }}</span>
+          <img v-if="service.image" class="service-image" :src="service.image" :alt="service.name" />
+          <span v-else class="service-icon">{{ service.icon }}</span>
           <div class="service-info">
             <h3>{{ service.name }}</h3>
             <p>{{ service.description }}</p>
@@ -206,7 +207,8 @@ const service = reactive({
   name: '',
   description: '',
   price: '',
-  icon: ''
+  icon: '',
+  image: ''
 })
 
 const remark = ref('')
@@ -226,12 +228,13 @@ const adminList = ref([])
 const selectedCsId = ref(null)
 
 onMounted(() => {
-  const { id, name, description, price, icon } = route.query
+  const { id, name, description, price, icon, image } = route.query
   service.id = id || ''
   service.name = name || '未选择服务'
   service.description = description || ''
   service.price = price || '¥0'
   service.icon = icon || '🧹'
+  service.image = image || ''
   fetchAddressList()
 })
 
@@ -452,6 +455,15 @@ h2 {
 
 .service-icon {
   font-size: 52px;
+  flex-shrink: 0;
+}
+
+/* 与首页服务卡片的图片展示保持一致 */
+.service-image {
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  object-fit: cover;
   flex-shrink: 0;
 }
 
