@@ -20,30 +20,38 @@
     <select id="getEmpById" resultType="com.example.homemaking.entity.SysStaff">
         select * from sys_staff where id = #{id}
     </select>
-    <select id="searchEmps" resultType="com.example.homemaking.entity.SysStaff">
-        <![CDATA[
-        select * from sys_staff where 1=1
-        ]]>
+    <!-- 员工列表公共过滤条件（供 searchEmps / countEmps / searchEmpsPage 复用） -->
+    <sql id="empCondition">
         <if test="name != null and name != ''">
-            <![CDATA[
             and username like concat('%', #{name}, '%')
-            ]]>
         </if>
         <if test="phone != null and phone != ''">
-            <![CDATA[
             and phone like concat('%', #{phone}, '%')
-            ]]>
         </if>
         <if test="startTime != null">
-            <![CDATA[
-            and create_time >= #{startTime}
-            ]]>
+            and create_time &gt;= #{startTime}
         </if>
         <if test="endTime != null">
-            <![CDATA[
-            and create_time <= #{endTime}
-            ]]>
+            and create_time &lt;= #{endTime}
         </if>
+    </sql>
+
+    <select id="searchEmps" resultType="com.example.homemaking.entity.SysStaff">
+        select * from sys_staff where 1=1
+        <include refid="empCondition"/>
+        order by id desc
+    </select>
+
+    <select id="countEmps" resultType="long">
+        select count(*) from sys_staff where 1=1
+        <include refid="empCondition"/>
+    </select>
+
+    <select id="searchEmpsPage" resultType="com.example.homemaking.entity.SysStaff">
+        select * from sys_staff where 1=1
+        <include refid="empCondition"/>
+        order by id desc
+        limit #{offset}, #{pageSize}
     </select>
     <select id="selectCountByPhone" resultType="java.lang.Integer">
         select count(*) from sys_staff where phone = #{phone}

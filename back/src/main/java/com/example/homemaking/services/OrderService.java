@@ -2,6 +2,7 @@ package com.example.homemaking.services;
 
 import com.example.homemaking.dto.HomemakingOrderImgDTO;
 import com.example.homemaking.dto.OrderDTO;
+import com.example.homemaking.dto.PageResult;
 import com.example.homemaking.entity.Order;
 
 import java.util.List;
@@ -27,6 +28,20 @@ public interface OrderService {
      * @return
      */
     List<Order> getOrders(String orderNo, Integer orderStatus, String userAccount, String staffAccount);
+
+    /**
+     * 分页查询订单（同时填充封面URL）
+     *
+     * @param orderNo     订单编号
+     * @param orderStatus 订单状态
+     * @param userAccount 用户账号
+     * @param staffAccount 员工账号
+     * @param pageNum     页码，从 1 开始
+     * @param pageSize    每页条数
+     * @return 分页结果
+     */
+    PageResult<Order> getOrdersPage(String orderNo, Integer orderStatus, String userAccount, String staffAccount,
+                                    Integer pageNum, Integer pageSize);
 
     /**
  * 根据id获取订单

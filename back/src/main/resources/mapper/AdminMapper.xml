@@ -7,30 +7,38 @@
         select * from sys_admin where id = #{id}
     </select>
 
-    <select id="searchAdmins" resultType="com.example.homemaking.entity.SysAdmin">
-        <![CDATA[
-        select * from sys_admin where 1=1
-        ]]>
+    <!-- 管理员列表公共过滤条件（供 searchAdmins / countAdmins / searchAdminsPage 复用） -->
+    <sql id="adminCondition">
         <if test="name != null and name != ''">
-            <![CDATA[
             and username like concat('%', #{name}, '%')
-            ]]>
         </if>
         <if test="phone != null and phone != ''">
-            <![CDATA[
             and phone like concat('%', #{phone}, '%')
-            ]]>
         </if>
         <if test="startTime != null">
-            <![CDATA[
-            and create_time >= #{startTime}
-            ]]>
+            and create_time &gt;= #{startTime}
         </if>
         <if test="endTime != null">
-            <![CDATA[
-            and create_time <= #{endTime}
-            ]]>
+            and create_time &lt;= #{endTime}
         </if>
+    </sql>
+
+    <select id="searchAdmins" resultType="com.example.homemaking.entity.SysAdmin">
+        select * from sys_admin where 1=1
+        <include refid="adminCondition"/>
+        order by id desc
+    </select>
+
+    <select id="countAdmins" resultType="long">
+        select count(*) from sys_admin where 1=1
+        <include refid="adminCondition"/>
+    </select>
+
+    <select id="searchAdminsPage" resultType="com.example.homemaking.entity.SysAdmin">
+        select * from sys_admin where 1=1
+        <include refid="adminCondition"/>
+        order by id desc
+        limit #{offset}, #{pageSize}
     </select>
     <select id="selectCountByPhone" resultType="java.lang.Integer">
         select count(*) from sys_admin where phone = #{phone}

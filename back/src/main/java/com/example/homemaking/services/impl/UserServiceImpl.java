@@ -1,11 +1,13 @@
 package com.example.homemaking.services.impl;
 
 import com.example.homemaking.dto.AddressSaveDTO;
+import com.example.homemaking.dto.PageResult;
 import com.example.homemaking.entity.SysUser;
 import com.example.homemaking.entity.UserAddress;
 import com.example.homemaking.mapper.SysUserAddressMapper;
 import com.example.homemaking.mapper.UserMapper;
 import com.example.homemaking.services.UserService;
+import com.example.homemaking.util.PageUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -61,6 +63,20 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<SysUser> searchUsers(String name, String phone, LocalDateTime startTime, LocalDateTime endTime) {
         return userMapper.searchUsers(name, phone, startTime, endTime);
+    }
+
+    /**
+     * 分页查询用户列表
+     */
+    @Override
+    public PageResult<SysUser> searchUsersPage(String name, String phone, LocalDateTime startTime, LocalDateTime endTime,
+                                               Integer pageNum, Integer pageSize) {
+        int num = PageUtil.normalizePageNum(pageNum);
+        int size = PageUtil.normalizePageSize(pageSize);
+        long total = userMapper.countUsers(name, phone, startTime, endTime);
+        List<SysUser> records = total == 0 ? List.of()
+                : userMapper.searchUsersPage(name, phone, startTime, endTime, PageUtil.offset(num, size), size);
+        return PageResult.of(total, num, size, records);
     }
 
     /**

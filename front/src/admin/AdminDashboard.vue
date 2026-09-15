@@ -112,6 +112,16 @@
               </template>
             </el-table-column>
           </el-table>
+          <div class="table-pagination">
+            <el-pagination
+              background
+              layout="total, prev, pager, next, jumper"
+              :total="userTotal"
+              :page-size="userPageSize"
+              :current-page="userPageNum"
+              @current-change="userChangePage"
+            />
+          </div>
         </div>
 
         <!-- 员工管理列表 -->
@@ -175,6 +185,16 @@
               </template>
             </el-table-column>
           </el-table>
+          <div class="table-pagination">
+            <el-pagination
+              background
+              layout="total, prev, pager, next, jumper"
+              :total="staffTotal"
+              :page-size="staffPageSize"
+              :current-page="staffPageNum"
+              @current-change="staffChangePage"
+            />
+          </div>
         </div>
 
         <!-- 用户下单列表 -->
@@ -249,6 +269,16 @@
                   </template>
                 </el-table-column>
               </el-table>
+              <div class="table-pagination">
+                <el-pagination
+                  background
+                  layout="total, prev, pager, next, jumper"
+                  :total="orderTotal"
+                  :page-size="orderPageSize"
+                  :current-page="orderPageNum"
+                  @current-change="orderChangePage"
+                />
+              </div>
             </el-tab-pane>
             <el-tab-pane label="未接单" name="unaccepted">
               <el-form :model="orderSearchForm" inline class="search-form">
@@ -311,6 +341,16 @@
                   </template>
                 </el-table-column>
               </el-table>
+              <div class="table-pagination">
+                <el-pagination
+                  background
+                  layout="total, prev, pager, next, jumper"
+                  :total="orderTotal"
+                  :page-size="orderPageSize"
+                  :current-page="orderPageNum"
+                  @current-change="orderChangePage"
+                />
+              </div>
             </el-tab-pane>
             <el-tab-pane label="已接单" name="accepted">
               <el-form :model="orderSearchForm" inline class="search-form">
@@ -375,6 +415,16 @@
                   </template>
                 </el-table-column>
               </el-table>
+              <div class="table-pagination">
+                <el-pagination
+                  background
+                  layout="total, prev, pager, next, jumper"
+                  :total="orderTotal"
+                  :page-size="orderPageSize"
+                  :current-page="orderPageNum"
+                  @current-change="orderChangePage"
+                />
+              </div>
             </el-tab-pane>
           </el-tabs>
         </div>
@@ -436,6 +486,16 @@
               </template>
             </el-table-column>
           </el-table>
+          <div class="table-pagination">
+            <el-pagination
+              background
+              layout="total, prev, pager, next, jumper"
+              :total="adminTotal"
+              :page-size="adminPageSize"
+              :current-page="adminPageNum"
+              @current-change="adminChangePage"
+            />
+          </div>
         </div>
 
         <!-- 套餐管理列表 -->
@@ -503,6 +563,16 @@
               </template>
             </el-table-column>
           </el-table>
+          <div class="table-pagination">
+            <el-pagination
+              background
+              layout="total, prev, pager, next, jumper"
+              :total="packageTotal"
+              :page-size="packagePageSize"
+              :current-page="packagePageNum"
+              @current-change="packageChangePage"
+            />
+          </div>
         </div>
 
         <!-- 消息列表 -->
@@ -540,6 +610,16 @@
                 </el-table-column>
               </el-table>
               <el-empty v-if="!userMessageLoading && userMessageList.length === 0" description="暂无用户消息" />
+              <div class="table-pagination">
+                <el-pagination
+                  background
+                  layout="total, prev, pager, next, jumper"
+                  :total="userMessageTotal"
+                  :page-size="userMessagePageSize"
+                  :current-page="userMessagePageNum"
+                  @current-change="userMessageChangePage"
+                />
+              </div>
             </el-tab-pane>
             <el-tab-pane label="家政人员消息" name="staff">
               <el-table :data="staffMessageList" style="width: 100%" v-loading="staffMessageLoading" stripe>
@@ -572,6 +652,16 @@
                 </el-table-column>
               </el-table>
               <el-empty v-if="!staffMessageLoading && staffMessageList.length === 0" description="暂无家政人员消息" />
+              <div class="table-pagination">
+                <el-pagination
+                  background
+                  layout="total, prev, pager, next, jumper"
+                  :total="staffMessageTotal"
+                  :page-size="staffMessagePageSize"
+                  :current-page="staffMessagePageNum"
+                  @current-change="staffMessageChangePage"
+                />
+              </div>
             </el-tab-pane>
           </el-tabs>
         </div>
@@ -833,7 +923,6 @@ const userList = ref([])
 const staffList = ref([])
 const userLoading = ref(false)
 const staffLoading = ref(false)
-
 const userSearchForm = ref({
   name: '',
   phone: '',
@@ -995,30 +1084,213 @@ const buildSearchParams = (form) => {
   return params
 }
 
-const fetchUserList = async (searchParams) => {
-  userLoading.value = true
-  try {
-    const res = await getUserListApi(searchParams || {})
-    const data = res.data || []
-    userList.value = Array.isArray(data) ? data : (data.records || [data])
-  } catch {
-    userList.value = []
-  } finally {
-    userLoading.value = false
+/* ==================== 分页公共逻辑 ====================
+ * 项目里 6 个列表（用户查询 / 用户下单列表 / 员工管理 / 管理员列表 / 套餐管理 / 消息列表）
+ * 都用同一套模式：
+ *   1. 请求带上 pageNum / pageSize
+ *   2. 后端返回数组            → 前端本地切片（后端分页上线前后都能用，前端不用再改）
+ *      后端返回 { records, total } → 直接用后端那一页
+ *   3. 搜索 / 切 Tab / 翻页 都要重置到第 1 页
+ * 所以抽成 createPager()，各列表只声明自己的 ref 和请求函数即可。
+ */
+const DEFAULT_PAGE_SIZE = 10
+
+const isPageResult = (data) => {
+  if (!data || Array.isArray(data) || typeof data !== 'object') return false
+  return Array.isArray(data.records || data.list)
+}
+
+/**
+ * @param {object}   listRef     列表数据 ref
+ * @param {object}   loadingRef  加载状态 ref
+ * @param {function} requestFn   请求函数，形如 (params) => api(params)
+ * @param {object}   options     { pageSize, clientFilter }
+ *   clientFilter: 后端不支持的筛选条件，在前端兜底过滤（如订单状态）
+ */
+const createPager = (listRef, loadingRef, requestFn, options = {}) => {
+  const pageNum = ref(1)
+  const pageSize = ref(options.pageSize || DEFAULT_PAGE_SIZE)
+  const total = ref(0)
+  // 后端是否已支持分页；未支持时走本地切片
+  const serverPaging = ref(false)
+  // 本地分页时的全量数据
+  let allRows = []
+  let lastParams = {}
+
+  const clientFilter = options.clientFilter || null
+
+  const applyLocal = () => {
+    const filtered = clientFilter ? clientFilter(allRows) : allRows
+    total.value = filtered.length
+    const start = (pageNum.value - 1) * pageSize.value
+    listRef.value = filtered.slice(start, start + pageSize.value)
+  }
+
+  const fetchPage = async (params = {}) => {
+    lastParams = params
+    loadingRef.value = true
+    try {
+      const res = await requestFn({
+        ...params,
+        pageNum: pageNum.value,
+        pageSize: pageSize.value
+      })
+      const data = (res && res.data) ?? []
+
+      if (isPageResult(data)) {
+        serverPaging.value = true
+        listRef.value = data.records || data.list || []
+        total.value = Number(data.total ?? data.totalCount ?? listRef.value.length) || 0
+      } else if (Array.isArray(data)) {
+        serverPaging.value = false
+        allRows = data
+        applyLocal()
+      } else {
+        listRef.value = []
+        total.value = 0
+      }
+    } catch {
+      listRef.value = []
+      total.value = 0
+    } finally {
+      loadingRef.value = false
+    }
+  }
+
+  /**
+   * 拉取全量数据并本地分页，返回全量数组（不写 listRef）。
+   * 供需要「先拿全量再自行映射」的场景使用，如消息列表要 join 会话记录。
+   * 索引拉取失败时返回 []。
+   */
+  const fetchAll = async (fullApi) => {
+    loadingRef.value = true
+    try {
+      const res = await (fullApi || requestFn)({})
+      const data = (res && res.data) ?? []
+      allRows = Array.isArray(data) ? data : (data.records || data.list || [])
+    } catch {
+      allRows = []
+    } finally {
+      loadingRef.value = false
+    }
+    serverPaging.value = false
+    pageNum.value = 1
+    return allRows
+  }
+
+  // 搜索 / 切 Tab：重置到第 1 页再查
+  const search = (params = {}) => {
+    pageNum.value = 1
+    return fetchPage(params)
+  }
+
+  // 翻页：后端分页重新请求，本地分页只重切片
+  const changePage = (page) => {
+    pageNum.value = page
+    if (serverPaging.value) {
+      fetchPage(lastParams)
+    } else {
+      applyLocal()
+    }
+  }
+
+  // 重新加载当前页（增删改后刷新用）
+  const reload = () => fetchPage(lastParams)
+
+  /**
+   * 本地分页模式下，从已缓存的 allRows 重新切片。
+   * 用于外部改了 allRows 之后（一般配合 fetchAll）刷新表格。
+   */
+  const applyFromCache = () => {
+    serverPaging.value = false
+    applyLocal()
+  }
+
+  return {
+    pageNum, pageSize, total, serverPaging,
+    fetchPage, fetchAll, search, changePage, reload,
+    applyFromCache,
+    getAllRows: () => allRows
   }
 }
 
-const fetchStaffList = async (searchParams) => {
-  staffLoading.value = true
-  try {
-    const res = await getStaffListApi(searchParams || {})
-    const data = res.data || []
-    staffList.value = Array.isArray(data) ? data : (data.records || [data])
-  } catch {
-    staffList.value = []
-  } finally {
-    staffLoading.value = false
+/* ==================== 各列表分页实例 ==================== */
+
+// 订单当前 Tab 对应的状态筛选值（undefined = 全部）
+const pendingOrderStatus = ref(undefined)
+
+const userPager = createPager(userList, userLoading, getUserListApi)
+const staffPager = createPager(staffList, staffLoading, getStaffListApi)
+// 订单状态后端暂不认（原来就是前端过滤），用 clientFilter 兜底
+const orderPager = createPager(orderList, orderLoading, getOrderListApi, {
+  clientFilter: (rows) => {
+    if (pendingOrderStatus.value === undefined || pendingOrderStatus.value === null) return rows
+    return rows.filter(item => Number(item.orderStatus) === Number(pendingOrderStatus.value))
   }
+})
+const adminPager = createPager(adminList, adminLoading, getAdminListApi)
+const packagePager = createPager(packageList, packageLoading, getPackageListApi)
+const userMessagePager = createPager(userMessageList, userMessageLoading, getUserListApi)
+const staffMessagePager = createPager(staffMessageList, staffMessageLoading, getStaffListApi)
+
+// 模板里用扁平名字，避免写成 userPager.total.value 这种容易出错的链路
+const userTotal = userPager.total
+const userPageNum = userPager.pageNum
+const userPageSize = userPager.pageSize
+const userChangePage = userPager.changePage
+
+const staffTotal = staffPager.total
+const staffPageNum = staffPager.pageNum
+const staffPageSize = staffPager.pageSize
+const staffChangePage = staffPager.changePage
+
+const orderTotal = orderPager.total
+const orderPageNum = orderPager.pageNum
+const orderPageSize = orderPager.pageSize
+const orderChangePage = orderPager.changePage
+
+const adminTotal = adminPager.total
+const adminPageNum = adminPager.pageNum
+const adminPageSize = adminPager.pageSize
+const adminChangePage = adminPager.changePage
+
+const packageTotal = packagePager.total
+const packagePageNum = packagePager.pageNum
+const packagePageSize = packagePager.pageSize
+const packageChangePage = packagePager.changePage
+
+const userMessageTotal = userMessagePager.total
+const userMessagePageNum = userMessagePager.pageNum
+const userMessagePageSize = userMessagePager.pageSize
+// userMessageChangePage 定义在 fetchUserMessageList 附近（消息列表翻页要重建映射）
+
+const staffMessageTotal = staffMessagePager.total
+const staffMessagePageNum = staffMessagePager.pageNum
+const staffMessagePageSize = staffMessagePager.pageSize
+// staffMessageChangePage 同上
+
+const fetchUserList = async (searchParams) => {
+  const params = searchParams !== undefined ? searchParams : buildSearchParams(userSearchForm.value)
+  return userPager.search(params || {})
+}
+
+const fetchStaffList = async (searchParams) => {
+  const params = searchParams !== undefined ? searchParams : buildSearchParams(staffSearchForm.value)
+  // 未传条件的调用（如派单弹窗）需要全量数据，不带分页参数
+  if (searchParams === undefined) {
+    staffLoading.value = true
+    try {
+      const res = await getStaffListApi({})
+      const data = res.data || []
+      staffList.value = Array.isArray(data) ? data : (data.records || [])
+    } catch {
+      staffList.value = []
+    } finally {
+      staffLoading.value = false
+    }
+    return
+  }
+  return staffPager.search(params || {})
 }
 
 const searchUserList = () => {
@@ -1066,24 +1338,10 @@ const orderStatusType = (row) => {
 }
 
 const fetchOrderList = async (searchParams) => {
-  orderLoading.value = true
-  try {
-    const res = await getOrderListApi(searchParams || {})
-    let data = res.data || []
-    let list = Array.isArray(data) ? data : (data.records || [data])
-    
-    // 前端过滤订单状态（兼容字符串和数字类型）
-    if (searchParams?.orderStatus !== undefined) {
-      const targetStatus = Number(searchParams.orderStatus)
-      list = list.filter(item => Number(item.orderStatus) === targetStatus)
-    }
-    
-    orderList.value = list
-  } catch {
-    orderList.value = []
-  } finally {
-    orderLoading.value = false
-  }
+  // 订单状态后端目前不认该参数（原来就是前端 filter），
+  // 这里同步到 pendingOrderStatus，由 orderPager 的 clientFilter 兜底过滤
+  pendingOrderStatus.value = searchParams?.orderStatus
+  return orderPager.search(searchParams || {})
 }
 
 const searchOrderList = () => {
@@ -1195,16 +1453,8 @@ const showStaffDetail = async (emp) => {
 }
 
 const fetchAdminList = async (searchParams) => {
-  adminLoading.value = true
-  try {
-    const res = await getAdminListApi(searchParams || {})
-    const data = res.data || []
-    adminList.value = Array.isArray(data) ? data : (data.records || [data])
-  } catch {
-    adminList.value = []
-  } finally {
-    adminLoading.value = false
-  }
+  const params = searchParams !== undefined ? searchParams : buildSearchParams(adminSearchForm.value)
+  return adminPager.search(params || {})
 }
 
 const searchAdminList = () => {
@@ -1281,16 +1531,11 @@ const handleLogout = () => {
 }
 
 const fetchPackageList = async (searchParams) => {
-  packageLoading.value = true
-  try {
-    const res = await getPackageListApi(searchParams || {})
-    const data = res.data || []
-    packageList.value = Array.isArray(data) ? data : (data.records || [data])
-  } catch {
-    packageList.value = []
-  } finally {
-    packageLoading.value = false
-  }
+  // 管理端不传 status 时不过滤，上/下架套餐都要能看到（与搜索框的显式选择区分开）
+  const params = {}
+  if (searchParams && searchParams.packageName) params.packageName = searchParams.packageName
+  if (searchParams && searchParams.status !== undefined && searchParams.status !== '') params.status = searchParams.status
+  return packagePager.search(params)
 }
 
 const searchPackageList = () => {
@@ -1473,124 +1718,80 @@ const selectPresetIcon = async (icon) => {
 
 const handleMessageTabChange = (tab) => {
   if (tab === 'user') {
+    userMessagePager.pageNum.value = 1
     fetchUserMessageList()
   } else {
+    staffMessagePager.pageNum.value = 1
     fetchStaffMessageList()
   }
 }
 
-const fetchUserMessageList = async () => {
-  userMessageLoading.value = true
+const getAdminAccount = () => {
   try {
-    const res = await getUserListApi({})
-    const data = res.data || []
-    const users = Array.isArray(data) ? data : (data.records || [data])
-    
-    // 获取管理员账号
-    const userInfoStr = localStorage.getItem('userInfo')
-    let adminAccount = ''
-    if (userInfoStr) {
-      try {
-        const info = JSON.parse(userInfoStr)
-        adminAccount = info.account || ''
-      } catch { /* ignore */ }
-    }
-    
-    // 如果有管理员账号，获取会话列表来填充最新消息
+    const info = JSON.parse(localStorage.getItem('userInfo') || '{}')
+    return info.account || ''
+  } catch { return '' }
+}
+
+/**
+ * 消息列表的公共实现：拉一页「用户/员工」，再与该管理员的会话列表匹配出最新消息。
+ * 会话列表（/chat/rooms）是一次性全量返回的，所以匹配不受分页影响。
+ * @param {object} pager    对应的 pager 实例（负责分页与 total）
+ * @param {object} listApi  拉取用户/员工列表的接口
+ */
+const buildMessageRows = async (pager, loadingRef, rowsRef, listApi, itemKey) => {
+  loadingRef.value = true
+  try {
+    const allRows = await pager.fetchAll(listApi)
+    const adminAccount = getAdminAccount()
+    let rooms = []
     if (adminAccount) {
       try {
         const roomRes = await getChatRoomListApi(adminAccount)
-        const rooms = (roomRes && roomRes.data) || []
-        
-        userMessageList.value = users.map(user => {
-          const userAccount = user.account || user.username || ''
-          const room = rooms.find(r => r.account === userAccount)
-          return {
-            userAccount: userAccount,
-            userName: user.username || user.realName || '-',
-            lastMessage: room ? (room.lastMsg || '') : '',
-            lastTime: room ? (room.lastTime || '') : (user.createTime || '')
-          }
-        })
-      } catch {
-        // 如果获取会话列表失败，使用默认数据
-        userMessageList.value = users.map(user => ({
-          userAccount: user.account || user.username || '',
-          userName: user.username || user.realName || '-',
-          lastMessage: '',
-          lastTime: user.createTime || ''
-        }))
-      }
-    } else {
-      userMessageList.value = users.map(user => ({
-        userAccount: user.account || user.username || '',
-        userName: user.username || user.realName || '-',
-        lastMessage: '',
-        lastTime: user.createTime || ''
-      }))
+        rooms = (roomRes && roomRes.data) || []
+      } catch { rooms = [] }
     }
+
+    const mapped = allRows.map(item => {
+      const account = item.account || item.username || ''
+      const room = rooms.find(r => r.account === account)
+      return {
+        [itemKey.account]: account,
+        [itemKey.name]: item.realName || item.username || '-',
+        lastMessage: room ? (room.lastMsg || '') : '',
+        lastTime: room ? (room.lastTime || '') : (item.createTime || '')
+      }
+    })
+    // 映射后的数组长度与源数据一致，直接本地切片
+    pager.total.value = mapped.length
+    const start = (pager.pageNum.value - 1) * pager.pageSize.value
+    rowsRef.value = mapped.slice(start, start + pager.pageSize.value)
   } catch {
-    userMessageList.value = []
+    rowsRef.value = []
+    pager.total.value = 0
   } finally {
-    userMessageLoading.value = false
+    loadingRef.value = false
   }
 }
 
-const fetchStaffMessageList = async () => {
-  staffMessageLoading.value = true
-  try {
-    const res = await getStaffListApi({})
-    const data = res.data || []
-    const staffs = Array.isArray(data) ? data : (data.records || [data])
-    
-    // 获取管理员账号
-    const userInfoStr = localStorage.getItem('userInfo')
-    let adminAccount = ''
-    if (userInfoStr) {
-      try {
-        const info = JSON.parse(userInfoStr)
-        adminAccount = info.account || ''
-      } catch { /* ignore */ }
-    }
-    
-    // 如果有管理员账号，获取会话列表来填充最新消息
-    if (adminAccount) {
-      try {
-        const roomRes = await getChatRoomListApi(adminAccount)
-        const rooms = (roomRes && roomRes.data) || []
-        
-        staffMessageList.value = staffs.map(staff => {
-          const staffAccount = staff.account || staff.username || ''
-          const room = rooms.find(r => r.account === staffAccount)
-          return {
-            staffAccount: staffAccount,
-            staffName: staff.realName || staff.username || '-',
-            lastMessage: room ? (room.lastMsg || '') : '',
-            lastTime: room ? (room.lastTime || '') : (staff.createTime || '')
-          }
-        })
-      } catch {
-        // 如果获取会话列表失败，使用默认数据
-        staffMessageList.value = staffs.map(staff => ({
-          staffAccount: staff.account || staff.username || '',
-          staffName: staff.realName || staff.username || '-',
-          lastMessage: '',
-          lastTime: staff.createTime || ''
-        }))
-      }
-    } else {
-      staffMessageList.value = staffs.map(staff => ({
-        staffAccount: staff.account || staff.username || '',
-        staffName: staff.realName || staff.username || '-',
-        lastMessage: '',
-        lastTime: staff.createTime || ''
-      }))
-    }
-  } catch {
-    staffMessageList.value = []
-  } finally {
-    staffMessageLoading.value = false
-  }
+const fetchUserMessageList = () =>
+  buildMessageRows(userMessagePager, userMessageLoading, userMessageList, getUserListApi, {
+    account: 'userAccount', name: 'userName'
+  })
+
+const fetchStaffMessageList = () =>
+  buildMessageRows(staffMessagePager, staffMessageLoading, staffMessageList, getStaffListApi, {
+    account: 'staffAccount', name: 'staffName'
+  })
+
+// 消息列表已映射过字段，翻页不能走 pager 的通用切片，要重新按映射结果切
+const userMessageChangePage = (page) => {
+  userMessagePager.pageNum.value = page
+  fetchUserMessageList()
+}
+const staffMessageChangePage = (page) => {
+  staffMessagePager.pageNum.value = page
+  fetchStaffMessageList()
 }
 
 const openUserChat = (row) => {
@@ -1703,6 +1904,12 @@ const openStaffChat = (row) => {
 
 .skill-tag {
   margin: 2px 4px 2px 0;
+}
+
+.table-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
 }
 
 .cover-selector {

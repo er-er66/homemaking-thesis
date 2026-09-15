@@ -1,6 +1,7 @@
 package com.example.homemaking.services;
 
 import com.example.homemaking.dto.AddressSaveDTO;
+import com.example.homemaking.dto.PageResult;
 import com.example.homemaking.entity.SysUser;
 import com.example.homemaking.entity.UserAddress;
 
@@ -39,6 +40,20 @@ public interface UserService {
      * @return 用户列表
      */
     List<SysUser> searchUsers(String name, String phone, LocalDateTime startTime, LocalDateTime endTime);
+
+    /**
+     * 分页查询用户列表
+     *
+     * @param name      用户名（模糊匹配）
+     * @param phone     手机号（模糊匹配）
+     * @param startTime 创建时间开始
+     * @param endTime   创建时间结束
+     * @param pageNum   页码，从 1 开始
+     * @param pageSize  每页条数
+     * @return 分页结果
+     */
+    PageResult<SysUser> searchUsersPage(String name, String phone, LocalDateTime startTime, LocalDateTime endTime,
+                                        Integer pageNum, Integer pageSize);
 
     /**
      * 根据账号查询用户

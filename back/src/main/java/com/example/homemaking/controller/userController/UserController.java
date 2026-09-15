@@ -6,6 +6,7 @@ import com.example.homemaking.entity.UserAddress;
 import com.example.homemaking.result.Result;
 import com.example.homemaking.services.UserService;
 import com.example.homemaking.services.VerificationCodeService;
+import com.example.homemaking.util.PageUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -27,25 +28,35 @@ public class UserController {
     private VerificationCodeService verificationCodeService;
 
     /**
-     * 获取所有用户信息（支持模糊查询）
+     * 获取用户列表（支持模糊查询）
+     * <p>不传 pageNum/pageSize：返回全量数组（旧行为）</p>
+     * <p>传 pageNum/pageSize：返回 {total,pageNum,pageSize,records} 分页体</p>
      *
      * @param name      用户名（模糊匹配）
      * @param phone     手机号（模糊匹配）
      * @param startTime 创建时间开始
      * @param endTime   创建时间结束
+     * @param pageNum   页码，从 1 开始
+     * @param pageSize  每页条数
      * @return
      */
     @GetMapping("/users")
-    public Result<List<SysUser>> users(
+    public Result<?> users(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String phone,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startTime,
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endTime) {
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endTime,
+            @RequestParam(required = false) Integer pageNum,
+            @RequestParam(required = false) Integer pageSize) {
         LocalDateTime startDateTime = startTime != null ? startTime.atStartOfDay() : null;
         LocalDateTime endDateTime = endTime != null ? endTime.atTime(LocalTime.MAX) : null;
-        log.info("模糊查询用户列表，name={}, phone={}, startTime={}, endTime={}", name, phone, startDateTime, endDateTime);
-        List<SysUser> sysUserList = userService.searchUsers(name, phone, startDateTime, endDateTime);
-        return Result.success(sysUserList);
+        log.info("查询用户列表，name={}, phone={}, startTime={}, endTime={}, pageNum={}, pageSize={}",
+                name, phone, startDateTime, endDateTime, pageNum, pageSize);
+
+        if (!PageUtil.enabled(pageNum, pageSize)) {
+            return Result.success(userService.searchUsers(name, phone, startDateTime, endDateTime));
+        }
+        return Result.success(userService.searchUsersPage(name, phone, startDateTime, endDateTime, pageNum, pageSize));
     }
 
     /**

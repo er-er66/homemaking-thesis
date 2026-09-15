@@ -40,8 +40,4 @@
         order by sort desc, id desc
         limit #{offset}, #{pageSize}
     </select>
-
-    <select id="getOrderList" resultType="com.example.homemaking.entity.HomemakingPackage">
-        select * from homemaking_order where staff
-    </select>
 </mapper>

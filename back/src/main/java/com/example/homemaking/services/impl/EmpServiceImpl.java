@@ -1,8 +1,10 @@
 package com.example.homemaking.services.impl;
 
+import com.example.homemaking.dto.PageResult;
 import com.example.homemaking.entity.SysStaff;
 import com.example.homemaking.mapper.EmpMapper;
 import com.example.homemaking.services.EmpService;
+import com.example.homemaking.util.PageUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -41,5 +43,19 @@ public class EmpServiceImpl implements EmpService {
     @Override
     public List<SysStaff> searchEmps(String name, String phone, LocalDateTime startTime, LocalDateTime endTime) {
         return empMapper.searchEmps(name, phone, startTime, endTime);
+    }
+
+    /**
+     * 分页查询员工列表
+     */
+    @Override
+    public PageResult<SysStaff> searchEmpsPage(String name, String phone, LocalDateTime startTime, LocalDateTime endTime,
+                                               Integer pageNum, Integer pageSize) {
+        int num = PageUtil.normalizePageNum(pageNum);
+        int size = PageUtil.normalizePageSize(pageSize);
+        long total = empMapper.countEmps(name, phone, startTime, endTime);
+        List<SysStaff> records = total == 0 ? List.of()
+                : empMapper.searchEmpsPage(name, phone, startTime, endTime, PageUtil.offset(num, size), size);
+        return PageResult.of(total, num, size, records);
     }
 }

@@ -1,5 +1,6 @@
 package com.example.homemaking.services;
 
+import com.example.homemaking.dto.PageResult;
 import com.example.homemaking.entity.SysStaff;
 
 import java.time.LocalDateTime;
@@ -32,4 +33,18 @@ public interface EmpService {
      * @return 员工列表
      */
     List<SysStaff> searchEmps(String name, String phone, LocalDateTime startTime, LocalDateTime endTime);
+
+    /**
+     * 分页查询员工列表
+     *
+     * @param name      用户名（模糊匹配）
+     * @param phone     手机号（模糊匹配）
+     * @param startTime 创建时间开始
+     * @param endTime   创建时间结束
+     * @param pageNum   页码，从 1 开始
+     * @param pageSize  每页条数
+     * @return 分页结果
+     */
+    PageResult<SysStaff> searchEmpsPage(String name, String phone, LocalDateTime startTime, LocalDateTime endTime,
+                                        Integer pageNum, Integer pageSize);
 }

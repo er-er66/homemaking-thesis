@@ -17,9 +17,6 @@ public interface HomemakingPackageMapper {
 
     int updateById(HomemakingPackage homemakingPackage);
 
-    List<HomemakingPackage> getOrderList(@Param("staffAccount") int staffAccount,
-                                        @Param("orderStatus") int orderStatus);
-
     /**
      * 按条件统计套餐总数（不含已逻辑删除）
      *

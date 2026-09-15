@@ -3,6 +3,7 @@ package com.example.homemaking.services.impl;
 import ch.qos.logback.core.joran.util.beans.BeanUtil;
 import com.example.homemaking.dto.HomemakingOrderImgDTO;
 import com.example.homemaking.dto.OrderDTO;
+import com.example.homemaking.dto.PageResult;
 import com.example.homemaking.entity.HomemakingOrderImg;
 import com.example.homemaking.entity.Order;
 import com.example.homemaking.entity.SysUser;
@@ -13,6 +14,7 @@ import com.example.homemaking.mapper.UserImgMapper;
 import com.example.homemaking.mapper.UserMapper;
 import com.example.homemaking.services.OrderService;
 import com.example.homemaking.util.OrderNoUtil;
+import com.example.homemaking.util.PageUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -91,12 +93,7 @@ public class OrderServiceImpl implements OrderService {
     public List<Order> getAllOrder() {
         List<Order> orders = orderMapper.getAllOrder();
         // 填充封面URL
-        for (Order order : orders) {
-            UserImg userImg = userImgMapper.selectByOrderNo(order.getOrderNo());
-            if (userImg != null) {
-                order.setCoverUrl(userImg.getUserOrderUrl());
-            }
-        }
+        fillCoverUrl(orders);
         return orders;
     }
 
@@ -110,14 +107,45 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public List<Order> getOrders(String orderNo, Integer orderStatus, String userAccount, String staffAccount) {
         List<Order> orders = orderMapper.getOrders(orderNo, orderStatus, userAccount, staffAccount);
-        // 填充封面URL
+        fillCoverUrl(orders);
+        return orders;
+    }
+
+    /**
+     * 分页查询订单（只对当前页 10 条填充封面，比全量查更省）
+     *
+     * @param pageNum  页码，从 1 开始
+     * @param pageSize 每页条数
+     * @return 分页结果
+     */
+    @Override
+    public PageResult<Order> getOrdersPage(String orderNo, Integer orderStatus, String userAccount, String staffAccount,
+                                           Integer pageNum, Integer pageSize) {
+        int num = PageUtil.normalizePageNum(pageNum);
+        int size = PageUtil.normalizePageSize(pageSize);
+        long total = orderMapper.countOrders(orderNo, orderStatus, userAccount, staffAccount);
+        List<Order> records = total == 0 ? List.of()
+                : orderMapper.getOrdersPage(orderNo, orderStatus, userAccount, staffAccount,
+                PageUtil.offset(num, size), size);
+        fillCoverUrl(records);
+        return PageResult.of(total, num, size, records);
+    }
+
+    /**
+     * 填充订单封面URL
+     *
+     * @param orders 订单列表，允许为空
+     */
+    private void fillCoverUrl(List<Order> orders) {
+        if (orders == null || orders.isEmpty()) {
+            return;
+        }
         for (Order order : orders) {
             UserImg userImg = userImgMapper.selectByOrderNo(order.getOrderNo());
             if (userImg != null) {
                 order.setCoverUrl(userImg.getUserOrderUrl());
             }
         }
-        return orders;
     }
 
     /**

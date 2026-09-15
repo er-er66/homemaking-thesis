@@ -50,30 +50,38 @@
         from sys_user
         where id = #{id}
     </select>
-    <select id="searchUsers" resultType="com.example.homemaking.entity.SysUser">
-        <![CDATA[
-        select * from sys_user where 1=1
-        ]]>
+    <!-- 用户列表公共过滤条件（供 searchUsers / countUsers / searchUsersPage 复用） -->
+    <sql id="userCondition">
         <if test="name != null and name != ''">
-            <![CDATA[
             and username like concat('%', #{name}, '%')
-            ]]>
         </if>
         <if test="phone != null and phone != ''">
-            <![CDATA[
             and phone like concat('%', #{phone}, '%')
-            ]]>
         </if>
         <if test="startTime != null">
-            <![CDATA[
-            and create_time >= #{startTime}
-            ]]>
+            and create_time &gt;= #{startTime}
         </if>
         <if test="endTime != null">
-            <![CDATA[
-            and create_time <= #{endTime}
-            ]]>
+            and create_time &lt;= #{endTime}
         </if>
+    </sql>
+
+    <select id="searchUsers" resultType="com.example.homemaking.entity.SysUser">
+        select * from sys_user where 1=1
+        <include refid="userCondition"/>
+        order by id desc
+    </select>
+
+    <select id="countUsers" resultType="long">
+        select count(*) from sys_user where 1=1
+        <include refid="userCondition"/>
+    </select>
+
+    <select id="searchUsersPage" resultType="com.example.homemaking.entity.SysUser">
+        select * from sys_user where 1=1
+        <include refid="userCondition"/>
+        order by id desc
+        limit #{offset}, #{pageSize}
     </select>
     <select id="getUserByAccount" resultType="com.example.homemaking.entity.SysUser">
         select *

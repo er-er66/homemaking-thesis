@@ -7,6 +7,7 @@ import com.example.homemaking.entity.Order;
 import com.example.homemaking.result.Result;
 import com.example.homemaking.services.OrderService;
 import com.example.homemaking.util.OssUtil;
+import com.example.homemaking.util.PageUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -41,22 +42,31 @@ public class OrderController {
 
     /**
      * 获取订单列表（支持条件查询）
+     * <p>不传 pageNum/pageSize：返回全量数组（旧行为）</p>
+     * <p>传 pageNum/pageSize：返回 {total,pageNum,pageSize,records} 分页体</p>
      *
-     * @param orderNo 订单编号（可选）
+     * @param orderNo     订单编号（可选）
      * @param orderStatus 订单状态（可选）
+     * @param pageNum     页码，从 1 开始（可选）
+     * @param pageSize    每页条数（可选）
      * @return
      */
     @GetMapping("/order")
-    public Result<List<Order>> getOrder(
+    public Result<?> getOrder(
             @RequestParam(required = false) String orderNo,
             @RequestParam(required = false) Integer orderStatus,
             @RequestParam(required = false) String userAccount,
-            @RequestParam(required = false) String staffAccount
+            @RequestParam(required = false) String staffAccount,
+            @RequestParam(required = false) Integer pageNum,
+            @RequestParam(required = false) Integer pageSize
     ) {
-        log.info("获取订单列表，订单编号：{}，订单状态：{}，用户账号：{}，员工账号：{}", orderNo, orderStatus, userAccount, staffAccount);
-        List<Order> orders = orderService.getOrders(orderNo, orderStatus, userAccount, staffAccount);
+        log.info("获取订单列表，订单编号：{}，订单状态：{}，用户账号：{}，员工账号：{}，pageNum：{}，pageSize：{}",
+                orderNo, orderStatus, userAccount, staffAccount, pageNum, pageSize);
 
-        return Result.success(orders);
+        if (!PageUtil.enabled(pageNum, pageSize)) {
+            return Result.success(orderService.getOrders(orderNo, orderStatus, userAccount, staffAccount));
+        }
+        return Result.success(orderService.getOrdersPage(orderNo, orderStatus, userAccount, staffAccount, pageNum, pageSize));
     }
     /**
      * 更具id查询订单

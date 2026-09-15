@@ -43,10 +43,9 @@
         from homemaking_order
         where is_deleted = 0
     </select>
-    <select id="getOrders" resultType="com.example.homemaking.entity.Order">
-        select *
-        from homemaking_order
-        where is_deleted = 0
+    <!-- 订单列表公共过滤条件（供 getOrders / countOrders / getOrdersPage 复用） -->
+    <sql id="orderCondition">
+        and is_deleted = 0
         <if test="orderNo != null and orderNo != ''">
             and order_no = #{orderNo}
         </if>
@@ -59,6 +58,24 @@
         <if test="staffAccount != null and staffAccount != ''">
             and staff_account = #{staffAccount}
         </if>
+    </sql>
+
+    <select id="getOrders" resultType="com.example.homemaking.entity.Order">
+        select * from homemaking_order where 1=1
+        <include refid="orderCondition"/>
+        order by id desc
+    </select>
+
+    <select id="countOrders" resultType="long">
+        select count(*) from homemaking_order where 1=1
+        <include refid="orderCondition"/>
+    </select>
+
+    <select id="getOrdersPage" resultType="com.example.homemaking.entity.Order">
+        select * from homemaking_order where 1=1
+        <include refid="orderCondition"/>
+        order by id desc
+        limit #{offset}, #{pageSize}
     </select>
     <select id="getOrderById" resultType="com.example.homemaking.entity.Order">
         select *

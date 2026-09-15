@@ -7,6 +7,7 @@ import com.example.homemaking.dto.PageResult;
 import com.example.homemaking.entity.HomemakingPackage;
 import com.example.homemaking.mapper.HomemakingPackageMapper;
 import com.example.homemaking.services.HomemakingPackageService;
+import com.example.homemaking.util.PageUtil;
 import io.micrometer.common.util.StringUtils;
 import jakarta.annotation.Resource;
 import org.springframework.beans.BeanUtils;
@@ -46,11 +47,6 @@ public class HomemakingPackageServiceImpl implements HomemakingPackageService {
      * 设置时间为5分钟，如果5分钟内在来相同请求就会，直接返回空值，不会去MYSQL查询数据，从而避免了缓存穿透
      */
     private static final long NULL_TTL = 5 * 60;
-
-    //分页默认每页条数（前端 3 列 × 3 行）
-    private static final int DEFAULT_PAGE_SIZE = 9;
-    //分页每页条数上限，防止一次拉取过多数据
-    private static final int MAX_PAGE_SIZE = 50;
 
 
     public HomemakingPackage getPackageById(Long id) {
@@ -139,11 +135,11 @@ public class HomemakingPackageServiceImpl implements HomemakingPackageService {
     @Override
     public PageResult<HomemakingPackage> page(Integer pageNum, Integer pageSize,
                                               Integer serviceType, Integer status, String packageName) {
-        int num = (pageNum == null || pageNum < 1) ? 1 : pageNum;
-        int size = (pageSize == null || pageSize < 1 || pageSize > MAX_PAGE_SIZE) ? DEFAULT_PAGE_SIZE : pageSize;
+        int num = PageUtil.normalizePageNum(pageNum);
+        int size = PageUtil.normalizePageSize(pageSize);
         long total = homemakingPackageMapper.countByCondition(serviceType, status, packageName);
         List<HomemakingPackage> records = total == 0 ? List.of()
-                : homemakingPackageMapper.selectPage(serviceType, status, packageName, (num - 1) * size, size);
+                : homemakingPackageMapper.selectPage(serviceType, status, packageName, PageUtil.offset(num, size), size);
         return PageResult.of(total, num, size, records);
     }
 
@@ -153,10 +149,5 @@ public class HomemakingPackageServiceImpl implements HomemakingPackageService {
         BeanUtils.copyProperties(homemakingPackageDTO,homemakingPackage);
         homemakingPackage.setUpdateTime(LocalDateTime.now());
         return homemakingPackageMapper.updateById(homemakingPackage);
-    }
-
-    @Override
-    public List<HomemakingPackage> getOrderList(int account, int orderStatus) {
-      return homemakingPackageMapper.getOrderList(account,orderStatus);
     }
 }

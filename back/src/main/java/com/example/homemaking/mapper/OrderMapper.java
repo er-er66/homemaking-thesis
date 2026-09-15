@@ -31,7 +31,38 @@ public interface OrderMapper {
      * @param orderStatus 订单状态
      * @return
      */
-    List<Order> getOrders(String orderNo, Integer orderStatus, String userAccount, String staffAccount);
+    List<Order> getOrders(@Param("orderNo") String orderNo,
+                          @Param("orderStatus") Integer orderStatus,
+                          @Param("userAccount") String userAccount,
+                          @Param("staffAccount") String staffAccount);
+
+    /**
+     * 按条件统计订单总数
+     *
+     * @param orderNo     订单编号
+     * @param orderStatus 订单状态
+     * @param userAccount 用户账号
+     * @param staffAccount 员工账号
+     * @return 总记录数
+     */
+    long countOrders(@Param("orderNo") String orderNo,
+                     @Param("orderStatus") Integer orderStatus,
+                     @Param("userAccount") String userAccount,
+                     @Param("staffAccount") String staffAccount);
+
+    /**
+     * 按条件分页查询订单
+     *
+     * @param offset   起始下标
+     * @param pageSize 每页条数
+     * @return 当前页订单列表
+     */
+    List<Order> getOrdersPage(@Param("orderNo") String orderNo,
+                              @Param("orderStatus") Integer orderStatus,
+                              @Param("userAccount") String userAccount,
+                              @Param("staffAccount") String staffAccount,
+                              @Param("offset") int offset,
+                              @Param("pageSize") int pageSize);
 
     /**
      * 根据id获取订单
