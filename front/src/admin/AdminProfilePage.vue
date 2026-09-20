@@ -33,7 +33,7 @@
       <el-card class="menu-card">
         <div class="menu-item" @click="togglePwdPanel">
           <div class="menu-left">
-            <el-icon size="20" color="#409eff"><Lock /></el-icon>
+            <el-icon size="20" color="var(--brand-500)"><Lock /></el-icon>
             <span>修改登录密码</span>
           </div>
           <el-icon class="menu-arrow" :class="{ open: activePanel === 'pwd' }"><ArrowRight /></el-icon>
@@ -59,7 +59,7 @@
       <el-card class="menu-card">
         <div class="menu-item" @click="activePanel = activePanel === 'phone' ? '' : 'phone'">
           <div class="menu-left">
-            <el-icon size="20" color="#67c23a"><Phone /></el-icon>
+            <el-icon size="20" color="var(--color-success)"><Phone /></el-icon>
             <span>更换手机号</span>
           </div>
           <el-icon class="menu-arrow" :class="{ open: activePanel === 'phone' }"><ArrowRight /></el-icon>
@@ -282,7 +282,7 @@ const handleChangeName = async () => {
 <style scoped>
 .admin-profile-page {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: var(--surface-page);
   padding: 20px;
 }
 
@@ -299,7 +299,7 @@ const handleChangeName = async () => {
 h2 {
   margin-bottom: 20px;
   font-size: 24px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .profile-card {
@@ -321,7 +321,7 @@ h2 {
   display: block;
   text-align: center;
   font-size: 12px;
-  color: #409eff;
+  color: var(--brand-500);
   margin-top: 4px;
 }
 
@@ -332,19 +332,19 @@ h2 {
 
 .user-base p {
   margin: 0;
-  color: #999;
+  color: var(--text-placeholder);
   font-size: 14px;
 }
 
 .edit-name-icon {
   cursor: pointer;
   margin-left: 8px;
-  color: #409eff;
+  color: var(--brand-500);
   vertical-align: middle;
 }
 
 .edit-name-icon:hover {
-  color: #66b1ff;
+  color: var(--brand-400);
 }
 
 .menu-card {
@@ -361,7 +361,7 @@ h2 {
 }
 
 .menu-item:hover {
-  color: #409eff;
+  color: var(--brand-500);
 }
 
 .menu-left {
@@ -373,7 +373,7 @@ h2 {
 
 .menu-arrow {
   transition: transform 0.3s;
-  color: #999;
+  color: var(--text-placeholder);
 }
 
 .menu-arrow.open {

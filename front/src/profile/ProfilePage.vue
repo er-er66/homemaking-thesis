@@ -33,7 +33,7 @@
       <el-card class="menu-card">
         <div class="menu-item" @click="togglePwdPanel">
           <div class="menu-left">
-            <el-icon size="20" color="#409eff"><Lock /></el-icon>
+            <el-icon size="20" color="var(--brand-500)"><Lock /></el-icon>
             <span>{{ hasPayPassword ? '修改支付密码' : '设置支付密码' }}</span>
           </div>
           <el-icon class="menu-arrow" :class="{ open: activePanel === 'pwd' }"><ArrowRight /></el-icon>
@@ -59,7 +59,7 @@
       <el-card class="menu-card">
         <div class="menu-item" @click="activePanel = activePanel === 'phone' ? '' : 'phone'">
           <div class="menu-left">
-            <el-icon size="20" color="#67c23a"><Phone /></el-icon>
+            <el-icon size="20" color="var(--color-success)"><Phone /></el-icon>
             <span>换绑手机号</span>
           </div>
           <el-icon class="menu-arrow" :class="{ open: activePanel === 'phone' }"><ArrowRight /></el-icon>
@@ -85,7 +85,7 @@
       <el-card class="menu-card">
         <div class="menu-item" @click="activePanel = activePanel === 'orders' ? '' : 'orders'">
           <div class="menu-left">
-            <el-icon size="20" color="#e6a23c"><List /></el-icon>
+            <el-icon size="20" color="var(--color-warning)"><List /></el-icon>
             <span>{{ userRole === 'staff' ? '最近接单' : '历史订单' }}</span>
           </div>
           <el-icon class="menu-arrow" :class="{ open: activePanel === 'orders' }"><ArrowRight /></el-icon>
@@ -145,7 +145,7 @@
     <el-card class="menu-card">
         <div class="menu-item" @click="toggleAddressPanel">
           <div class="menu-left">
-            <el-icon size="20" color="#f56c6c"><MapLocation /></el-icon>
+            <el-icon size="20" color="var(--color-danger)"><MapLocation /></el-icon>
             <span>当前所在地址</span>
           </div>
           <el-icon class="menu-arrow" :class="{ open: activePanel === 'address' }"><ArrowRight /></el-icon>
@@ -246,7 +246,7 @@
           </el-descriptions-item>
           <el-descriptions-item label="服务项目">{{ currentOrder.serviceItem || '-' }}</el-descriptions-item>
           <el-descriptions-item label="订单金额">
-            <span style="color: #ff6b6b; font-weight: bold; font-size: 18px;">¥{{ currentOrder.orderAmount || '0.00' }}</span>
+            <span style="color: var(--accent); font-weight: bold; font-size: 18px;">¥{{ currentOrder.orderAmount || '0.00' }}</span>
           </el-descriptions-item>
           <el-descriptions-item label="服务地址" :span="2">{{ currentOrder.serviceAddress || '-' }}</el-descriptions-item>
           <el-descriptions-item label="预约时间" :span="2">{{ formatDateTime(currentOrder.serviceTime) }}</el-descriptions-item>
@@ -752,7 +752,7 @@ const updateUserInfo = (patch) => {
 <style scoped>
 .profile-page {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: var(--surface-page);
   padding: 40px 20px;
 }
 
@@ -807,12 +807,12 @@ h2 {
 .edit-name-icon {
   cursor: pointer;
   margin-left: 8px;
-  color: #409eff;
+  color: var(--brand-500);
   vertical-align: middle;
 }
 
 .edit-name-icon:hover {
-  color: #66b1ff;
+  color: var(--brand-400);
 }
 
 .menu-card {
@@ -869,17 +869,17 @@ h2 {
 }
 
 .order-scroll-container::-webkit-scrollbar-track {
-  background: #f5f7fa;
+  background: var(--surface-page);
   border-radius: 3px;
 }
 
 .order-scroll-container::-webkit-scrollbar-thumb {
-  background: #dcdfe6;
+  background: var(--border-strong);
   border-radius: 3px;
 }
 
 .order-scroll-container::-webkit-scrollbar-thumb:hover {
-  background: #c0c4cc;
+  background: var(--text-disabled);
 }
 
 .code-row {
@@ -901,9 +901,9 @@ h2 {
   align-items: flex-start;
   padding: 12px;
   margin-bottom: 10px;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fafafa;
+  background: var(--neutral-50);
 }
 
 .addr-info {
@@ -916,19 +916,19 @@ h2 {
 
 .default-tag {
   font-size: 12px;
-  color: #f56c6c;
+  color: var(--color-danger);
   margin-left: 4px;
 }
 
 .addr-detail {
   margin: 6px 0 4px;
   font-size: 14px;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .addr-contact {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -963,21 +963,21 @@ h2 {
 }
 
 .order-list::-webkit-scrollbar-track {
-  background: #f5f7fa;
+  background: var(--surface-page);
   border-radius: 3px;
 }
 
 .order-list::-webkit-scrollbar-thumb {
-  background: #dcdfe6;
+  background: var(--border-strong);
   border-radius: 3px;
 }
 
 .order-list::-webkit-scrollbar-thumb:hover {
-  background: #c0c4cc;
+  background: var(--text-disabled);
 }
 
 .order-item {
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--border-light);
   border-radius: 12px;
   background: #fff;
   transition: box-shadow 0.2s;
@@ -992,18 +992,18 @@ h2 {
   justify-content: space-between;
   align-items: center;
   padding: 10px 16px;
-  background: #f9fafb;
-  border-bottom: 1px solid #ebeef5;
+  background: var(--neutral-50);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .order-id {
   font-size: 13px;
-  color: #909399;
+  color: var(--text-secondary);
 }
 
 .order-time {
   font-size: 12px;
-  color: #c0c4cc;
+  color: var(--text-disabled);
 }
 
 .order-body {
@@ -1032,7 +1032,7 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f7fa;
+  background: var(--surface-page);
   font-size: 36px;
   border-radius: 8px;
 }
@@ -1045,13 +1045,13 @@ h2 {
 .order-name {
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
   margin: 0 0 6px;
 }
 
 .order-address {
   font-size: 13px;
-  color: #606266;
+  color: var(--text-regular);
   margin: 0 0 4px;
   white-space: nowrap;
   overflow: hidden;
@@ -1060,13 +1060,13 @@ h2 {
 
 .order-time-slot {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-secondary);
   margin: 0 0 4px;
 }
 
 .order-remark {
   font-size: 12px;
-  color: #e6a23c;
+  color: var(--color-warning);
   margin: 0;
 }
 
@@ -1081,7 +1081,7 @@ h2 {
 .order-price {
   font-size: 18px;
   font-weight: bold;
-  color: #ff6b6b;
+  color: var(--accent);
 }
 
 .order-actions {

@@ -1,14 +1,68 @@
 <template>
   <div class="login-page">
-    <div class="login-left">
-      <div class="left-content">
-        <div class="logo">
-          <img src="/src/assets/jiazen1.png" alt="家政服务" />
+    <div class="login-left auth-brand">
+      <!-- 装饰层：点阵 / 光晕 / 涟漪 / 光斑 / 房屋水印 / 扫光，全部纯 CSS，不参与交互 -->
+      <div class="auth-deco" aria-hidden="true">
+        <span class="auth-deco__grid"></span>
+        <span class="auth-deco__glow auth-deco__glow--a"></span>
+        <span class="auth-deco__glow auth-deco__glow--b"></span>
+        <span class="auth-deco__glow auth-deco__glow--c"></span>
+        <span class="auth-deco__ripple auth-deco__ripple--1"></span>
+        <span class="auth-deco__ripple auth-deco__ripple--2"></span>
+        <span class="auth-orb auth-orb--1"></span>
+        <span class="auth-orb auth-orb--2"></span>
+        <span class="auth-orb auth-orb--3"></span>
+        <svg class="auth-deco__house" viewBox="0 0 200 200" fill="none">
+          <path
+            d="M100 24 184 96v74a10 10 0 0 1-10 10H26a10 10 0 0 1-10-10V96L100 24Z"
+            stroke="rgba(255,255,255,.18)"
+            stroke-width="3"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M76 180v-46a12 12 0 0 1 12-12h24a12 12 0 0 1 12 12v46"
+            stroke="rgba(255,255,255,.18)"
+            stroke-width="3"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <span class="auth-deco__sheen"></span>
+      </div>
+
+      <div class="auth-content">
+        <div class="auth-logo">
+          <img src="/src/assets/logo.svg" alt="家政服务" />
           <span>家政服务</span>
         </div>
-        <h2>欢迎回来</h2>
-        <p>登录您的账号，继续享受专业家政服务</p>
+
+        <h2 class="auth-title">欢迎回来</h2>
+        <div class="auth-rule" aria-hidden="true"><i></i></div>
+        <p class="auth-subtitle">登录您的账号，继续享受专业家政服务</p>
+
+        <ul class="auth-features">
+          <li class="auth-feature"><i class="auth-feature__icon">🧹</i>专业保洁</li>
+          <li class="auth-feature"><i class="auth-feature__icon">🛡️</i>持证上岗</li>
+          <li class="auth-feature"><i class="auth-feature__icon">⏱️</i>准时上门</li>
+        </ul>
+
+        <div class="auth-stats">
+          <div class="auth-stat">
+            <strong>10万+</strong>
+            <span>服务家庭</span>
+          </div>
+          <div class="auth-stat">
+            <strong>98%</strong>
+            <span>好评率</span>
+          </div>
+          <div class="auth-stat">
+            <strong>2000+</strong>
+            <span>认证人员</span>
+          </div>
+        </div>
       </div>
+
+      <p class="auth-foot">用心服务每一个家 · 让生活更轻松</p>
     </div>
 
     <div class="login-right">
@@ -393,36 +447,21 @@ const handleResetPassword = async () => {
 .login-page {
   min-height: 100vh;
   display: flex;
+  background-color: var(--surface-page);
 }
 
-.login-left {
-  flex: 1;
-  background: linear-gradient(135deg, var(--accent) 0%, #ff8e8e 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-}
+/* ---------- 左侧品牌区 ----------
+   全部视觉样式在 src/styles/auth-brand.css（登录/注册共用）。
+   这里只保留 .login-left 这个钩子类，供下方移动端媒体查询做布局覆盖。 */
 
-.left-content {
-  text-align: center;
-  color: white;
-}
-
-.left-content h2 {
-  font-size: 36px;
-  color: white;
-  margin-bottom: 16px;
-}
-
-.left-content p {
-  font-size: 18px;
-  color: rgba(255, 255, 255, 0.85);
-}
-
+/* ---------- 右侧表单区 ---------- */
 .login-right {
+  position: relative;
+  overflow: hidden;
   flex: 1;
-  background: var(--bg-white);
+  background-color: var(--surface-card);
+  /* 右上角一点极淡的品牌色，避免整块纯白显得空 */
+  background-image: radial-gradient(circle at 85% 12%, rgba(var(--brand-rgb), .07) 0%, rgba(var(--brand-rgb), 0) 45%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -430,35 +469,30 @@ const handleResetPassword = async () => {
 }
 
 .login-form-wrapper {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 420px;
+  animation: appFadeInUp var(--duration-slow) var(--ease-out) 80ms both;
 }
 
 .login-form-wrapper h3 {
-  font-size: 28px;
+  font-size: 30px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 1px;
   margin-bottom: 32px;
   text-align: center;
 }
 
 .back-home {
+  display: inline-block;
   margin-bottom: 20px;
+  font-size: var(--font-size-base);
+  transition: var(--transition-fast);
 }
 
-.logo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  font-size: 28px;
-  font-weight: bold;
-  color: white;
-  margin-bottom: 32px;
-}
-
-.logo img {
-  width: 48px;
-  height: 48px;
-  border-radius: 8px;
+.back-home:hover {
+  transform: translateX(-3px);
 }
 
 .form-options {
@@ -470,34 +504,27 @@ const handleResetPassword = async () => {
 
 .role-group {
   width: 100%;
+  display: flex;
+  gap: var(--space-5);
+  flex-wrap: wrap;
 }
 
 .btn-block {
   width: 100%;
+  height: 46px;
+  font-size: var(--font-size-md);
+  letter-spacing: 3px;
+  border-radius: var(--radius-md);
 }
 
 .login-footer {
-  text-align: center;
-  font-size: 14px;
-  color: var(--text-light);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
-}
-
-@media (max-width: 768px) {
-  .login-page {
-    flex-direction: column;
-  }
-
-  .login-left {
-    padding: 60px 20px;
-  }
-
-  .login-right {
-    padding: 40px 20px;
-  }
+  margin-top: var(--space-5);
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
 }
 
 .code-row {
@@ -515,12 +542,34 @@ const handleResetPassword = async () => {
 }
 
 .role-tip {
-  font-size: 12px;
-  color: var(--text-light);
   margin-top: 4px;
+  font-size: var(--font-size-xs);
+  line-height: var(--leading-snug);
+  color: var(--text-secondary);
 }
 
 .reset-dialog .el-form-item {
   margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+  .login-page {
+    flex-direction: column;
+  }
+
+  .login-left {
+    flex: none;
+    min-height: 280px;
+    padding: 56px 20px;
+  }
+
+  .login-left h2 {
+    font-size: 32px;
+  }
+
+  .login-right {
+    flex: 1;
+    padding: 40px 20px;
+  }
 }
 </style>

@@ -1,80 +1,15 @@
-:root {
-  --text: #333333;
-  --text-h: #1a1a1a;
-  --text-light: #666666;
-  --bg: #f5f5f5;
-  --bg-white: #ffffff;
-  --border: #e0e0e0;
-  --accent: #ff6b6b;
-  --accent-hover: #ff5252;
-  --accent-bg: rgba(255, 107, 107, 0.1);
-  --primary: #2c3e50;
-  --success: #27ae60;
-  --warning: #f39c12;
-  --shadow: rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+/* ==========================================================================
+   样式入口
+   由 main.js 引入，加载顺序即层叠顺序，不要随意调换：
+     1. tokens.css       —— 设计令牌（含旧变量名兼容层）
+     2. element-plus.css —— Element Plus 主题覆盖
+     3. base.css         —— Reset / 排版 / 滚动条 / 动效 / 工具类
+     4. auth-brand.css   —— 登录 / 注册页左侧品牌区（两页共用，避免各写一遍）
+   注意：main.js 中 'element-plus/dist/index.css' 先于本文件引入，
+        因此下面第 2 层的覆盖能稳定生效。
+   ========================================================================== */
 
-  --sans: 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
-  --heading: 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
-
-  font: 16px/150% var(--sans);
-  color-scheme: light;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  min-height: 100vh;
-  background: var(--bg);
-}
-
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--heading);
-  font-weight: 600;
-  color: var(--text-h);
-}
-
-h1 { font-size: 36px; }
-h2 { font-size: 28px; }
-h3 { font-size: 22px; }
-h4 { font-size: 18px; }
-
-p {
-  margin: 0;
-  color: var(--text);
-}
-
-a {
-  text-decoration: none;
-  color: var(--text);
-  transition: color 0.3s;
-}
-
-a:hover {
-  color: var(--accent);
-}
-
-#app {
-  width: 100%;
-  min-height: 100vh;
-}
-
-/* Element Plus 主题色覆盖 */
-:root {
-  --el-color-primary: #ff6b6b;
-  --el-color-primary-light-3: #ff8e8e;
-  --el-color-primary-light-5: #ffb0b0;
-  --el-color-primary-light-7: #ffd2d2;
-  --el-color-primary-light-9: #fff0f0;
-  --el-color-primary-dark-2: #ff5252;
-}
+@import './styles/tokens.css';
+@import './styles/element-plus.css';
+@import './styles/base.css';
+@import './styles/auth-brand.css';

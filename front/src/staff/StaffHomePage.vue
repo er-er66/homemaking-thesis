@@ -2,7 +2,7 @@
   <div class="staff-home">
     <header class="staff-header">
       <div class="header-left">
-        <img src="/src/assets/jiazen1.png" alt="logo" class="logo" />
+        <img src="/src/assets/logo.svg" alt="家政服务" class="logo" />
         <span class="logo-text">家政服务</span>
       </div>
       <div class="header-right">
@@ -650,7 +650,7 @@ const handleLogout = () => {
 <style scoped>
 .staff-home {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: var(--surface-page);
   display: flex;
   flex-direction: column;
 }
@@ -662,7 +662,7 @@ const handleLogout = () => {
   padding: 0 24px;
   height: 56px;
   background: #fff;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--border-light);
   flex-shrink: 0;
 }
 
@@ -673,9 +673,11 @@ const handleLogout = () => {
 }
 
 .logo {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
+  width: 34px;
+  height: 34px;
+  /* 圆角已画在 SVG 里，这里不要再加 border-radius */
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 6px rgba(var(--brand-rgb), .22));
 }
 
 .logo-text {
@@ -694,7 +696,7 @@ const handleLogout = () => {
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .user-name {
@@ -703,7 +705,7 @@ const handleLogout = () => {
 
 .arrow {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-secondary);
 }
 
 .staff-body {
@@ -716,7 +718,7 @@ const handleLogout = () => {
   width: 320px;
   flex-shrink: 0;
   background: #fff;
-  border-right: 1px solid #ebeef5;
+  border-right: 1px solid var(--border-light);
   display: flex;
   flex-direction: column;
 }
@@ -725,8 +727,8 @@ const handleLogout = () => {
   padding: 16px 20px;
   font-size: 15px;
   font-weight: 600;
-  color: #303133;
-  border-bottom: 1px solid #f0f0f0;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-light);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -750,11 +752,11 @@ const handleLogout = () => {
 }
 
 .user-item:hover {
-  background: #f5f7fa;
+  background: var(--surface-page);
 }
 
 .user-item.active {
-  background: #fff0f0;
+  background: var(--brand-50);
 }
 
 .user-info {
@@ -772,12 +774,12 @@ const handleLogout = () => {
 .user-top .user-name {
   font-size: 14px;
   font-weight: 500;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .user-time {
   font-size: 11px;
-  color: #c0c4cc;
+  color: var(--text-disabled);
 }
 
 .user-bottom {
@@ -788,7 +790,7 @@ const handleLogout = () => {
 
 .user-last {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -801,7 +803,7 @@ const handleLogout = () => {
 
 .right-panel {
   flex: 1;
-  background: #f5f7fa;
+  background: var(--surface-page);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -836,7 +838,7 @@ const handleLogout = () => {
   border-radius: 10px;
   padding: 18px;
   cursor: pointer;
-  border: 2px solid #ebeef5;
+  border: 2px solid var(--border-light);
   transition: all 0.2s;
 }
 
@@ -856,7 +858,7 @@ const handleLogout = () => {
 .order-service {
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .order-body {
@@ -871,7 +873,7 @@ const handleLogout = () => {
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #606266;
+  color: var(--text-regular);
 }
 
 .order-footer {
@@ -879,7 +881,7 @@ const handleLogout = () => {
   justify-content: space-between;
   align-items: center;
   padding-top: 10px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-light);
 }
 
 .order-amount {
@@ -890,13 +892,13 @@ const handleLogout = () => {
 
 .order-user {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-secondary);
 }
 
 /* 管理员派单区域 */
 .admin-dispatch-section {
   background: #fff;
-  border-top: 2px solid #f0f0f0;
+  border-top: 2px solid var(--border-light);
 }
 
 .dispatch-header {
@@ -909,18 +911,18 @@ const handleLogout = () => {
 }
 
 .dispatch-header:hover {
-  background: #f5f7fa;
+  background: var(--surface-page);
 }
 
 .dispatch-title {
   font-size: 15px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .toggle-icon {
   font-size: 16px;
-  color: #909399;
+  color: var(--text-secondary);
   transition: transform 0.3s;
 }
 
@@ -945,12 +947,12 @@ const handleLogout = () => {
   border-radius: 10px;
   padding: 18px;
   cursor: pointer;
-  border: 2px solid #ff4d4f;
+  border: 2px solid var(--color-danger);
   transition: all 0.2s;
 }
 
 .dispatch-card:hover {
-  border-color: #ff7875;
+  border-color: var(--el-color-danger-light-3);
   box-shadow: 0 4px 12px rgba(255, 77, 79, 0.15);
   transform: translateY(-1px);
 }
@@ -965,7 +967,7 @@ const handleLogout = () => {
 .dispatch-service {
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .dispatch-body {
@@ -980,11 +982,11 @@ const handleLogout = () => {
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #606266;
+  color: var(--text-regular);
 }
 
 .dispatch-admin {
-  color: #ff4d4f !important;
+  color: var(--color-danger) !important;
   font-weight: 500;
 }
 
@@ -993,7 +995,7 @@ const handleLogout = () => {
   justify-content: space-between;
   align-items: center;
   padding-top: 10px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-light);
 }
 
 .dispatch-amount {
@@ -1004,7 +1006,7 @@ const handleLogout = () => {
 
 .dispatch-user {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-secondary);
 }
 
 .dispatch-actions {
@@ -1013,7 +1015,7 @@ const handleLogout = () => {
   gap: 8px;
   padding-top: 12px;
   margin-top: 10px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-light);
 }
 
 .order-actions {
@@ -1022,7 +1024,7 @@ const handleLogout = () => {
   gap: 8px;
   padding-top: 12px;
   margin-top: 10px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-light);
 }
 
 .complete-order-content {
@@ -1035,7 +1037,7 @@ const handleLogout = () => {
 
 .upload-tip {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-secondary);
   margin-top: 5px;
 }
 

@@ -102,7 +102,7 @@ const fetchDetail = async () => {
 <style scoped>
 .detail-page {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: var(--surface-page);
   padding: 24px;
 }
 

@@ -231,8 +231,8 @@ const orderDetailStyleRight = {
 }
 
 const cardStyleLeft = {
-  background: 'linear-gradient(135deg, #e6f7ff 0%, #fff1f0 100%)',
-  border: '1px solid #91d5ff',
+  background: 'linear-gradient(135deg, var(--brand-50) 0%, var(--neutral-50) 100%)',
+  border: '1px solid var(--border-brand)',
   borderRadius: '12px',
   padding: '0',
   minWidth: '300px',
@@ -240,8 +240,8 @@ const cardStyleLeft = {
 }
 
 const cardStyleRight = {
-  background: 'linear-gradient(135deg, #f6ffed 0%, #e6f7ff 100%)',
-  border: '1px solid #b7eb8f',
+  background: 'linear-gradient(135deg, var(--color-success-bg) 0%, var(--brand-50) 100%)',
+  border: '1px solid #C1E3D3',
   borderRadius: '12px',
   padding: '0',
   minWidth: '300px',
@@ -249,7 +249,7 @@ const cardStyleRight = {
 }
 
 const headerStyleLeft = {
-  background: 'linear-gradient(90deg, #1890ff, #36cfc9)',
+  background: 'var(--gradient-brand)',
   padding: '10px 12px',
   borderRadius: '12px 12px 0 0',
   display: 'flex',
@@ -259,7 +259,7 @@ const headerStyleLeft = {
 }
 
 const headerStyleRight = {
-  background: 'linear-gradient(90deg, #52c41a, #73d13d)',
+  background: 'linear-gradient(90deg, #2FA36B, #52C08A)',
   padding: '10px 12px',
   borderRadius: '12px 12px 0 0',
   display: 'flex',
@@ -649,7 +649,7 @@ onUnmounted(() => {
 <style scoped>
 .order-chat-page {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: var(--surface-page);
   display: flex;
   flex-direction: column;
 }
@@ -657,7 +657,7 @@ onUnmounted(() => {
 .header {
   background: #fff;
   padding: 16px 24px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .header h2 {
@@ -676,7 +676,7 @@ onUnmounted(() => {
   width: 380px;
   flex-shrink: 0;
   background: #fff;
-  border-right: 1px solid #ebeef5;
+  border-right: 1px solid var(--border-light);
   padding: 20px;
   overflow-y: auto;
 }
@@ -684,7 +684,7 @@ onUnmounted(() => {
 .order-title {
   font-size: 18px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
   margin-bottom: 20px;
 }
 
@@ -695,7 +695,7 @@ onUnmounted(() => {
 }
 
 .order-info-card {
-  background: #fafafa;
+  background: var(--neutral-50);
   border-radius: 8px;
   padding: 20px;
 }
@@ -703,7 +703,7 @@ onUnmounted(() => {
 .info-row {
   display: flex;
   padding: 10px 0;
-  border-bottom: 1px dashed #e0e0e0;
+  border-bottom: 1px dashed var(--border-base);
   align-items: center;
 }
 
@@ -715,14 +715,14 @@ onUnmounted(() => {
   width: 90px;
   flex-shrink: 0;
   font-size: 14px;
-  color: #909399;
+  color: var(--text-secondary);
   text-align: left;
 }
 
 .value {
   flex: 1;
   font-size: 14px;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .value.price {
@@ -741,7 +741,7 @@ onUnmounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: #f5f7fa;
+  background: var(--surface-page);
   overflow: hidden;
 }
 
@@ -751,7 +751,7 @@ onUnmounted(() => {
   gap: 10px;
   padding: 14px 24px;
   background: #fff;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--border-light);
   font-size: 16px;
   font-weight: 500;
 }
@@ -796,7 +796,7 @@ onUnmounted(() => {
 
 .item-left .msg-bubble {
   background: #fff;
-  color: #303133;
+  color: var(--text-primary);
   border-bottom-left-radius: 4px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
@@ -810,7 +810,7 @@ onUnmounted(() => {
 
 .msg-time {
   font-size: 11px;
-  color: #c0c4cc;
+  color: var(--text-disabled);
   margin-top: 4px;
   padding: 0 4px;
 }
@@ -821,20 +821,20 @@ onUnmounted(() => {
   padding: 12px 14px;
   min-width: 280px;
   max-width: 100%;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--border-light);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .sent-order-card {
-  background: linear-gradient(135deg, #f0f9ff 0%, #e6f7ff 100%) !important;
-  border: 1px solid #91d5ff !important;
+  background: linear-gradient(135deg, var(--brand-50) 0%, var(--neutral-50) 100%) !important;
+  border: 1px solid var(--border-brand) !important;
   cursor: default !important;
 }
 
 .chat-msg.item-left .sent-order-card .order-card-header {
-  background: linear-gradient(90deg, #1890ff, #36cfc9) !important;
+  background: var(--gradient-brand) !important;
   margin: -12px -14px 8px -14px !important;
   padding: 10px 14px !important;
   border-radius: 8px 8px 0 0 !important;
@@ -851,12 +851,12 @@ onUnmounted(() => {
 }
 
 .chat-msg.item-right .sent-order-card {
-  background: linear-gradient(135deg, #e6f7ff 0%, #d9f7be 100%) !important;
-  border-color: #b7eb8f !important;
+  background: linear-gradient(135deg, var(--color-success-bg) 0%, var(--brand-50) 100%) !important;
+  border-color: #C1E3D3 !important;
 }
 
 .chat-msg.item-right .sent-order-card .order-card-header {
-  background: linear-gradient(90deg, #52c41a, #73d13d) !important;
+  background: linear-gradient(90deg, #2FA36B, #52C08A) !important;
   margin: -12px -14px 8px -14px !important;
   padding: 10px 14px !important;
   border-radius: 8px 8px 0 0 !important;
@@ -887,7 +887,7 @@ onUnmounted(() => {
   gap: 8px;
   margin-bottom: 8px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .order-card-title {
@@ -938,7 +938,7 @@ onUnmounted(() => {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #c0c4cc;
+  background: var(--text-disabled);
   animation: typing 1.4s infinite ease-in-out;
 }
 
@@ -953,7 +953,7 @@ onUnmounted(() => {
 .chat-footer {
   padding: 14px 24px;
   background: #fff;
-  border-top: 1px solid #ebeef5;
+  border-top: 1px solid var(--border-light);
   flex-shrink: 0;
 }
 

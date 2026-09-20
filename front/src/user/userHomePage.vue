@@ -8,7 +8,7 @@
     >
       <div class="header-container">
         <div class="header-left">
-          <img src="/src/assets/jiazen1.png" alt="家政服务" class="logo-img" />
+          <img src="/src/assets/logo.svg" alt="家政服务" class="logo-img" />
           <span class="logo-text">家政服务</span>
         </div>
         <div class="header-center">
@@ -458,13 +458,21 @@ const goToProfile = () => {
 <style scoped>
 .home-page {
   min-height: 100vh;
+  background-color: var(--surface-page);
+  padding-bottom: var(--space-8);
 }
 
+/* ---------- 吸顶导航：玻璃拟态 ---------- */
 .header-menu {
   position: sticky;
   top: 0;
   z-index: 100;
   padding: 0 20px;
+  background-color: rgba(255, 255, 255, .86);
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  border-bottom: 1px solid var(--border-light);
+  box-shadow: var(--shadow-xs);
 }
 
 .header-container {
@@ -485,13 +493,19 @@ const goToProfile = () => {
 .logo-img {
   width: 36px;
   height: 36px;
-  border-radius: 6px;
+  /* 圆角已画在 SVG 里，这里不要再加 border-radius，否则会把徽标边角削掉 */
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 6px rgba(var(--brand-rgb), .22));
 }
 
 .logo-text {
   font-size: 20px;
-  font-weight: bold;
-  color: var(--accent);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: .5px;
+  background-image: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .header-center {
@@ -502,6 +516,9 @@ const goToProfile = () => {
 
 .header-center .el-menu-item {
   border-bottom: none !important;
+  border-radius: var(--radius-md);
+  font-weight: var(--font-weight-medium);
+  transition: var(--transition-base);
 }
 
 .header-right {
@@ -516,13 +533,13 @@ const goToProfile = () => {
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-  transition: background 0.2s;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  transition: var(--transition-base);
 }
 
 .user-info:hover {
-  background: #f5f5f5;
+  background: var(--brand-50);
 }
 
 .user-avatar {
@@ -530,8 +547,8 @@ const goToProfile = () => {
 }
 
 .user-name {
-  font-size: 14px;
-  color: var(--text-h, #333);
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
   max-width: 100px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -540,41 +557,86 @@ const goToProfile = () => {
 
 .dropdown-icon {
   font-size: 12px;
-  color: #999;
+  color: var(--text-secondary);
 }
 
+/* ---------- 横幅：渐变 + 双光晕装饰 ---------- */
 .banner {
-  background: linear-gradient(135deg, var(--accent) 0%, #ff8e8e 100%);
-  padding: 80px 20px;
+  position: relative;
+  overflow: hidden;
+  background: var(--gradient-brand);
+  padding: 96px 20px 104px;
   text-align: center;
+  margin-bottom: var(--space-8);
+}
+
+.banner::before {
+  content: '';
+  position: absolute;
+  top: -180px;
+  right: -110px;
+  width: 520px;
+  height: 520px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, .34) 0%, rgba(255, 255, 255, 0) 70%);
+  pointer-events: none;
+}
+
+.banner::after {
+  content: '';
+  position: absolute;
+  bottom: -210px;
+  left: -130px;
+  width: 560px;
+  height: 560px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(122, 44, 14, .28) 0%, rgba(122, 44, 14, 0) 70%);
+  pointer-events: none;
 }
 
 .banner-container {
+  position: relative;
+  z-index: 1;
   max-width: 1200px;
   margin: 0 auto;
 }
 
 .banner-content {
-  color: white;
+  color: #fff;
+  animation: appFadeInUp var(--duration-slow) var(--ease-out) both;
 }
 
 .banner-content h1 {
-  font-size: 48px;
+  font-size: 52px;
+  font-weight: var(--font-weight-bold);
   margin-bottom: 20px;
-  color: white;
+  color: #fff;
+  letter-spacing: 3px;
+  text-shadow: 0 4px 24px rgba(122, 44, 14, .25);
 }
 
 .banner-content p {
-  font-size: 18px;
-  margin-bottom: 30px;
-  color: rgba(255, 255, 255, 0.9);
+  font-size: var(--font-size-lg);
+  margin-bottom: 34px;
+  color: rgba(255, 255, 255, .92);
+  letter-spacing: .6px;
+  line-height: var(--leading-relaxed);
+}
+
+/* ---------- 区块统一卡片化 ---------- */
+.services,
+.about,
+.contact {
+  max-width: 1200px;
+  margin: 0 auto var(--space-6);
+  padding: 64px 40px;
+  background-color: var(--surface-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
 }
 
 .services {
-  padding: 60px 20px;
-  background: var(--bg-white);
-  max-width: 1200px;
-  margin: 0 auto;
   /* 翻页后 scrollIntoView 不会被吸顶导航挡住 */
   scroll-margin-top: 84px;
 }
@@ -591,30 +653,63 @@ const goToProfile = () => {
 }
 
 .section-title {
+  position: relative;
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: 44px;
+  padding-bottom: 16px;
   font-size: 32px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 1px;
 }
 
+/* 标题下方的渐变短横线 */
+.section-title::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 56px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background-image: var(--gradient-brand);
+}
+
+/* ---------- 服务类型筛选：胶囊标签 ---------- */
 .service-type-tabs {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 12px;
-  margin-bottom: 30px;
+  margin-bottom: 36px;
 }
 
 .service-type-tab {
   cursor: pointer;
+  height: auto;
   padding: 10px 20px;
   font-size: 15px;
+  border-radius: var(--radius-full);
+  transition: var(--transition-base);
 }
 
+.service-type-tab:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 选中态（el-tag type=primary effect=dark）加品牌光晕 */
+.service-type-tab.el-tag--primary {
+  border-color: transparent;
+  box-shadow: var(--shadow-brand-soft);
+}
+
+/* ---------- 服务卡片 ---------- */
 .service-card {
   text-align: center;
   margin-bottom: 20px;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: var(--transition-base);
   height: 260px;
   display: flex;
   flex-direction: column;
@@ -622,6 +717,7 @@ const goToProfile = () => {
   padding: 20px 16px;
   box-sizing: border-box;
   overflow: hidden !important;
+  border-radius: var(--radius-lg);
 }
 
 .service-card :deep(.el-card__body) {
@@ -634,7 +730,9 @@ const goToProfile = () => {
 }
 
 .service-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-6px);
+  border-color: var(--border-brand);
+  box-shadow: var(--shadow-lg);
 }
 
 .service-image {
@@ -644,16 +742,23 @@ const goToProfile = () => {
   justify-content: center;
   align-items: center;
   flex-shrink: 0;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  background: #f5f7fa;
+  background: var(--brand-50);
   margin: 0 auto 12px;
+  box-shadow: inset 0 0 0 1px var(--border-light);
 }
 
 .service-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform var(--duration-slow) var(--ease-out);
+}
+
+/* 悬停时图片轻微放大，卡片更有生命力 */
+.service-card:hover .service-image img {
+  transform: scale(1.06);
 }
 
 .service-icon {
@@ -668,19 +773,20 @@ const goToProfile = () => {
 }
 
 .service-card h3 {
-  font-size: 18px;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
   margin: 0 0 8px;
   flex-shrink: 0;
 }
 
 .service-card p {
-  color: var(--text-light);
+  color: var(--text-secondary);
   margin: 0 0 12px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: 1.5;
-  font-size: 14px;
+  font-size: var(--font-size-base);
   flex-shrink: 0;
 }
 
@@ -689,9 +795,9 @@ const goToProfile = () => {
   margin-top: auto;
 }
 
+/* ---------- 关于我们 ---------- */
 .about {
-  padding: 60px 20px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background-image: linear-gradient(135deg, var(--brand-50) 0%, var(--neutral-100) 100%);
 }
 
 .about .about-content {
@@ -701,46 +807,52 @@ const goToProfile = () => {
 }
 
 .about-content p {
-  font-size: 16px;
-  line-height: 180%;
-  color: var(--text-light);
+  font-size: var(--font-size-md);
+  line-height: var(--leading-relaxed);
+  color: var(--text-secondary);
   max-width: 800px;
   margin: 0 auto 40px;
 }
 
-.contact {
-  padding: 60px 20px;
-  background: var(--bg-white);
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
+/* ---------- 联系我们 ---------- */
 .contact-item {
   display: flex;
   align-items: center;
   gap: 15px;
   justify-content: center;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  transition: var(--transition-base);
+}
+
+.contact-item:hover {
+  background-color: var(--brand-50);
 }
 
 .contact-item p {
-  color: var(--text-light);
-  font-size: 14px;
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
 }
 
 .contact-item strong {
-  font-size: 16px;
-  color: var(--text-h);
+  font-size: var(--font-size-md);
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
 }
 
+/* ---------- 页脚 ---------- */
 .footer {
-  background: var(--primary);
-  padding: 30px 20px;
+  background-image: linear-gradient(135deg, var(--neutral-900) 0%, #3D2E22 100%);
+  padding: 36px 20px;
   text-align: center;
+  border-top: 3px solid transparent;
+  border-image: var(--gradient-brand) 1;
 }
 
 .footer p {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 14px;
+  color: rgba(255, 255, 255, .66);
+  font-size: var(--font-size-base);
+  letter-spacing: .4px;
 }
 
 .merchant-badge {
@@ -758,8 +870,29 @@ const goToProfile = () => {
     margin-right: 0;
   }
 
+  .banner {
+    padding: 64px 20px 72px;
+  }
+
   .banner-content h1 {
     font-size: 32px;
+    letter-spacing: 2px;
+  }
+
+  .banner-content p {
+    font-size: var(--font-size-base);
+  }
+
+  .services,
+  .about,
+  .contact {
+    padding: 40px 20px;
+    border-radius: var(--radius-lg);
+  }
+
+  .section-title {
+    font-size: 26px;
+    margin-bottom: 32px;
   }
 }
 </style>

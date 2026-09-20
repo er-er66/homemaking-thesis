@@ -4,6 +4,7 @@ import com.example.homemaking.dto.HomemakingPackageDTO;
 import com.example.homemaking.entity.HomemakingPackage;
 import com.example.homemaking.result.Result;
 import com.example.homemaking.services.HomemakingPackageService;
+import com.example.homemaking.util.PageUtil;
 import jakarta.websocket.server.PathParam;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.annotations.Update;
@@ -23,6 +24,7 @@ public class HomemakingPackageController {
      * 套餐列表
      * <p>不传 pageNum/pageSize：返回数组（管理端、注册页沿用旧行为）</p>
      * <p>传 pageNum/pageSize：返回 {total,pageNum,pageSize,records} 分页体（用户首页）</p>
+     * <p>管理端不传 status → 不过滤，上下架都要看到；首页传 status=0 只看上架。</p>
      */
     @RequestMapping("/list")
     public Result<?> list(@RequestParam(required = false) Integer pageNum,
@@ -30,7 +32,7 @@ public class HomemakingPackageController {
                           @RequestParam(required = false) Integer serviceType,
                           @RequestParam(required = false) Integer status,
                           @RequestParam(required = false) String packageName) {
-        if (pageNum == null || pageSize == null) {
+        if (!PageUtil.enabled(pageNum, pageSize)) {
             List<HomemakingPackage> list = homemakingPackageService.list();
             return Result.success(list);
         }

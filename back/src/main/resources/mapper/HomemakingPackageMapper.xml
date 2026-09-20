@@ -17,6 +17,7 @@
     </select>
     <select id="selectList" resultType="com.example.homemaking.entity.HomemakingPackage">
         select * from homemaking_package where is_deleted=0
+        order by id asc
     </select>
 
     <!-- 套餐列表公共过滤条件：serviceType 为 null/0 视为「全部」，不参与过滤 -->
@@ -34,10 +35,15 @@
         <include refid="listCondition"/>
     </select>
 
+    <!--
+        ORDER BY id ASC 必须保留：
+        前端 packagePager 的 clientSort 只在本地分页模式生效，一旦后端开始分页就失效，
+        排序权交给后端。不写排序（或排序不唯一）会导致翻页出现重复/漏数据。
+    -->
     <select id="selectPage" resultType="com.example.homemaking.entity.HomemakingPackage">
         select * from homemaking_package
         <include refid="listCondition"/>
-        order by sort desc, id desc
+        order by id asc
         limit #{offset}, #{pageSize}
     </select>
 </mapper>

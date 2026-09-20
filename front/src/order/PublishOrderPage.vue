@@ -475,7 +475,7 @@ const emojiToImageBlob = (emoji, label) => {
     canvas.height = 200
     const ctx = canvas.getContext('2d')
     
-    ctx.fillStyle = '#f5f7fa'
+    ctx.fillStyle = '#FAF7F4'
     ctx.fillRect(0, 0, 200, 200)
     
     ctx.font = '80px serif'
@@ -623,7 +623,7 @@ const handlePay = async () => {
 <style scoped>
 .publish-order-page {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: var(--surface-page);
   padding: 20px;
 }
 
@@ -639,7 +639,7 @@ const handlePay = async () => {
 
 h2 {
   margin-bottom: 24px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .form-card {
@@ -648,7 +648,7 @@ h2 {
 
 .form-card h4 {
   margin-bottom: 16px;
-  color: #333;
+  color: var(--text-primary);
   font-size: 16px;
 }
 
@@ -700,22 +700,22 @@ h2 {
   overflow: hidden;
   cursor: pointer;
   position: relative;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--border-base);
   transition: all 0.2s;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #f9fafb;
+  background: var(--neutral-50);
 }
 
 .preset-cover-item:hover {
-  border-color: #ff6b6b;
+  border-color: var(--accent);
   transform: scale(1.05);
 }
 
 .preset-cover-item.active {
-  border-color: #ff6b6b;
+  border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.3);
 }
 
@@ -726,7 +726,7 @@ h2 {
 
 .preset-cover-label {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   margin-top: 4px;
 }
 
@@ -748,7 +748,7 @@ h2 {
 .cover-uploader {
   width: 200px;
   height: 200px;
-  border: 2px dashed #dcdfe6;
+  border: 2px dashed var(--border-strong);
   border-radius: 8px;
   cursor: pointer;
   position: relative;
@@ -760,7 +760,7 @@ h2 {
 }
 
 .cover-uploader:hover {
-  border-color: #ff6b6b;
+  border-color: var(--accent);
 }
 
 .cover-uploader :deep(.el-upload) {
@@ -784,7 +784,7 @@ h2 {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #999;
+  color: var(--text-placeholder);
   gap: 8px;
   text-align: center;
 }
@@ -802,12 +802,12 @@ h2 {
 .upload-tip {
   margin-top: 12px;
   font-size: 12px;
-  color: #999;
+  color: var(--text-placeholder);
 }
 
 .amount-unit {
   margin-left: 8px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .address-select {
@@ -823,7 +823,7 @@ h2 {
 .addr-card {
   display: flex;
   padding: 16px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--border-base);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s;
@@ -831,12 +831,12 @@ h2 {
 }
 
 .addr-card:hover {
-  border-color: #ff6b6b;
+  border-color: var(--accent);
 }
 
 .addr-card.active {
-  border-color: #ff6b6b;
-  background: #fff5f5;
+  border-color: var(--accent);
+  background: var(--color-danger-bg);
 }
 
 .addr-card-left {
@@ -849,14 +849,14 @@ h2 {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  border: 2px solid #dcdfe6;
+  border: 2px solid var(--border-strong);
   position: relative;
   transition: all 0.2s;
 }
 
 .addr-radio-dot.checked {
-  border-color: #ff6b6b;
-  background: #ff6b6b;
+  border-color: var(--accent);
+  background: var(--accent);
 }
 
 .addr-radio-dot.checked::after {
@@ -884,11 +884,11 @@ h2 {
 
 .addr-name {
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .addr-phone {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
@@ -900,17 +900,17 @@ h2 {
 }
 
 .addr-tag {
-  background: #fff0f0;
-  color: #ff6b6b;
+  background: var(--brand-50);
+  color: var(--accent);
 }
 
 .addr-default {
-  background: #fff7e6;
-  color: #fa8c16;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
 }
 
 .addr-card-detail {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 14px;
   line-height: 1.5;
 }
@@ -918,7 +918,7 @@ h2 {
 .addr-tip {
   display: inline-block;
   margin-top: 12px;
-  color: #ff6b6b;
+  color: var(--accent);
   cursor: pointer;
   font-size: 14px;
 }
@@ -929,7 +929,7 @@ h2 {
 
 .notice-section {
   margin: 24px 0;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-base);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -940,7 +940,7 @@ h2 {
   align-items: center;
   padding: 16px;
   cursor: pointer;
-  background: #f9fafb;
+  background: var(--neutral-50);
 }
 
 .notice-title {
@@ -948,7 +948,7 @@ h2 {
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .notice-arrow {
@@ -976,7 +976,7 @@ h2 {
 
 .notice-content p {
   margin: 8px 0;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 14px;
   line-height: 1.6;
 }
@@ -998,26 +998,26 @@ h2 {
 
 .pay-amount-label {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 8px;
 }
 
 .pay-amount {
   font-size: 32px;
   font-weight: bold;
-  color: #ff6b6b;
+  color: var(--accent);
   margin-bottom: 20px;
 }
 
 .pay-divider {
   height: 1px;
-  background: #e5e7eb;
+  background: var(--border-base);
   margin: 20px 0;
 }
 
 .pay-pwd-label {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 16px;
 }
 
@@ -1032,13 +1032,13 @@ h2 {
   height: 40px;
   text-align: center;
   font-size: 20px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--border-base);
   border-radius: 8px;
   outline: none;
   transition: border-color 0.2s;
 }
 
 .pwd-dot:focus {
-  border-color: #ff6b6b;
+  border-color: var(--accent);
 }
 </style>

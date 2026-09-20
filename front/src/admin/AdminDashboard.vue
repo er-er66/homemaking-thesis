@@ -4,7 +4,7 @@
     <el-menu mode="horizontal" :ellipsis="false" class="admin-header">
       <div class="header-container">
         <div class="header-left">
-          <img src="/src/assets/jiazen1.png" alt="家政服务" class="logo-img" />
+          <img src="/src/assets/logo.svg" alt="家政服务" class="logo-img" />
           <span class="logo-text">家政服务 · 管理后台</span>
         </div>
         <div class="header-right">
@@ -115,11 +115,13 @@
           <div class="table-pagination">
             <el-pagination
               background
-              layout="total, prev, pager, next, jumper"
+              layout="total, sizes, prev, pager, next, jumper"
               :total="userTotal"
               :page-size="userPageSize"
+              :page-sizes="PAGE_SIZE_OPTIONS"
               :current-page="userPageNum"
               @current-change="userChangePage"
+              @size-change="userChangeSize"
             />
           </div>
         </div>
@@ -188,11 +190,13 @@
           <div class="table-pagination">
             <el-pagination
               background
-              layout="total, prev, pager, next, jumper"
+              layout="total, sizes, prev, pager, next, jumper"
               :total="staffTotal"
               :page-size="staffPageSize"
+              :page-sizes="PAGE_SIZE_OPTIONS"
               :current-page="staffPageNum"
               @current-change="staffChangePage"
+              @size-change="staffChangeSize"
             />
           </div>
         </div>
@@ -272,11 +276,13 @@
               <div class="table-pagination">
                 <el-pagination
                   background
-                  layout="total, prev, pager, next, jumper"
+                  layout="total, sizes, prev, pager, next, jumper"
                   :total="orderTotal"
                   :page-size="orderPageSize"
+                  :page-sizes="PAGE_SIZE_OPTIONS"
                   :current-page="orderPageNum"
                   @current-change="orderChangePage"
+                  @size-change="orderChangeSize"
                 />
               </div>
             </el-tab-pane>
@@ -344,11 +350,13 @@
               <div class="table-pagination">
                 <el-pagination
                   background
-                  layout="total, prev, pager, next, jumper"
+                  layout="total, sizes, prev, pager, next, jumper"
                   :total="orderTotal"
                   :page-size="orderPageSize"
+                  :page-sizes="PAGE_SIZE_OPTIONS"
                   :current-page="orderPageNum"
                   @current-change="orderChangePage"
+                  @size-change="orderChangeSize"
                 />
               </div>
             </el-tab-pane>
@@ -418,11 +426,13 @@
               <div class="table-pagination">
                 <el-pagination
                   background
-                  layout="total, prev, pager, next, jumper"
+                  layout="total, sizes, prev, pager, next, jumper"
                   :total="orderTotal"
                   :page-size="orderPageSize"
+                  :page-sizes="PAGE_SIZE_OPTIONS"
                   :current-page="orderPageNum"
                   @current-change="orderChangePage"
+                  @size-change="orderChangeSize"
                 />
               </div>
             </el-tab-pane>
@@ -489,11 +499,13 @@
           <div class="table-pagination">
             <el-pagination
               background
-              layout="total, prev, pager, next, jumper"
+              layout="total, sizes, prev, pager, next, jumper"
               :total="adminTotal"
               :page-size="adminPageSize"
+              :page-sizes="PAGE_SIZE_OPTIONS"
               :current-page="adminPageNum"
               @current-change="adminChangePage"
+              @size-change="adminChangeSize"
             />
           </div>
         </div>
@@ -566,11 +578,13 @@
           <div class="table-pagination">
             <el-pagination
               background
-              layout="total, prev, pager, next, jumper"
+              layout="total, sizes, prev, pager, next, jumper"
               :total="packageTotal"
               :page-size="packagePageSize"
+              :page-sizes="PAGE_SIZE_OPTIONS"
               :current-page="packagePageNum"
               @current-change="packageChangePage"
+              @size-change="packageChangeSize"
             />
           </div>
         </div>
@@ -613,11 +627,13 @@
               <div class="table-pagination">
                 <el-pagination
                   background
-                  layout="total, prev, pager, next, jumper"
+                  layout="total, sizes, prev, pager, next, jumper"
                   :total="userMessageTotal"
                   :page-size="userMessagePageSize"
+                  :page-sizes="PAGE_SIZE_OPTIONS"
                   :current-page="userMessagePageNum"
                   @current-change="userMessageChangePage"
+                  @size-change="userMessageChangeSize"
                 />
               </div>
             </el-tab-pane>
@@ -655,11 +671,13 @@
               <div class="table-pagination">
                 <el-pagination
                   background
-                  layout="total, prev, pager, next, jumper"
+                  layout="total, sizes, prev, pager, next, jumper"
                   :total="staffMessageTotal"
                   :page-size="staffMessagePageSize"
+                  :page-sizes="PAGE_SIZE_OPTIONS"
                   :current-page="staffMessagePageNum"
                   @current-change="staffMessageChangePage"
+                  @size-change="staffMessageChangeSize"
                 />
               </div>
             </el-tab-pane>
@@ -1104,8 +1122,9 @@ const isPageResult = (data) => {
  * @param {object}   listRef     列表数据 ref
  * @param {object}   loadingRef  加载状态 ref
  * @param {function} requestFn   请求函数，形如 (params) => api(params)
- * @param {object}   options     { pageSize, clientFilter }
+ * @param {object}   options     { pageSize, clientFilter, clientSort }
  *   clientFilter: 后端不支持的筛选条件，在前端兜底过滤（如订单状态）
+ *   clientSort:   前端兜底排序，接收数组返回新数组。后端分页模式下排序由后端负责
  */
 const createPager = (listRef, loadingRef, requestFn, options = {}) => {
   const pageNum = ref(1)
@@ -1118,12 +1137,14 @@ const createPager = (listRef, loadingRef, requestFn, options = {}) => {
   let lastParams = {}
 
   const clientFilter = options.clientFilter || null
+  const clientSort = options.clientSort || null
 
   const applyLocal = () => {
-    const filtered = clientFilter ? clientFilter(allRows) : allRows
-    total.value = filtered.length
+    let rows = clientFilter ? clientFilter(allRows) : allRows
+    if (clientSort) rows = clientSort(rows)
+    total.value = rows.length
     const start = (pageNum.value - 1) * pageSize.value
-    listRef.value = filtered.slice(start, start + pageSize.value)
+    listRef.value = rows.slice(start, start + pageSize.value)
   }
 
   const fetchPage = async (params = {}) => {
@@ -1194,6 +1215,20 @@ const createPager = (listRef, loadingRef, requestFn, options = {}) => {
     }
   }
 
+  /**
+   * 切换「每页条数」：必须回到第 1 页。
+   * 否则第 3 页切成每页 50 条时会因为越界变成空白页。
+   */
+  const changePageSize = (size) => {
+    pageSize.value = Number(size) || DEFAULT_PAGE_SIZE
+    pageNum.value = 1
+    if (serverPaging.value) {
+      fetchPage(lastParams)
+    } else {
+      applyLocal()
+    }
+  }
+
   // 重新加载当前页（增删改后刷新用）
   const reload = () => fetchPage(lastParams)
 
@@ -1208,13 +1243,16 @@ const createPager = (listRef, loadingRef, requestFn, options = {}) => {
 
   return {
     pageNum, pageSize, total, serverPaging,
-    fetchPage, fetchAll, search, changePage, reload,
+    fetchPage, fetchAll, search, changePage, changePageSize, reload,
     applyFromCache,
     getAllRows: () => allRows
   }
 }
 
 /* ==================== 各列表分页实例 ==================== */
+
+// 每页条数可选项，最小 5 条
+const PAGE_SIZE_OPTIONS = [5, 10, 20, 50]
 
 // 订单当前 Tab 对应的状态筛选值（undefined = 全部）
 const pendingOrderStatus = ref(undefined)
@@ -1229,7 +1267,10 @@ const orderPager = createPager(orderList, orderLoading, getOrderListApi, {
   }
 })
 const adminPager = createPager(adminList, adminLoading, getAdminListApi)
-const packagePager = createPager(packageList, packageLoading, getPackageListApi)
+// 套餐按 id 升序展示（后端分页上线后由后端 ORDER BY id ASC）
+const packagePager = createPager(packageList, packageLoading, getPackageListApi, {
+  clientSort: (rows) => [...rows].sort((a, b) => Number(a.id || 0) - Number(b.id || 0))
+})
 const userMessagePager = createPager(userMessageList, userMessageLoading, getUserListApi)
 const staffMessagePager = createPager(staffMessageList, staffMessageLoading, getStaffListApi)
 
@@ -1238,36 +1279,42 @@ const userTotal = userPager.total
 const userPageNum = userPager.pageNum
 const userPageSize = userPager.pageSize
 const userChangePage = userPager.changePage
+const userChangeSize = userPager.changePageSize
 
 const staffTotal = staffPager.total
 const staffPageNum = staffPager.pageNum
 const staffPageSize = staffPager.pageSize
 const staffChangePage = staffPager.changePage
+const staffChangeSize = staffPager.changePageSize
 
 const orderTotal = orderPager.total
 const orderPageNum = orderPager.pageNum
 const orderPageSize = orderPager.pageSize
 const orderChangePage = orderPager.changePage
+const orderChangeSize = orderPager.changePageSize
 
 const adminTotal = adminPager.total
 const adminPageNum = adminPager.pageNum
 const adminPageSize = adminPager.pageSize
 const adminChangePage = adminPager.changePage
+const adminChangeSize = adminPager.changePageSize
 
 const packageTotal = packagePager.total
 const packagePageNum = packagePager.pageNum
 const packagePageSize = packagePager.pageSize
 const packageChangePage = packagePager.changePage
+const packageChangeSize = packagePager.changePageSize
 
 const userMessageTotal = userMessagePager.total
 const userMessagePageNum = userMessagePager.pageNum
 const userMessagePageSize = userMessagePager.pageSize
-// userMessageChangePage 定义在 fetchUserMessageList 附近（消息列表翻页要重建映射）
+// userMessageChangePage / userMessageChangeSize 定义在 fetchUserMessageList 附近
+// （消息列表展示的是映射后的行，翻页/切条数要重建映射，不能走 pager 的通用切片）
 
 const staffMessageTotal = staffMessagePager.total
 const staffMessagePageNum = staffMessagePager.pageNum
 const staffMessagePageSize = staffMessagePager.pageSize
-// staffMessageChangePage 同上
+// staffMessageChangePage / staffMessageChangeSize 同上
 
 const fetchUserList = async (searchParams) => {
   const params = searchParams !== undefined ? searchParams : buildSearchParams(userSearchForm.value)
@@ -1784,15 +1831,21 @@ const fetchStaffMessageList = () =>
     account: 'staffAccount', name: 'staffName'
   })
 
-// 消息列表已映射过字段，翻页不能走 pager 的通用切片，要重新按映射结果切
-const userMessageChangePage = (page) => {
-  userMessagePager.pageNum.value = page
-  fetchUserMessageList()
+// 消息列表展示的是映射后的行，翻页 / 切每页条数都不能走 pager 的通用切片，要重建映射后再切
+const changeMessagePage = (pager, fetcher) => (page) => {
+  pager.pageNum.value = page
+  fetcher()
 }
-const staffMessageChangePage = (page) => {
-  staffMessagePager.pageNum.value = page
-  fetchStaffMessageList()
+const changeMessagePageSize = (pager, fetcher) => (size) => {
+  pager.pageSize.value = Number(size) || DEFAULT_PAGE_SIZE
+  pager.pageNum.value = 1
+  fetcher()
 }
+
+const userMessageChangePage = changeMessagePage(userMessagePager, fetchUserMessageList)
+const userMessageChangeSize = changeMessagePageSize(userMessagePager, fetchUserMessageList)
+const staffMessageChangePage = changeMessagePage(staffMessagePager, fetchStaffMessageList)
+const staffMessageChangeSize = changeMessagePageSize(staffMessagePager, fetchStaffMessageList)
 
 const openUserChat = (row) => {
   router.push({
@@ -1838,7 +1891,9 @@ const openStaffChat = (row) => {
 .logo-img {
   width: 36px;
   height: 36px;
-  border-radius: 6px;
+  /* 圆角已画在 SVG 里，这里不要再加 border-radius */
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 6px rgba(var(--brand-rgb), .22));
 }
 
 .logo-text {
@@ -1880,7 +1935,7 @@ const openStaffChat = (row) => {
 .admin-content {
   flex: 1;
   padding: 24px;
-  background: #f5f7fa;
+  background: var(--surface-page);
   overflow-y: auto;
 }
 
@@ -1898,7 +1953,7 @@ const openStaffChat = (row) => {
 .search-form {
   margin-bottom: 20px;
   padding: 16px;
-  background: #fafafa;
+  background: var(--neutral-50);
   border-radius: 6px;
 }
 
@@ -1927,7 +1982,7 @@ const openStaffChat = (row) => {
 .preset-icon-item {
   width: 60px;
   height: 60px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--border-base);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -1944,7 +1999,7 @@ const openStaffChat = (row) => {
 
 .preset-icon-item.active {
   border-color: var(--el-color-primary);
-  background: #fff0f0;
+  background: var(--brand-50);
   box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.2);
 }
 
@@ -1962,7 +2017,7 @@ const openStaffChat = (row) => {
 .package-cover-uploader {
   width: 148px;
   height: 148px;
-  border: 1px dashed #d9d9d9;
+  border: 1px dashed var(--border-strong);
   border-radius: 6px;
   cursor: pointer;
   position: relative;
@@ -1985,12 +2040,12 @@ const openStaffChat = (row) => {
 
 .package-cover-uploader-icon {
   font-size: 28px;
-  color: #8c939d;
+  color: var(--text-secondary);
 }
 
 .upload-hint {
   font-size: 12px;
-  color: #999;
+  color: var(--text-placeholder);
   margin-top: 4px;
 }
 
@@ -2003,6 +2058,6 @@ const openStaffChat = (row) => {
 
 .no-cover {
   font-size: 12px;
-  color: #999;
+  color: var(--text-placeholder);
 }
 </style>

@@ -423,7 +423,7 @@ const confirmContactCs = async () => {
 <style scoped>
 .order-page {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: var(--surface-page);
   padding: 30px 10px;
 }
 
@@ -506,7 +506,7 @@ h2 {
   align-items: flex-start;
   gap: 12px;
   padding: 14px 16px;
-  border: 2px solid #ebeef5;
+  border: 2px solid var(--border-light);
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s;
@@ -514,13 +514,13 @@ h2 {
 }
 
 .addr-card:hover {
-  border-color: #ffb0b0;
-  background: #fffbfb;
+  border-color: var(--brand-200);
+  background: var(--color-danger-bg);
 }
 
 .addr-card.active {
   border-color: var(--accent);
-  background: #fff5f5;
+  background: var(--color-danger-bg);
   box-shadow: 0 2px 8px rgba(255, 107, 107, 0.12);
 }
 
@@ -532,7 +532,7 @@ h2 {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  border: 2px solid #dcdfe6;
+  border: 2px solid var(--border-strong);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -569,26 +569,26 @@ h2 {
 .addr-name {
   font-size: 15px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .addr-phone {
   font-size: 13px;
-  color: #909399;
+  color: var(--text-secondary);
 }
 
 .addr-tag {
   font-size: 11px;
   color: var(--accent);
-  background: #fff0f0;
+  background: var(--brand-50);
   padding: 1px 8px;
   border-radius: 3px;
-  border: 1px solid #ffd2d2;
+  border: 1px solid var(--brand-200);
 }
 
 .addr-default {
   font-size: 11px;
-  color: #e6a23c;
+  color: var(--color-warning);
   background: #fdf6ec;
   padding: 1px 8px;
   border-radius: 3px;
@@ -597,7 +597,7 @@ h2 {
 
 .addr-card-detail {
   font-size: 13px;
-  color: #606266;
+  color: var(--text-regular);
   line-height: 1.5;
   word-break: break-all;
 }
@@ -654,7 +654,7 @@ h2 {
 
 .notice-content {
   padding: 12px 16px;
-  background: #fafafa;
+  background: var(--neutral-50);
   border-radius: 6px;
 }
 
@@ -689,7 +689,7 @@ h2 {
 
 .pay-divider {
   height: 1px;
-  background: #ebeef5;
+  background: var(--border-light);
   margin: 20px 0;
 }
 
@@ -708,7 +708,7 @@ h2 {
 .pwd-dot {
   width: 44px;
   height: 44px;
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--border-strong);
   border-radius: 6px;
   text-align: center;
   font-size: 20px;
@@ -749,7 +749,7 @@ h2 {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  border: 2px solid #ebeef5;
+  border: 2px solid var(--border-light);
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s;
@@ -757,13 +757,13 @@ h2 {
 }
 
 .cs-item:hover {
-  border-color: #ffb0b0;
-  background: #fffbfb;
+  border-color: var(--brand-200);
+  background: var(--color-danger-bg);
 }
 
 .cs-item.active {
   border-color: var(--accent);
-  background: #fff5f5;
+  background: var(--color-danger-bg);
   box-shadow: 0 2px 8px rgba(255, 107, 107, 0.12);
 }
 
@@ -775,12 +775,12 @@ h2 {
 .cs-name {
   font-size: 15px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .cs-account {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-secondary);
   margin-top: 2px;
 }
 </style>

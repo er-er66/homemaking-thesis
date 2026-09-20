@@ -1,14 +1,68 @@
 <template>
   <div class="register-page">
-    <div class="register-left">
-      <div class="left-content">
-        <div class="logo">
-          <img src="/src/assets/jiazen1.png" alt="家政服务" />
+    <div class="register-left auth-brand">
+      <!-- 装饰层：与登录页共用 src/styles/auth-brand.css 的样式 -->
+      <div class="auth-deco" aria-hidden="true">
+        <span class="auth-deco__grid"></span>
+        <span class="auth-deco__glow auth-deco__glow--a"></span>
+        <span class="auth-deco__glow auth-deco__glow--b"></span>
+        <span class="auth-deco__glow auth-deco__glow--c"></span>
+        <span class="auth-deco__ripple auth-deco__ripple--1"></span>
+        <span class="auth-deco__ripple auth-deco__ripple--2"></span>
+        <span class="auth-orb auth-orb--1"></span>
+        <span class="auth-orb auth-orb--2"></span>
+        <span class="auth-orb auth-orb--3"></span>
+        <svg class="auth-deco__house" viewBox="0 0 200 200" fill="none">
+          <path
+            d="M100 24 184 96v74a10 10 0 0 1-10 10H26a10 10 0 0 1-10-10V96L100 24Z"
+            stroke="rgba(255,255,255,.18)"
+            stroke-width="3"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M76 180v-46a12 12 0 0 1 12-12h24a12 12 0 0 1 12 12v46"
+            stroke="rgba(255,255,255,.18)"
+            stroke-width="3"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <span class="auth-deco__sheen"></span>
+      </div>
+
+      <div class="auth-content">
+        <div class="auth-logo">
+          <img src="/src/assets/logo.svg" alt="家政服务" />
           <span>家政服务</span>
         </div>
-        <h2>创建您的账号</h2>
-        <p>注册即享专业家政服务，让生活更轻松</p>
+
+        <h2 class="auth-title">创建您的账号</h2>
+        <div class="auth-rule" aria-hidden="true"><i></i></div>
+        <p class="auth-subtitle">注册即享专业家政服务，让生活更轻松</p>
+
+        <ul class="auth-features">
+          <li class="auth-feature"><i class="auth-feature__icon">🎁</i>新客立减</li>
+          <li class="auth-feature"><i class="auth-feature__icon">👩‍🔧</i>实名认证</li>
+          <li class="auth-feature"><i class="auth-feature__icon">🚪</i>上门服务</li>
+        </ul>
+
+        <div class="auth-stats">
+          <div class="auth-stat">
+            <strong>10万+</strong>
+            <span>服务家庭</span>
+          </div>
+          <div class="auth-stat">
+            <strong>120+</strong>
+            <span>覆盖城市</span>
+          </div>
+          <div class="auth-stat">
+            <strong>30分钟</strong>
+            <span>平均响应</span>
+          </div>
+        </div>
       </div>
+
+      <p class="auth-foot">专业 · 安心 · 有温度的家政服务</p>
     </div>
 
     <div class="register-right">
@@ -322,7 +376,7 @@ const sendCode = async () => {
     const code = res.data || res.message || ''
     form.code = String(code)
     ElMessageBox.alert(
-      `您的验证码是：<strong style="font-size:24px;color:#e74c3c;letter-spacing:4px;">${code}</strong>`,
+      `您的验证码是：<strong style="font-size:24px;color:#E8503A;letter-spacing:4px;">${code}</strong>`,
       '模拟获取验证码',
       {
         dangerouslyUseHTMLString: true,
@@ -369,36 +423,20 @@ const handleRegister = async () => {
 .register-page {
   min-height: 100vh;
   display: flex;
+  background-color: var(--surface-page);
 }
 
-.register-left {
-  flex: 1;
-  background: linear-gradient(135deg, var(--accent) 0%, #ff8e8e 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-}
+/* ---------- 左侧品牌区 ----------
+   全部视觉样式在 src/styles/auth-brand.css（登录/注册共用）。
+   这里只保留 .register-left 这个钩子类，供下方移动端媒体查询做布局覆盖。 */
 
-.left-content {
-  text-align: center;
-  color: white;
-}
-
-.left-content h2 {
-  font-size: 36px;
-  color: white;
-  margin-bottom: 16px;
-}
-
-.left-content p {
-  font-size: 18px;
-  color: rgba(255, 255, 255, 0.85);
-}
-
+/* ---------- 右侧表单区 ---------- */
 .register-right {
+  position: relative;
+  overflow: hidden;
   flex: 1;
-  background: var(--bg-white);
+  background-color: var(--surface-card);
+  background-image: radial-gradient(circle at 85% 12%, rgba(var(--brand-rgb), .07) 0%, rgba(var(--brand-rgb), 0) 45%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -406,35 +444,30 @@ const handleRegister = async () => {
 }
 
 .register-form-wrapper {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 420px;
+  animation: appFadeInUp var(--duration-slow) var(--ease-out) 80ms both;
 }
 
 .register-form-wrapper h3 {
-  font-size: 28px;
+  font-size: 30px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 1px;
   margin-bottom: 32px;
   text-align: center;
 }
 
 .back-home {
+  display: inline-block;
   margin-bottom: 20px;
+  font-size: var(--font-size-base);
+  transition: var(--transition-fast);
 }
 
-.logo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  font-size: 28px;
-  font-weight: bold;
-  color: white;
-  margin-bottom: 32px;
-}
-
-.logo img {
-  width: 48px;
-  height: 48px;
-  border-radius: 8px;
+.back-home:hover {
+  transform: translateX(-3px);
 }
 
 .code-input-group {
@@ -448,28 +481,37 @@ const handleRegister = async () => {
 
 .btn-block {
   width: 100%;
+  height: 46px;
+  font-size: var(--font-size-md);
+  letter-spacing: 3px;
+  border-radius: var(--radius-md);
 }
 
 .role-group {
   width: 100%;
+  display: flex;
+  gap: var(--space-5);
+  flex-wrap: wrap;
 }
 
+/* 技能多选：拉开行距，选中态更醒目 */
 .skills-group {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
+  gap: var(--space-2) var(--space-4);
 }
 
 .register-footer {
-  text-align: center;
-  font-size: 14px;
-  color: var(--text-light);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
+  margin-top: var(--space-5);
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
 }
 
+/* ---------- 头像上传 ---------- */
 .avatar-uploader {
   display: block;
 }
@@ -478,23 +520,27 @@ const handleRegister = async () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   cursor: pointer;
 }
 
 .avatar-preview {
-  border: 2px dashed var(--el-border-color);
-  border-radius: 8px;
-  transition: border-color 0.3s;
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  background-color: var(--neutral-25);
+  transition: var(--transition-base);
 }
 
 .avatar-preview:hover {
-  border-color: var(--el-color-primary);
+  border-color: var(--brand-400);
+  background-color: var(--brand-50);
+  box-shadow: var(--shadow-brand-soft);
+  transform: translateY(-2px);
 }
 
 .avatar-hint {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
 }
 
 @media (max-width: 768px) {
@@ -503,10 +549,17 @@ const handleRegister = async () => {
   }
 
   .register-left {
-    padding: 60px 20px;
+    flex: none;
+    min-height: 280px;
+    padding: 56px 20px;
+  }
+
+  .register-left h2 {
+    font-size: 32px;
   }
 
   .register-right {
+    flex: 1;
     padding: 40px 20px;
   }
 }

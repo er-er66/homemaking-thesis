@@ -245,8 +245,8 @@ const peerAvatar = computed(() => currentMerchant.value.avatar || '')
 const peerInitial = computed(() => (currentMerchant.value.name || '').charAt(0) || '商')
 
 const cardStyleMerchantLeft = {
-  background: 'linear-gradient(135deg, #e6f7ff 0%, #fff1f0 100%)',
-  border: '1px solid #91d5ff',
+  background: 'linear-gradient(135deg, var(--brand-50) 0%, var(--neutral-50) 100%)',
+  border: '1px solid var(--border-brand)',
   borderRadius: '12px',
   padding: '0',
   minWidth: '300px',
@@ -254,8 +254,8 @@ const cardStyleMerchantLeft = {
 }
 
 const cardStyleMerchantRight = {
-  background: 'linear-gradient(135deg, #f6ffed 0%, #e6f7ff 100%)',
-  border: '1px solid #b7eb8f',
+  background: 'linear-gradient(135deg, var(--color-success-bg) 0%, var(--brand-50) 100%)',
+  border: '1px solid #C1E3D3',
   borderRadius: '12px',
   padding: '0',
   minWidth: '300px',
@@ -263,7 +263,7 @@ const cardStyleMerchantRight = {
 }
 
 const headerStyleMerchantLeft = {
-  background: 'linear-gradient(90deg, #1890ff, #36cfc9)',
+  background: 'var(--gradient-brand)',
   padding: '10px 12px',
   borderRadius: '12px 12px 0 0',
   display: 'flex',
@@ -273,7 +273,7 @@ const headerStyleMerchantLeft = {
 }
 
 const headerStyleMerchantRight = {
-  background: 'linear-gradient(90deg, #52c41a, #73d13d)',
+  background: 'linear-gradient(90deg, #2FA36B, #52C08A)',
   padding: '10px 12px',
   borderRadius: '12px 12px 0 0',
   display: 'flex',
@@ -886,14 +886,14 @@ const formatTime = (date) => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f5f7fa;
+  background: var(--surface-page);
 }
 
 .merchant-header {
   flex-shrink: 0;
   background: white;
   padding: 12px 20px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--border-light);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -924,7 +924,7 @@ const formatTime = (date) => {
   width: 300px;
   flex-shrink: 0;
   background: white;
-  border-right: 1px solid #ebeef5;
+  border-right: 1px solid var(--border-light);
   display: flex;
   flex-direction: column;
 }
@@ -934,7 +934,7 @@ const formatTime = (date) => {
   font-size: 15px;
   font-weight: 600;
   color: var(--text-h);
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .merchant-list {
@@ -949,15 +949,15 @@ const formatTime = (date) => {
   padding: 14px 20px;
   cursor: pointer;
   transition: background 0.2s;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--neutral-100);
 }
 
 .merchant-item:hover {
-  background: #f5f7fa;
+  background: var(--surface-page);
 }
 
 .merchant-item.active {
-  background: #ecf5ff;
+  background: var(--brand-50);
 }
 
 .merchant-item:last-child {
@@ -1011,13 +1011,13 @@ const formatTime = (date) => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: #f5f7fa;
+  background: var(--surface-page);
 }
 
 .chat-header {
   padding: 14px 20px;
   background: white;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--border-light);
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -1114,11 +1114,11 @@ const formatTime = (date) => {
 
 .msg-read-status {
   font-size: 11px;
-  color: #909399;
+  color: var(--text-secondary);
 }
 
 .msg-left .msg-read-status {
-  color: #909399;
+  color: var(--text-secondary);
 }
 
 .msg-right .msg-read-status {
@@ -1129,7 +1129,7 @@ const formatTime = (date) => {
   gap: 10px;
   padding: 14px 20px;
   background: white;
-  border-top: 1px solid #ebeef5;
+  border-top: 1px solid var(--border-light);
   flex-shrink: 0;
 }
 
@@ -1138,7 +1138,7 @@ const formatTime = (date) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f7fa;
+  background: var(--surface-page);
 }
 
 .order-card {
@@ -1147,7 +1147,7 @@ const formatTime = (date) => {
   padding: 12px 14px;
   min-width: 280px;
   max-width: 80%;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--border-light);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   cursor: pointer;
   transition: all 0.2s;
@@ -1164,7 +1164,7 @@ const formatTime = (date) => {
   gap: 8px;
   margin-bottom: 8px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .order-card-title {
@@ -1207,7 +1207,7 @@ const formatTime = (date) => {
 
 .order-card-footer {
   padding-top: 6px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-light);
 }
 
 .order-click-hint {
@@ -1290,7 +1290,7 @@ const formatTime = (date) => {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  border: 2px solid #ebeef5;
+  border: 2px solid var(--border-light);
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s;
@@ -1298,13 +1298,13 @@ const formatTime = (date) => {
 }
 
 .cs-item:hover {
-  border-color: #ffb0b0;
-  background: #fffbfb;
+  border-color: var(--brand-200);
+  background: var(--color-danger-bg);
 }
 
 .cs-item.active {
   border-color: var(--accent);
-  background: #fff5f5;
+  background: var(--color-danger-bg);
   box-shadow: 0 2px 8px rgba(255, 107, 107, 0.12);
 }
 
@@ -1316,12 +1316,12 @@ const formatTime = (date) => {
 .cs-name {
   font-size: 15px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .cs-account {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-secondary);
   margin-top: 2px;
 }
 </style>

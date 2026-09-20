@@ -657,7 +657,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #f5f7fa;
+  background: var(--surface-page);
 }
 
 .chat-header {
@@ -667,7 +667,7 @@ onUnmounted(() => {
   padding: 0 20px;
   height: 56px;
   background: #fff;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--border-light);
   flex-shrink: 0;
 }
 
@@ -685,7 +685,7 @@ onUnmounted(() => {
 .chat-name {
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .chat-body {
@@ -733,7 +733,7 @@ onUnmounted(() => {
 
 .msg-sender {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-secondary);
   padding: 0 4px;
 }
 
@@ -751,7 +751,7 @@ onUnmounted(() => {
 
 .item-left .msg-bubble {
   background: #fff;
-  color: #303133;
+  color: var(--text-primary);
   border-bottom-left-radius: 4px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
@@ -765,7 +765,7 @@ onUnmounted(() => {
 
 .msg-time {
   font-size: 11px;
-  color: #c0c4cc;
+  color: var(--text-disabled);
   padding: 0 4px;
 }
 
@@ -779,7 +779,7 @@ onUnmounted(() => {
   padding: 12px 14px;
   min-width: 280px;
   max-width: 80%;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--border-light);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   cursor: pointer;
   transition: all 0.2s;
@@ -796,7 +796,7 @@ onUnmounted(() => {
   gap: 8px;
   margin-bottom: 8px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .order-card-title {
@@ -839,7 +839,7 @@ onUnmounted(() => {
 
 .order-card-footer {
   padding-top: 6px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-light);
 }
 
 .order-click-hint {
@@ -861,7 +861,7 @@ onUnmounted(() => {
 }
 
 .order-detail-card.card-other {
-  border-color: #ebeef5;
+  border-color: var(--border-light);
 }
 
 .typing-bubble {
@@ -875,7 +875,7 @@ onUnmounted(() => {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #c0c4cc;
+  background: var(--text-disabled);
   animation: typing 1.4s infinite ease-in-out;
 }
 
@@ -890,7 +890,7 @@ onUnmounted(() => {
 .chat-footer {
   padding: 12px 20px;
   background: #fff;
-  border-top: 1px solid #ebeef5;
+  border-top: 1px solid var(--border-light);
   flex-shrink: 0;
 }
 
