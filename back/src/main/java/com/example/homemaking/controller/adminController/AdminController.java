@@ -1,5 +1,6 @@
 package com.example.homemaking.controller.adminController;
 
+import com.example.homemaking.dto.PageResult;
 import com.example.homemaking.entity.SysAdmin;
 import com.example.homemaking.result.Result;
 import com.example.homemaking.services.AdminService;
@@ -48,9 +49,27 @@ public class AdminController {
                 name, phone, startDateTime, endDateTime, pageNum, pageSize);
 
         if (!PageUtil.enabled(pageNum, pageSize)) {
-            return Result.success(adminService.searchAdmins(name, phone, startDateTime, endDateTime));
+            List<SysAdmin> list = adminService.searchAdmins(name, phone, startDateTime, endDateTime);
+            maskPasswords(list);
+            return Result.success(list);
         }
-        return Result.success(adminService.searchAdminsPage(name, phone, startDateTime, endDateTime, pageNum, pageSize));
+        PageResult<SysAdmin> page = adminService.searchAdminsPage(name, phone, startDateTime, endDateTime, pageNum, pageSize);
+        maskPasswords(page.getRecords());
+        return Result.success(page);
+    }
+
+    /**
+     * 列表里的密码字段一律清空后再下发
+     */
+    private void maskPasswords(List<SysAdmin> admins) {
+        if (admins == null || admins.isEmpty()) {
+            return;
+        }
+        for (SysAdmin a : admins) {
+            if (a != null) {
+                a.setPassword(null);
+            }
+        }
     }
 
     /**
@@ -63,6 +82,8 @@ public class AdminController {
         log.info("查询管理员详情，id={}", id);
         SysAdmin admin = adminService.getAdminById(id);
         if (admin != null) {
+            //密码字段不下发
+            admin.setPassword(null);
             return Result.success(admin);
         } else {
             return Result.error("管理员不存在");

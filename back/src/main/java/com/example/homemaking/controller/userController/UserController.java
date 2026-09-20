@@ -1,12 +1,14 @@
 package com.example.homemaking.controller.userController;
 
 import com.example.homemaking.dto.AddressSaveDTO;
+import com.example.homemaking.dto.PageResult;
 import com.example.homemaking.entity.SysUser;
 import com.example.homemaking.entity.UserAddress;
 import com.example.homemaking.result.Result;
 import com.example.homemaking.services.UserService;
 import com.example.homemaking.services.VerificationCodeService;
 import com.example.homemaking.util.PageUtil;
+import com.example.homemaking.util.PasswordUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -54,9 +56,28 @@ public class UserController {
                 name, phone, startDateTime, endDateTime, pageNum, pageSize);
 
         if (!PageUtil.enabled(pageNum, pageSize)) {
-            return Result.success(userService.searchUsers(name, phone, startDateTime, endDateTime));
+            List<SysUser> list = userService.searchUsers(name, phone, startDateTime, endDateTime);
+            maskPasswords(list);
+            return Result.success(list);
         }
-        return Result.success(userService.searchUsersPage(name, phone, startDateTime, endDateTime, pageNum, pageSize));
+        PageResult<SysUser> page = userService.searchUsersPage(name, phone, startDateTime, endDateTime, pageNum, pageSize);
+        maskPasswords(page.getRecords());
+        return Result.success(page);
+    }
+
+    /**
+     * 列表里的密码字段一律清空后再下发
+     */
+    private void maskPasswords(List<SysUser> users) {
+        if (users == null || users.isEmpty()) {
+            return;
+        }
+        for (SysUser u : users) {
+            if (u != null) {
+                u.setPassword(null);
+                u.setPayPassword(null);
+            }
+        }
     }
 
     /**
@@ -68,6 +89,10 @@ public class UserController {
     public Result<SysUser> UserById(@PathVariable Long id) {
         log.info("查询用户信息，id={}", id);
         SysUser sysUser = userService.getUserById(id);
+        if (sysUser != null) {
+            sysUser.setPassword(null);
+            sysUser.setPayPassword(null);
+        }
         return Result.success(sysUser);
     }
 
@@ -114,17 +139,56 @@ public class UserController {
      */
     @PostMapping("/user/pay-password/set")
     public Result<String> setPayPassword(@RequestParam String account, @RequestParam String newPwd) {
-        log.info("设置支付密码，account={}, newPwd={}", account, newPwd);
+        //不能把密码打进日志
+        log.info("设置支付密码，account={}", account);
+        if (newPwd == null || newPwd.length() < 6) {
+            return Result.error("支付密码长度不能小于6位");
+        }
         SysUser sysUser = userService.getUserByAccount(account);
         if (sysUser != null) {
-            sysUser.setPayPassword(newPwd);
+            //BCrypt hash 入库，不存明文
+            sysUser.setPayPassword(PasswordUtil.encode(newPwd));
             int count = userService.updateUserPassword(sysUser);
-            log.info("受影响的行数：{}", count);
+            log.info("设置支付密码受影响的行数：{}", count);
             if (count > 0) {
                 return Result.success("支付密码设置成功");
             }
         }
         return Result.error("用户不存在");
+    }
+
+    /**
+     * 修改支付密码（需校验旧密码）
+     *
+     * @param account 账号
+     * @param oldPwd  旧支付密码（明文）
+     * @param newPwd  新支付密码（明文）
+     * @return
+     */
+    @PutMapping("/user/pay-password/update")
+    public Result<String> updatePayPassword(@RequestParam String account,
+                                            @RequestParam String oldPwd,
+                                            @RequestParam String newPwd) {
+        //不能把密码打进日志
+        log.info("修改支付密码，account={}", account);
+        if (newPwd == null || newPwd.length() < 6) {
+            return Result.error("新支付密码长度不能小于6位");
+        }
+        SysUser sysUser = userService.getUserByAccount(account);
+        if (sysUser == null) {
+            return Result.error("用户不存在");
+        }
+        //旧密码走 BCrypt 校验，不比对明文
+        if (!PasswordUtil.matches(oldPwd, sysUser.getPayPassword())) {
+            return Result.error("原支付密码错误");
+        }
+        sysUser.setPayPassword(newPwd);
+        int count = userService.updateUserPassword(sysUser);
+        log.info("修改支付密码受影响的行数：{}", count);
+        if (count > 0) {
+            return Result.success("支付密码修改成功");
+        }
+        return Result.error("支付密码修改失败");
     }
 
     /**
@@ -264,6 +328,9 @@ public class UserController {
         if (sysUser == null) {
             return Result.error("用户不存在");
         }
+        //密码字段一律不下发（BCrypt hash 也不能出服务器）
+        sysUser.setPassword(null);
+        sysUser.setPayPassword(null);
         return Result.success(sysUser);
     }
 

@@ -21,6 +21,13 @@ request.interceptors.request.use(
 )
 
 // 响应拦截器
+// 约定：凡是拦截器已经弹过 ElMessage 的错误，都会在该 Error 上打 __handled = true，
+// 业务侧 catch 里用 `if (!e?.__handled)` 判断是否还要自己提示，避免双 toast。
+const handledError = (err) => {
+  if (err && typeof err === 'object') err.__handled = true
+  return err
+}
+
 request.interceptors.response.use(
   (response) => {
     const res = response.data
@@ -29,7 +36,9 @@ request.interceptors.response.use(
         return res
       }
       ElMessage.error(res.message || '请求失败')
-      return Promise.reject(new Error(res.message || '请求失败'))
+      return Promise.reject(
+        handledError(Object.assign(new Error(res.message || '请求失败'), { code: res.code, data: res }))
+      )
     }
     return res
   },
@@ -61,7 +70,7 @@ request.interceptors.response.use(
     } else {
       ElMessage.error('网络连接失败，请检查网络')
     }
-    return Promise.reject(error)
+    return Promise.reject(handledError(error))
   }
 )
 

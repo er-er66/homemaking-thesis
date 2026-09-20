@@ -8,6 +8,7 @@ import com.example.homemaking.mapper.SysUserAddressMapper;
 import com.example.homemaking.mapper.UserMapper;
 import com.example.homemaking.services.UserService;
 import com.example.homemaking.util.PageUtil;
+import com.example.homemaking.util.PasswordUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -90,12 +91,22 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
-     * 修改密码
+     * 修改支付密码
+     * <p>统一在 Service 层做 BCrypt 加密，调用方传明文即可，
+     * 防止某个调用方漏了 encode 把明文写进库。</p>
+     *
      * @param sysUser
      * @return
      */
     @Override
     public int updateUserPassword(SysUser sysUser) {
+        if (sysUser == null || sysUser.getPayPassword() == null || sysUser.getPayPassword().isEmpty()) {
+            return 0;
+        }
+        //已经是 BCrypt hash 的（如内部二次调用）不重复加密
+        if (!PasswordUtil.isEncoded(sysUser.getPayPassword())) {
+            sysUser.setPayPassword(PasswordUtil.encode(sysUser.getPayPassword()));
+        }
         return userMapper.updateUserPassword(sysUser);
     }
     /**

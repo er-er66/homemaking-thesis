@@ -209,8 +209,11 @@ const handleChangePwd = async () => {
     } else {
       ElMessage.error(res.message || '修改失败')
     }
-  } catch {
-    ElMessage.error('操作失败，请重试')
+  } catch (e) {
+    // 旧密码错误由后端 BCrypt 校验并在拦截器里按 message 提示，这里只兜底其余异常
+    if (!e || !e.__handled) {
+      ElMessage.error('操作失败，请重试')
+    }
   } finally {
     pwdLoading.value = false
   }

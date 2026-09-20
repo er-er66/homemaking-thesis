@@ -65,12 +65,12 @@ public interface AdminMapper {
     int selectCountByPhone(String phone);
 
     /**
-     * 修改管理员密码
+     * 修改管理员密码（入参 newPassword 必须是已 BCrypt 加密的 hash）
      * @param phone 手机号
-     * @param newPassword 新密码
+     * @param newPassword BCrypt hash
      * @return 受影响的行数
      */
-    int updatePassword(String phone, String newPassword);
+    int updatePassword(@Param("phone") String phone, @Param("newPassword") String newPassword);
 
     /**
      * 修改管理员名称

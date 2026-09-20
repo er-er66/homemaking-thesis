@@ -44,7 +44,18 @@ export const normalizeMerchant = (item) => {
 
   const source = item || {}
   const roomId = firstNonEmpty(source.roomId, source.room_id)
-  const account = firstNonEmpty(source.account, source.merchantAccount, source.merchant_account)
+  let account = firstNonEmpty(source.account, source.merchantAccount, source.merchant_account)
+
+  // 后端脏数据：room_id 就是对方账号（缺了 `账号_对方账号` 的后半段），此时 account 为空。
+  // 从 roomId 反推账号，否则这条会话既没名称也没账号，只能显示成「商家」。
+  if (!account && roomId && !roomId.includes('_')) {
+    account = roomId
+  }
+  // 形如 `a_b` 的 roomId 取非自己的那一半（自己是谁由调用方保证不了，这里只取一个候选）
+  if (!account && roomId && roomId.includes('_')) {
+    account = roomId.split('_')[0]
+  }
+
   const name = firstNonEmpty(
     source.name,
     source.merchantName,
@@ -58,7 +69,8 @@ export const normalizeMerchant = (item) => {
     id: firstNonEmpty(source.id, roomId, account, source.merchantId, source.merchant_id),
     roomId,
     account,
-    name: name || '商家',
+    // 没有真名时用账号兜底，别落成「商家」——前端 displayName 会渲染成「账号」
+    name: name || roomId || '商家',
     avatar: firstNonEmpty(source.avatar, source.merchantAvatar, source.merchant_avatar),
     // 会话列表只显示摘要：订单详情消息的原文是 "Xiangqing{...}"，
     // 直接塞进列表会是一大串 JSON，这里统一转成「订单详情」
@@ -137,38 +149,56 @@ export const setMerchants = (list) => {
     .map(item => normalizeMerchant(item))
     .filter(merchant => merchant.id)
   
-  // 去重：基于 account 或 id 或 roomId，保留第一个出现的
-  const seenKeys = new Set()
-  const deduplicated = []
-  
+  // 同一账号可能对应多条后端记录（脏数据：room_id 就是账号本身，且没有 room_id 的另一条才是真会话）。
+  // 去重时不能简单「保留第一条」——第一条往往是没名字没头像的那条，
+  // 应该保留信息更全的一条（有真名 > 有头像 > 有 roomId「账号_对方」格式）。
+  const scoreOf = (m) => {
+    let score = 0
+    if (m.name && m.name !== '商家' && m.name !== m.account) score += 4
+    if (m.avatar) score += 2
+    // `账号_对方账号` 才是真实房间号，`账号` 单独一个词是脏数据
+    if (m.roomId && m.roomId.includes('_')) score += 1
+    return score
+  }
+
+  const byKey = new Map()
+  const order = []
+
   for (const merchant of normalizedList) {
     // 生成唯一标识：优先用 account，其次用 id/roomId
     let key = merchant.account || merchant.id || merchant.roomId || ''
-    
     // 标准化 roomId 格式（处理 "a_b" 和 "b_a" 视为相同的情况）
     if (key.includes('_')) {
       key = key.split('_').sort().join('_')
     }
-    
-    if (!key || seenKeys.has(key)) {
-      console.log('[merchantStore] setMerchants 跳过重复:', { 
-        key, 
-        name: merchant.name,
-        account: merchant.account,
-        id: merchant.id,
-        roomId: merchant.roomId
-      })
+    if (!key) {
+      console.log('[merchantStore] setMerchants 丢弃无标识项:', merchant)
       continue
     }
-    
-    seenKeys.add(key)
-    deduplicated.push(merchant)
-    
-    // 同时用原始 account 也标记（防止同一用户用不同格式出现）
-    if (merchant.account && merchant.account !== key) {
-      seenKeys.add(merchant.account)
+
+    const existed = byKey.get(key)
+    if (!existed) {
+      byKey.set(key, merchant)
+      order.push(key)
+      continue
     }
+
+    // 已有同 key 记录：留下信息更全的那条，并把另一条的字段并过去
+    const winner = scoreOf(merchant) > scoreOf(existed) ? merchant : existed
+    const loser = winner === merchant ? existed : merchant
+    if (!winner.avatar && loser.avatar) winner.avatar = loser.avatar
+    if (!winner.roomId && loser.roomId) winner.roomId = loser.roomId
+    if (!winner.account && loser.account) winner.account = loser.account
+    if (!winner.lastMsg && loser.lastMsg) winner.lastMsg = loser.lastMsg
+    console.log('[merchantStore] setMerchants 合并重复:', {
+      key,
+      kept: { name: winner.name, account: winner.account, roomId: winner.roomId, score: scoreOf(winner) },
+      dropped: { name: loser.name, account: loser.account, roomId: loser.roomId, score: scoreOf(loser) }
+    })
+    byKey.set(key, winner)
   }
+
+  const deduplicated = order.map(k => byKey.get(k))
   
   console.log('[merchantStore] setMerchants: 原始', normalizedList.length, '条，去重后', deduplicated.length, '条')
   

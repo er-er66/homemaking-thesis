@@ -431,11 +431,14 @@ const handleChangePwd = async () => {
       await setPayPasswordApi({ account: userAccount.value, newPwd })
     }
     hasPayPassword.value = true
-    ElMessage.success(hasPayPassword.value ? '支付密码修改成功' : '支付密码设置成功')
+    ElMessage.success('支付密码设置成功')
     pwdForm.value = { oldPwd: '', newPwd: '', confirmPwd: '' }
     activePanel.value = ''
-  } catch {
-    ElMessage.error('操作失败，请重试')
+  } catch (e) {
+    // 旧密码错误由后端 BCrypt 校验并在拦截器里按 message 提示，这里只兜底其余异常
+    if (!e || !e.__handled) {
+      ElMessage.error('操作失败，请重试')
+    }
   } finally {
     pwdLoading.value = false
   }

@@ -378,9 +378,13 @@ const handlePay = async () => {
     showPayDialog.value = false
     ElMessage.success('下单支付成功！')
     router.push('/')
-  } catch {
+  } catch (e) {
     paying.value = false
-    ElMessage.error('下单失败，请重试')
+    // 支付密码错误等业务错误由拦截器按后端 message 提示（已打 __handled 标记），
+    // 这里只兜底真正没提示过的异常，避免双 toast。
+    if (!e || !e.__handled) {
+      ElMessage.error('下单失败，请重试')
+    }
   }
 }
 

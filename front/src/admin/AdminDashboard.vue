@@ -600,9 +600,9 @@
                     {{ row.userAccount || '-' }}
                   </template>
                 </el-table-column>
-                <el-table-column label="用户名称" width="120">
+                <el-table-column label="用户名称" width="180" show-overflow-tooltip>
                   <template #default="{ row }">
-                    {{ row.userName || '-' }}
+                    {{ formatMessageName(row.userName, row.userAccount) }}
                   </template>
                 </el-table-column>
                 <el-table-column label="最新消息" show-overflow-tooltip>
@@ -644,9 +644,9 @@
                     {{ row.staffAccount || '-' }}
                   </template>
                 </el-table-column>
-                <el-table-column label="家政人员名称" width="120">
+                <el-table-column label="家政人员名称" width="180" show-overflow-tooltip>
                   <template #default="{ row }">
-                    {{ row.staffName || '-' }}
+                    {{ formatMessageName(row.staffName, row.staffAccount) }}
                   </template>
                 </el-table-column>
                 <el-table-column label="最新消息" show-overflow-tooltip>
@@ -1124,7 +1124,9 @@ const isPageResult = (data) => {
  * @param {function} requestFn   请求函数，形如 (params) => api(params)
  * @param {object}   options     { pageSize, clientFilter, clientSort }
  *   clientFilter: 后端不支持的筛选条件，在前端兜底过滤（如订单状态）
- *   clientSort:   前端兜底排序，接收数组返回新数组。后端分页模式下排序由后端负责
+ *   clientSort:   前端兜底排序，接收数组返回新数组
+ *   sortKey:      排序字段名。后端已支持分页但没写 ORDER BY 时，
+ *                 前端会在**当前页内**补排一次（后端一旦补上 ORDER BY 就自动无感）
  */
 const createPager = (listRef, loadingRef, requestFn, options = {}) => {
   const pageNum = ref(1)
@@ -1138,6 +1140,18 @@ const createPager = (listRef, loadingRef, requestFn, options = {}) => {
 
   const clientFilter = options.clientFilter || null
   const clientSort = options.clientSort || null
+  const sortKey = options.sortKey || null
+
+  // 按 sortKey 升序，非数字键（雪花 id 用字符串承载时）退化成字符串比较
+  const sortAsc = (rows) =>
+    [...rows].sort((a, b) => {
+      const x = a[sortKey]
+      const y = b[sortKey]
+      const nx = Number(x)
+      const ny = Number(y)
+      if (!Number.isNaN(nx) && !Number.isNaN(ny) && x !== null && y !== null) return nx - ny
+      return String(x ?? '').localeCompare(String(y ?? ''))
+    })
 
   const applyLocal = () => {
     let rows = clientFilter ? clientFilter(allRows) : allRows
@@ -1160,8 +1174,11 @@ const createPager = (listRef, loadingRef, requestFn, options = {}) => {
 
       if (isPageResult(data)) {
         serverPaging.value = true
-        listRef.value = data.records || data.list || []
-        total.value = Number(data.total ?? data.totalCount ?? listRef.value.length) || 0
+        let pageRows = data.records || data.list || []
+        // 后端分页未必带 ORDER BY：当前页内再排一次，至少不会看起来乱七八糟
+        if (sortKey) pageRows = sortAsc(pageRows)
+        listRef.value = pageRows
+        total.value = Number(data.total ?? data.totalCount ?? pageRows.length) || 0
       } else if (Array.isArray(data)) {
         serverPaging.value = false
         allRows = data
@@ -1267,8 +1284,13 @@ const orderPager = createPager(orderList, orderLoading, getOrderListApi, {
   }
 })
 const adminPager = createPager(adminList, adminLoading, getAdminListApi)
-// 套餐按 id 升序展示（后端分页上线后由后端 ORDER BY id ASC）
+// 套餐按 id 升序展示。
+// 实测后端 /package/list 分页没有 ORDER BY，返回 20,17,14,11,8,5,21…，
+// 且后端分页模式下 clientSort 不生效（只切一页，无法全量排序）。
+// 所以额外给 sortKey，让 fetchPage 在**当前页内**也排一次；
+// 后端补上 `ORDER BY id ASC` 后这一层自然变成无害的空操作。
 const packagePager = createPager(packageList, packageLoading, getPackageListApi, {
+  sortKey: 'id',
   clientSort: (rows) => [...rows].sort((a, b) => Number(a.id || 0) - Number(b.id || 0))
 })
 const userMessagePager = createPager(userMessageList, userMessageLoading, getUserListApi)
@@ -1804,7 +1826,7 @@ const buildMessageRows = async (pager, loadingRef, rowsRef, listApi, itemKey) =>
       const room = rooms.find(r => r.account === account)
       return {
         [itemKey.account]: account,
-        [itemKey.name]: item.realName || item.username || '-',
+        [itemKey.name]: item.realName || item.username || '',
         lastMessage: room ? (room.lastMsg || '') : '',
         lastTime: room ? (room.lastTime || '') : (item.createTime || '')
       }
@@ -1819,6 +1841,22 @@ const buildMessageRows = async (pager, loadingRef, rowsRef, listApi, itemKey) =>
   } finally {
     loadingRef.value = false
   }
+}
+
+/**
+ * 消息列表的名称列统一展示成「名称（账号）」。
+ *
+ * 注意名称字段：`/users`、`/emp` 返回的是 SysUser / SysStaff **实体**，
+ * 名称字段叫 `username`（库里注释是「用户名称 / 真实姓名」），**没有 realName**。
+ * 之前取 realName 恒为 undefined，所以这一列一直显示 '-'。
+ * realName 保留在取值链里，兼容以后后端改返回 DTO 的情况。
+ */
+const formatMessageName = (name, account) => {
+  const n = String(name || '').trim()
+  const a = String(account || '').trim()
+  if (!n || n === '-') return a || '-'
+  if (n === a) return a
+  return a ? `${n}（${a}）` : n
 }
 
 const fetchUserMessageList = () =>

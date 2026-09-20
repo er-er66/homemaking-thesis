@@ -4,35 +4,42 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.homemaking.mapper.LoginMapper">
 
-
+    <!--
+        注意：密码不再作为 WHERE 条件。
+        BCrypt 每次加密产生不同 salt，无法用 SQL 等值匹配，
+        必须按 phone/account 取出记录后在内存里做 matches 校验。
+    -->
     <select id="selectSys_Admin" resultType="com.example.homemaking.entity.SysAdmin">
         select * from sys_admin
-        where password = #{password}
+        where 1 = 1
         <if test="phone != null and phone != ''">
             and phone = #{phone}
         </if>
         <if test="account != null and account != ''">
             and account = #{account}
         </if>
+        limit 1
     </select>
     <select id="selectSys_User" resultType="com.example.homemaking.entity.SysUser">
         select * from sys_user
-        where password = #{password}
+        where 1 = 1
         <if test="phone != null and phone != ''">
             and phone = #{phone}
         </if>
         <if test="account != null and account != ''">
             and account = #{account}
         </if>
+        limit 1
     </select>
     <select id="selectSys_Staff" resultType="com.example.homemaking.entity.SysStaff">
         select * from sys_staff
-        where password = #{password}
+        where 1 = 1
         <if test="phone != null and phone != ''">
             and phone = #{phone}
         </if>
         <if test="account != null and account != ''">
             and account = #{account}
         </if>
+        limit 1
     </select>
 </mapper>

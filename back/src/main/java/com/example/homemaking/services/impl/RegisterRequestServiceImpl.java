@@ -6,6 +6,7 @@ import com.example.homemaking.entity.SysUser;
 import com.example.homemaking.mapper.RegisterRequestMapper;
 import com.example.homemaking.services.RegisterRequestService;
 import com.example.homemaking.util.JwtUtil;
+import com.example.homemaking.util.PasswordUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -42,6 +43,8 @@ public class RegisterRequestServiceImpl implements RegisterRequestService {
             SysUser user = new SysUser();
             BeanUtils.copyProperties(registerRequestDTO, user);
             user.setUsername(registerRequestDTO.getUsername());
+            //密码以 BCrypt hash 入库，不存明文
+            user.setPassword(PasswordUtil.encode(registerRequestDTO.getPassword()));
             user.setCreateTime(now);
             user.setUpdateTime(now);
             if (gender.equals("0")){
@@ -64,6 +67,8 @@ public class RegisterRequestServiceImpl implements RegisterRequestService {
             BeanUtils.copyProperties(registerRequestDTO, staff);
             staff.setAccount(registerRequestDTO.getAccount());
             staff.setUsername(registerRequestDTO.getUsername());
+            //密码以 BCrypt hash 入库，不存明文
+            staff.setPassword(PasswordUtil.encode(registerRequestDTO.getPassword()));
             List<String> skills = registerRequestDTO.getSkills();
             if (skills != null && !skills.isEmpty()) {
                 staff.setSkills(String.join(",", skills));

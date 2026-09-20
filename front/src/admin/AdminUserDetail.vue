@@ -20,7 +20,10 @@
 
       <el-descriptions :column="2" border size="large">
         <el-descriptions-item label="账号">
-          {{ detail.username || detail.account || '-' }}
+          {{ detail.account || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="名称">
+          {{ detail.realName || detail.username || '-' }}
         </el-descriptions-item>
         <el-descriptions-item label="手机号">
           {{ detail.phone || '-' }}

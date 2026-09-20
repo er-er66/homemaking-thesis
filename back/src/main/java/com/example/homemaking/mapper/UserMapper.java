@@ -109,12 +109,12 @@ public interface UserMapper {
     List<UserAddress> getAddressList(Long userAccount);
 
     /**
-     * 支付时要获取密码
+     * 支付时要获取密码（返回的是 BCrypt hash）
      *
-     * @param payPassword
-     * @return
+     * @param account 用户账号
+     * @return 库中存储的 pay_password，可能是 hash 或历史明文
      */
-    String getAccountPassword(String payPassword);
+    String getAccountPassword(@Param("account") String account);
 
 
     /**
@@ -126,13 +126,13 @@ public interface UserMapper {
     int selectCountByPhone(String phone);
 
     /**
-     * 修改账号密码
+     * 修改账号密码（入参 newPassword 必须是已 BCrypt 加密的 hash）
      *
-     * @param phone
-     * @param newPassword
+     * @param phone       手机号
+     * @param newPassword BCrypt hash
      * @return
      */
-    int updatePassword(String phone, String newPassword);
+    int updatePassword(@Param("phone") String phone, @Param("newPassword") String newPassword);
 
     /**
      * 修改用户名
