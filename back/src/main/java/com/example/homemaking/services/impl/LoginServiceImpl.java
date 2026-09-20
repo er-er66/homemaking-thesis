@@ -8,6 +8,7 @@ import com.example.homemaking.entity.SysUser;
 import com.example.homemaking.mapper.LoginMapper;
 import com.example.homemaking.services.LoginService;
 import com.example.homemaking.util.JwtUtil;
+import com.example.homemaking.util.PasswordUtil;
 import com.example.homemaking.vo.LoginResultVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,61 +40,83 @@ public class LoginServiceImpl implements LoginService {
             String password = loginRequestDTO.getPassword();
             String role = loginRequestDTO.getRole();
             log.info("登录请求 -> phone={}, account={}, role={}", phone, account, role);
-            if ("000".equals(role)) {
-                SysAdmin admin = loginMapper.selectSys_Admin(phone, account, password);
-                log.info("查询管理员结果: {}", admin);
-                if (admin != null) {
-                    LoginResultVO vo = new LoginResultVO();
-                    vo.setToken(jwtUtil.generateToken(admin.getId(), admin.getAccount(), role));
-                    vo.setUsername(admin.getUsername());
-                    vo.setAvatar(admin.getAvatar());
-                    String adminRole = admin.getRole();
-                    if (adminRole != null && adminRole.startsWith("1")){
-                        vo.setRoleCode("10");
-                        vo.setAccount(admin.getAccount());
-                        vo.setPhone(admin.getPhone());
-                    }else {
-                        vo.setRoleCode("01");
-                        vo.setAccount(admin.getAccount());
-                        vo.setPhone(admin.getPhone());
-                    }
-                    log.info("管理员登录成功，返回: {}", vo);
-                    saveTokenToRedis(admin.getId(), role, vo.getToken());
-                    closeOldWebSocket(admin.getAccount());
-                    return vo;
-                }
-            } else if ("001".equals(role)) {
-                SysUser user = loginMapper.selectSys_User(phone, account, password);
-                log.info("查询普通用户结果: {}", user);
-                if (user != null) {
-                    LoginResultVO vo = new LoginResultVO();
-                    vo.setToken(jwtUtil.generateToken(user.getId(), user.getAccount(), role));
-                    vo.setUsername(user.getUsername());
-                    vo.setAvatar(user.getAvatar());
-                    vo.setRoleCode("03");
-                    vo.setAccount(user.getAccount());
-                    vo.setPhone(user.getPhone());
-                    saveTokenToRedis(user.getId(), role, vo.getToken());
-                    closeOldWebSocket(user.getAccount());
-                    return vo;
-                }
-            } else if ("002".equals(role)) {
-                SysStaff staff = loginMapper.selectSys_Staff(phone, account, password);
-                log.info("查询家政人员结果: {}", staff);
-                if (staff != null) {
-                    LoginResultVO vo = new LoginResultVO();
-                    vo.setToken(jwtUtil.generateToken(staff.getId(), staff.getAccount(), role));
-                    vo.setUsername(staff.getUsername());
-                    vo.setAvatar(staff.getAvatar());
-                    vo.setRoleCode("02");
-                    vo.setAccount(staff.getAccount());
-                    vo.setPhone(staff.getPhone());
-                    saveTokenToRedis(staff.getId(), role, vo.getToken());
-                    closeOldWebSocket(staff.getAccount());
-                    return vo;
-                }
+            if (password == null || password.isEmpty()) {
+                log.warn("登录失败：密码为空，account={}, role={}", account, role);
+                return null;
             }
+            if (!hasIdentifier(phone, account)) {
+                log.warn("登录失败：手机号和账号都为空，role={}", role);
+                return null;
+            }
+            if ("000".equals(role)) {
+                SysAdmin admin = loginMapper.selectSys_Admin(phone, account);
+                //密码在内存中做 BCrypt 校验，不再作为 SQL 条件
+                if (!PasswordUtil.matches(password, admin == null ? null : admin.getPassword())) {
+                    log.warn("管理员登录失败：账号或密码错误，account={}, phone={}", account, phone);
+                    return null;
+                }
+                LoginResultVO vo = new LoginResultVO();
+                vo.setToken(jwtUtil.generateToken(admin.getId(), admin.getAccount(), role));
+                vo.setUsername(admin.getUsername());
+                vo.setAvatar(admin.getAvatar());
+                String adminRole = admin.getRole();
+                if (adminRole != null && adminRole.startsWith("1")){
+                    vo.setRoleCode("10");
+                    vo.setAccount(admin.getAccount());
+                    vo.setPhone(admin.getPhone());
+                }else {
+                    vo.setRoleCode("01");
+                    vo.setAccount(admin.getAccount());
+                    vo.setPhone(admin.getPhone());
+                }
+                log.info("管理员登录成功，account={}, roleCode={}", admin.getAccount(), vo.getRoleCode());
+                saveTokenToRedis(admin.getId(), role, vo.getToken());
+                closeOldWebSocket(admin.getAccount());
+                return vo;
+            } else if ("001".equals(role)) {
+                SysUser user = loginMapper.selectSys_User(phone, account);
+                if (!PasswordUtil.matches(password, user == null ? null : user.getPassword())) {
+                    log.warn("普通用户登录失败：账号或密码错误，account={}, phone={}", account, phone);
+                    return null;
+                }
+                LoginResultVO vo = new LoginResultVO();
+                vo.setToken(jwtUtil.generateToken(user.getId(), user.getAccount(), role));
+                vo.setUsername(user.getUsername());
+                vo.setAvatar(user.getAvatar());
+                vo.setRoleCode("03");
+                vo.setAccount(user.getAccount());
+                vo.setPhone(user.getPhone());
+                log.info("普通用户登录成功，account={}", user.getAccount());
+                saveTokenToRedis(user.getId(), role, vo.getToken());
+                closeOldWebSocket(user.getAccount());
+                return vo;
+            } else if ("002".equals(role)) {
+                SysStaff staff = loginMapper.selectSys_Staff(phone, account);
+                if (!PasswordUtil.matches(password, staff == null ? null : staff.getPassword())) {
+                    log.warn("家政人员登录失败：账号或密码错误，account={}, phone={}", account, phone);
+                    return null;
+                }
+                LoginResultVO vo = new LoginResultVO();
+                vo.setToken(jwtUtil.generateToken(staff.getId(), staff.getAccount(), role));
+                vo.setUsername(staff.getUsername());
+                vo.setAvatar(staff.getAvatar());
+                vo.setRoleCode("02");
+                vo.setAccount(staff.getAccount());
+                vo.setPhone(staff.getPhone());
+                log.info("家政人员登录成功，account={}", staff.getAccount());
+                saveTokenToRedis(staff.getId(), role, vo.getToken());
+                closeOldWebSocket(staff.getAccount());
+                return vo;
+            }
+            log.warn("登录失败：未知角色 role={}", role);
             return null;
+        }
+
+        /**
+         * 手机号与账号至少有一个非空，否则 SQL 会退化成全表扫描
+         */
+        private boolean hasIdentifier(String phone, String account) {
+            return (phone != null && !phone.isEmpty()) || (account != null && !account.isEmpty());
         }
 
         private void saveTokenToRedis(Long userId, String role, String token) {

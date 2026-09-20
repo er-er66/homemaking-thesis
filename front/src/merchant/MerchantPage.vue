@@ -21,11 +21,11 @@
               @click="openChat(item)"
             >
               <el-avatar :size="44" :src="item.avatar" shape="square">
-                {{ item.name.charAt(0) }}
+                {{ displayName(item).charAt(0) }}
               </el-avatar>
               <div class="merchant-info">
                 <div class="merchant-top">
-                  <span class="merchant-name">{{ item.name }}<span v-if="item.type === 'cs' && !item.name.includes('客服')" class="cs-tag">（客服）</span></span>
+                  <span class="merchant-name" :title="displayName(item)">{{ sidebarName(item) }}<span v-if="item.type === 'cs'" class="cs-tag">（客服）</span></span>
                   <span class="merchant-time">{{ item.time }}</span>
                 </div>
                 <div class="merchant-bottom">
@@ -42,7 +42,7 @@
       <div class="merchant-chat" v-if="currentMerchant.id">
         <div class="chat-header">
           <el-avatar :size="36" :src="peerAvatar" shape="square">{{ peerInitial }}</el-avatar>
-          <span class="chat-title">{{ currentMerchant.name }}<span v-if="currentMerchant.type === 'cs' && !currentMerchant.name.includes('客服')" class="cs-tag">（客服）</span></span>
+          <span class="chat-title" :title="displayName(currentMerchant)">{{ displayName(currentMerchant) }}<span v-if="currentMerchant.type === 'cs'" class="cs-tag">（客服）</span></span>
         </div>
         <div class="chat-body">
           <div class="chat-messages" ref="msgBox">
@@ -289,6 +289,21 @@ const selectedOrder = ref(null)
 const takingOrder = ref(false)
 
 const merchantList = computed(() => getMerchants())
+
+/**
+ * 会话名称统一展示成「名称（账号）」，名称缺失或与账号相同时只显示账号。
+ * 管理员从「消息列表」点进来时只有账号可靠，这样至少能认出是谁。
+ */
+const displayName = (merchant) => {
+  if (!merchant) return ''
+  const account = String(merchant.account || '').trim()
+  const name = String(merchant.name || '').trim()
+  if (!name || name === account) return account || name || '未知会话'
+  return account ? `${name}（${account}）` : name
+}
+
+// 侧栏的一行：去掉「（客服）」后缀，避免和「（账号）」两个括号堆在一起
+const sidebarName = (merchant) => displayName(merchant).replace(/（客服）/g, '')
 
 const isStaff = computed(() => {
   const userInfoStr = localStorage.getItem('userInfo')
@@ -733,17 +748,23 @@ onMounted(async () => {
     await nextTick()
     
     const findAndOpen = async () => {
-      const targetMerchant = merchantList.value.find(m => {
-        console.log('[MerchantPage] checking merchant:', m.id, m.account)
-        return m.id === targetMerchantId || m.account === targetMerchantId
-      })
-      
+      // targetMerchantId 是「对方账号」，匹配要按 account 优先。
+      // 不能只比 id：脏数据里可能存在 room_id 恰好等于该账号、但 account/name 全空的条目
+      // （如 room_id='10241065' 而不是 '10241065_admin'），先比 id 会命中空条目 ⇒ 标题退化成「商家」。
+      const list = merchantList.value
+      const targetMerchant =
+        list.find(m => m.account === targetMerchantId) ||
+        list.find(m => m.id === targetMerchantId || m.roomId === targetMerchantId)
+
       console.log('[MerchantPage] targetMerchant:', targetMerchant)
-      
+
       if (targetMerchant) {
         await openChat(targetMerchant)
+        // 命中的条目本身可能没有名称（后端会话记录不全），再补一次
+        await enrichMerchantName(targetMerchant)
       } else {
-        // 如果商家不在列表中，先尝试用后端会话记录打开，避免用账号当房间号建出重复会话
+        // 商家不在本地列表（常见于从未聊过、后端还没建会话）：用账号占位，
+        // 再按账号去后端会话记录里补真实姓名，否则标题只能显示一串账号
         console.log('[MerchantPage] creating tempMerchant')
         const tempMerchant = {
           id: targetMerchantId,
@@ -755,6 +776,7 @@ onMounted(async () => {
           unread: 0
         }
         await openChat(tempMerchant)
+        await enrichMerchantName(tempMerchant)
         await ensureCurrentInList()
       }
     }
@@ -777,6 +799,63 @@ onUnmounted(() => {
     ws.close(1000, '页面离开')
   }
 })
+
+/**
+ * 会话只有账号、没有真实姓名时，去本地列表和后端会话记录里补一次。
+ * 补到就更新 currentMerchant，标题立刻从「账号」变成「姓名（账号）」。
+ */
+/** 名称有效：非空、不等于账号、也不是「商家」这种兜底值 */
+const hasRealName = (name, account) => {
+  const n = String(name || '').trim()
+  if (!n) return false
+  if (n === '商家') return false
+  if (account && n === String(account)) return false
+  return true
+}
+
+const enrichMerchantName = async (merchant) => {
+  if (!merchant) return
+  const account = merchant.account || merchant.id
+  if (!account) return
+  if (hasRealName(merchant.name, account)) return
+
+  try {
+    const myId = getMyId()
+    const res = await getChatRoomListApi(myId)
+    const rooms = res && Array.isArray(res.data) ? res.data : []
+
+    // 一个账号可能对应多条会话记录（历史脏数据：room_id 就是账号本身）。
+    // 必须挑出**真正有名称**的那条，否则补全又补了个空。
+    const candidates = rooms.filter(r =>
+      r.account === account ||
+      r.roomId === merchant.id ||
+      r.roomId === merchant.roomId ||
+      // 兜底：room_id 形如「账号_对方账号」，也能认出来
+      String(r.roomId || '').split('_').includes(String(account))
+    )
+    const room = candidates.find(r => hasRealName(r.name, account)) || candidates[0]
+
+    if (room) {
+      if (hasRealName(room.name, account)) merchant.name = room.name
+      if (!merchant.avatar && room.avatar) merchant.avatar = room.avatar
+      if (!merchant.roomId && room.roomId) merchant.roomId = room.roomId
+    }
+
+    // 回填到本地 store，侧栏那一行也会跟着更新
+    const local = findMerchant({ id: merchant.id, roomId: merchant.roomId, account })
+    if (local && hasRealName(merchant.name, account) && !hasRealName(local.name, account)) {
+      local.name = merchant.name
+      if (!local.avatar) local.avatar = merchant.avatar || ''
+      if (!local.account) local.account = account
+    }
+
+    if (currentMerchant.value.id === merchant.id) {
+      currentMerchant.value = { ...currentMerchant.value, ...merchant }
+    }
+  } catch (e) {
+    console.warn('[MerchantPage] 补全会话名称失败:', e)
+  }
+}
 
 const openChat = async (merchant) => {
   if (!merchant || !merchant.id) {
@@ -980,6 +1059,11 @@ const formatTime = (date) => {
   font-size: 15px;
   font-weight: 500;
   color: var(--text-h);
+  /* 名称+账号可能较长，允许收缩并省略，别把右侧时间挤出容器 */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .cs-tag {
   font-size: 12px;

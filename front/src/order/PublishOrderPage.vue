@@ -589,13 +589,13 @@ const handlePay = async () => {
 
   paying.value = true
   try {
+    // 支付密码一律交给后端校验（后端已改用 BCrypt 存储，hash 不会下发到前端）。
+    // 这里只判断「是否已设置支付密码」：成功判定必须看 Result 的 code===200 且 data===true。
+    // 注意 data 是布尔值，去比对 data 上的字段恒为 true，等于没校验。
     const checkRes = await checkPayPasswordApi(userAccount)
-    if (checkRes && checkRes.data && checkRes.data.hasPassword) {
-      if (checkRes.data.password !== payPassword) {
-        ElMessage.error('支付密码错误')
-        paying.value = false
-        return
-      }
+    if (!(checkRes && checkRes.code === 200 && checkRes.data === true)) {
+      ElMessage.error('尚未设置支付密码，请先前往个人中心设置')
+      return
     }
 
     const orderData = {
@@ -614,9 +614,14 @@ const handlePay = async () => {
     }
   } catch (e) {
     console.error('订单发布失败:', e)
-    ElMessage.error('订单发布失败，请稍后重试')
+    // 支付密码错误、订单校验失败等业务错误都在这里：拦截器已按后端 message 弹过提示
+    // （并打了 __handled 标记），只有网络/超时之外真正没提示过的异常才需要兜底文案。
+    if (!e || !e.__handled) {
+      ElMessage.error('订单发布失败，请稍后重试')
+    }
+  } finally {
+    paying.value = false
   }
-  paying.value = false
 }
 </script>
 

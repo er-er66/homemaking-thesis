@@ -15,6 +15,7 @@ import com.example.homemaking.mapper.UserMapper;
 import com.example.homemaking.services.OrderService;
 import com.example.homemaking.util.OrderNoUtil;
 import com.example.homemaking.util.PageUtil;
+import com.example.homemaking.util.PasswordUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,14 +48,19 @@ public class OrderServiceImpl implements OrderService {
      */
     @Override
     public String createOrder(OrderDTO orderDTO) {
-        //获取到当前支付密码是否正确
+        //获取到当前支付密码是否正确（库中存的是 BCrypt hash，走 matches 校验）
         String payPassword = orderDTO.getPayPassword();
+        if (payPassword == null || payPassword.isEmpty()) {
+            return "支付密码不能为空";
+        }
         String dbPayPassword = userMapper.getAccountPassword(orderDTO.getUserAccount());//根据账号获取数据库中的支付密码
-        if (!dbPayPassword.equals(payPassword)) {
+        if (!PasswordUtil.matches(payPassword, dbPayPassword)) {
             return "支付密码错误";
         }
         Order order = new Order();
         BeanUtils.copyProperties(orderDTO, order);
+        //pay_password 是敏感字段，不透传到订单表（订单表原有的 pay_password 列不再写入）
+        order.setPayPassword(null);
         if (order.getOrderStatus() == null) {//用户的发布订单（默认待接单）
             order.setOrderStatus(0);
         }

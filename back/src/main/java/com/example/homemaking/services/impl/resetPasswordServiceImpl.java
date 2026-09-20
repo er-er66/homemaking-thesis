@@ -8,6 +8,7 @@ import com.example.homemaking.mapper.EmpMapper;
 import com.example.homemaking.mapper.UserMapper;
 import com.example.homemaking.services.ResetPasswordService;
 import com.example.homemaking.services.VerificationCodeService;
+import com.example.homemaking.util.PasswordUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -48,8 +49,8 @@ public class resetPasswordServiceImpl implements ResetPasswordService {
             if (newPassword == null||newPassword.length()<6) {
                 return 0;//密码长度小于6或为空
             }
-            //4.修改密码
-            return adminMapper.updatePassword(resetPasswordDTO.getPhone(), newPassword);
+            //4.修改密码（BCrypt hash 入库）
+            return adminMapper.updatePassword(resetPasswordDTO.getPhone(), PasswordUtil.encode(newPassword));
         } else if (resetPasswordDTO.getRole().equals("002")) {
             //员工
             int count = empMapper.selectCountByPhone(resetPasswordDTO.getPhone());
@@ -61,8 +62,8 @@ public class resetPasswordServiceImpl implements ResetPasswordService {
             if (newPassword == null||newPassword.length()<6) {
                 return 0;//密码长度小于6或为空
             }
-            //4.修改密码
-            return empMapper.updatePassword(resetPasswordDTO.getPhone(), newPassword);
+            //4.修改密码（BCrypt hash 入库）
+            return empMapper.updatePassword(resetPasswordDTO.getPhone(), PasswordUtil.encode(newPassword));
         } else if (resetPasswordDTO.getRole().equals("003")) {
             //用户
             int count = userMapper.selectCountByPhone(resetPasswordDTO.getPhone());
@@ -74,8 +75,8 @@ public class resetPasswordServiceImpl implements ResetPasswordService {
             if (newPassword == null||newPassword.length()<6) {
                 return 0;//密码长度小于6或为空
             }
-            //4.修改密码
-            return userMapper.updatePassword(resetPasswordDTO.getPhone(), newPassword);
+            //4.修改密码（BCrypt hash 入库）
+            return userMapper.updatePassword(resetPasswordDTO.getPhone(), PasswordUtil.encode(newPassword));
         }else {
             return 0;//重置身份类型错误
         }

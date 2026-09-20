@@ -17,7 +17,7 @@
     </select>
     <select id="selectList" resultType="com.example.homemaking.entity.HomemakingPackage">
         select * from homemaking_package where is_deleted=0
-        order by id asc
+        ORDER BY id ASC
     </select>
 
     <!-- 套餐列表公共过滤条件：serviceType 为 null/0 视为「全部」，不参与过滤 -->

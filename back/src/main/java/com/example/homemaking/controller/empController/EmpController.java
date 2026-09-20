@@ -1,5 +1,6 @@
 package com.example.homemaking.controller.empController;
 
+import com.example.homemaking.dto.PageResult;
 import com.example.homemaking.entity.SysStaff;
 import com.example.homemaking.result.Result;
 import com.example.homemaking.services.EmpService;
@@ -48,9 +49,27 @@ public class EmpController {
                 name, phone, startDateTime, endDateTime, pageNum, pageSize);
 
         if (!PageUtil.enabled(pageNum, pageSize)) {
-            return Result.success(empService.searchEmps(name, phone, startDateTime, endDateTime));
+            List<SysStaff> list = empService.searchEmps(name, phone, startDateTime, endDateTime);
+            maskPasswords(list);
+            return Result.success(list);
         }
-        return Result.success(empService.searchEmpsPage(name, phone, startDateTime, endDateTime, pageNum, pageSize));
+        PageResult<SysStaff> page = empService.searchEmpsPage(name, phone, startDateTime, endDateTime, pageNum, pageSize);
+        maskPasswords(page.getRecords());
+        return Result.success(page);
+    }
+
+    /**
+     * 列表里的密码字段一律清空后再下发
+     */
+    private void maskPasswords(List<SysStaff> staffList) {
+        if (staffList == null || staffList.isEmpty()) {
+            return;
+        }
+        for (SysStaff s : staffList) {
+            if (s != null) {
+                s.setPassword(null);
+            }
+        }
     }
 
     /**
@@ -80,7 +99,10 @@ public class EmpController {
     public Result<SysStaff> empById(@PathVariable Long id) {
         log.info("查询员工信息，id={}", id);
         SysStaff emp = empService.getEmpById(id);
-        log.info("员工信息：{}", emp);
+        log.info("查询员工信息，id={}", id);
+        if (emp != null) {
+            emp.setPassword(null);
+        }
         return Result.success(emp);
     }
 
