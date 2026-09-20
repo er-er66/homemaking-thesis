@@ -1,0 +1,222 @@
+/* ==========================================================================
+   设计令牌 · Design Tokens
+   主题：暖橙色调（家政 / 家庭服务场景 —— 亲和、温暖、可信）
+   仅浅色模式。
+
+   ⚠️ 维护须知
+   文件下半部分的「兼容层」保留了项目早期使用的变量名（--accent / --text-h /
+   --text-light / --bg-white / --primary …）。14 个页面的 <style scoped> 里大量
+   引用这些名字（--accent 就有 30+ 处），改名会连锁破坏页面样式。
+   因此：**只允许换值，不允许改名**。新代码请优先使用上半部分的新令牌。
+   ========================================================================== */
+
+:root {
+  /* ======================================================================
+     1. 品牌色阶 · 暖橙
+     ====================================================================== */
+  --brand-50:  #FFF6F1;
+  --brand-100: #FFEADF;
+  --brand-200: #FFD4BE;
+  --brand-300: #FFB894;
+  --brand-400: #FF9A6B;
+  --brand-500: #FF7A45; /* 主色 */
+  --brand-600: #F5642A;
+  --brand-700: #D14E1B;
+  --brand-800: #A63C13;
+  --brand-900: #7A2C0E;
+
+  /* 主色 RGB 通道，供 rgba() 拼透明度使用 */
+  --brand-rgb: 255, 122, 69;
+
+  /* 渐变 */
+  --gradient-brand:      linear-gradient(135deg, #FF9A5A 0%, #FF6B35 100%);
+  --gradient-brand-soft: linear-gradient(135deg, #FFB07A 0%, #FF8552 100%);
+  --gradient-brand-deep: linear-gradient(135deg, #FF7A45 0%, #E8551F 100%);
+  --gradient-warm-bg:    linear-gradient(180deg, #FFF8F4 0%, #FAF7F4 320px);
+  --gradient-sheen:      linear-gradient(180deg, rgba(255, 255, 255, .18) 0%, rgba(255, 255, 255, 0) 100%);
+
+  /* ======================================================================
+     2. 中性色 · 暖灰（带一点棕调，与橙色同族，避免发冷的纯灰）
+     ====================================================================== */
+  --neutral-0:   #FFFFFF;
+  --neutral-25:  #FDFBFA;
+  --neutral-50:  #FAF7F4;
+  --neutral-100: #F5EFE9;
+  --neutral-200: #EFE7E0;
+  --neutral-300: #E2D7CD;
+  --neutral-400: #C4B5A8;
+  --neutral-500: #A2948A;
+  --neutral-600: #8A7B6E;
+  --neutral-700: #6B5D52;
+  --neutral-800: #4A3F36;
+  --neutral-900: #2B2118;
+
+  /* ======================================================================
+     3. 文字
+     ====================================================================== */
+  --text-primary:     var(--neutral-900);
+  --text-regular:     var(--neutral-800);
+  --text-secondary:   var(--neutral-600);
+  --text-placeholder: var(--neutral-500);
+  --text-disabled:    var(--neutral-400);
+  --text-inverse:     #FFFFFF;
+
+  /* ======================================================================
+     4. 背景与描边
+     ====================================================================== */
+  --surface-page:     var(--neutral-50);
+  --surface-card:     var(--neutral-0);
+  --surface-sunken:   var(--neutral-100);
+  --surface-hover:    var(--brand-50);
+  --surface-active:   var(--brand-100);
+  --surface-overlay:  rgba(43, 33, 24, .45);
+
+  --border-base:      var(--neutral-200);
+  --border-light:     var(--neutral-100);
+  --border-strong:    var(--neutral-300);
+  --border-brand:     var(--brand-200);
+
+  /* ======================================================================
+     5. 语义色
+     ====================================================================== */
+  --color-primary: var(--brand-500);
+  --color-success: #2FA36B;
+  --color-warning: #F5A623;
+  --color-danger:  #E8503A;
+  --color-info:    var(--neutral-600);
+
+  --color-success-bg: #EAF7F0;
+  --color-warning-bg: #FFF6E5;
+  --color-danger-bg:  #FDEDEA;
+  --color-info-bg:    var(--neutral-100);
+
+  /* ======================================================================
+     6. 圆角
+     ====================================================================== */
+  --radius-xs:   4px;
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   20px;
+  --radius-2xl:  28px;
+  --radius-full: 999px;
+
+  /* ======================================================================
+     7. 阴影（用暖棕 rgba，比纯黑更贴合暖色主题）
+     ====================================================================== */
+  --shadow-xs: 0 1px 2px rgba(43, 33, 24, .04);
+  --shadow-sm: 0 2px 8px rgba(43, 33, 24, .06);
+  --shadow-md: 0 6px 20px rgba(43, 33, 24, .08);
+  --shadow-lg: 0 14px 36px rgba(43, 33, 24, .12);
+  --shadow-xl: 0 24px 56px rgba(43, 33, 24, .16);
+  --shadow-brand:      0 8px 20px rgba(var(--brand-rgb), .28);
+  --shadow-brand-soft: 0 4px 12px rgba(var(--brand-rgb), .18);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, .6);
+
+  /* ======================================================================
+     8. 间距（4 的倍数）
+     ====================================================================== */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* ======================================================================
+     9. 字体与行高
+     ====================================================================== */
+  --font-sans: 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+
+  --font-size-xs:   12px;
+  --font-size-sm:   13px;
+  --font-size-base: 14px;
+  --font-size-md:   16px;
+  --font-size-lg:   18px;
+  --font-size-xl:   22px;
+  --font-size-2xl:  28px;
+  --font-size-3xl:  36px;
+  --font-size-4xl:  44px;
+
+  --font-weight-normal:   400;
+  --font-weight-medium:   500;
+  --font-weight-semibold: 600;
+  --font-weight-bold:     700;
+
+  --leading-tight:   1.25;
+  --leading-snug:    1.4;
+  --leading-normal:  1.6;
+  --leading-relaxed: 1.75;
+
+  --tracking-tight: -0.01em;
+  --tracking-wide:  0.02em;
+
+  /* ======================================================================
+     10. 动效
+     ====================================================================== */
+  --ease-out:   cubic-bezier(.22, 1, .36, 1);
+  --ease-inout: cubic-bezier(.4, 0, .2, 1);
+
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
+
+  --transition-base:       all var(--duration-base) var(--ease-inout);
+  --transition-transform:  transform var(--duration-base) var(--ease-out);
+  --transition-fast:       all var(--duration-fast) var(--ease-inout);
+
+  /* ======================================================================
+     11. 布局常量
+     ====================================================================== */
+  --layout-max-width: 1280px;
+  --layout-max-wide:  1600px;
+  --layout-gutter:    var(--space-6);
+  --layout-header-h:  64px;
+  --layout-sidebar-w: 220px;
+
+  --z-dropdown: 1000;
+  --z-sticky:   1020;
+  --z-fixed:    1030;
+  --z-modal:    2000;
+  --z-toast:    3000;
+
+  /* ======================================================================
+     12. 兼容层 —— 旧变量名，只换值不改名
+     （14 个页面的 <style scoped> 仍在引用，见文件头说明）
+     ====================================================================== */
+
+  /* 旧「强调色」= 现在的品牌主色 */
+  --accent:       var(--brand-500);
+  --accent-hover: var(--brand-600);
+  --accent-bg:    rgba(var(--brand-rgb), .10);
+
+  /* 旧文字色 */
+  --text:       var(--neutral-800);
+  --text-h:     var(--neutral-900);
+  --text-light: var(--neutral-600);
+
+  /* 旧背景 / 描边 */
+  --bg:        var(--neutral-50);
+  --bg-white:  var(--neutral-0);
+  --border:    var(--neutral-200);
+
+  /* 旧「深色」—— 原本是 #2c3e50 冷蓝灰，现改为暖棕，用于页脚 / 深色条 */
+  --primary: var(--neutral-900);
+
+  /* 旧语义色 */
+  --success: var(--color-success);
+  --warning: var(--color-warning);
+
+  /* 旧阴影 */
+  --shadow: var(--shadow-md);
+
+  /* 旧字体变量 */
+  --sans:    var(--font-sans);
+  --heading: var(--font-sans);
+}

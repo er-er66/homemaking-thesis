@@ -1,0 +1,465 @@
+/* ==========================================================================
+   左侧品牌区 · 登录 / 注册共用
+   登录页与注册页的左侧橙色区块结构和样式完全一致，抽到这里统一维护，
+   避免两份 <style scoped> 各写一遍（改一处忘一处）。
+
+   命名前缀统一 auth-*，与页面已有类名无冲突。
+   页面里只需保留 .login-left / .register-left 这两个定位类（用于 flex 布局
+   和各自的 mobile 覆盖），视觉样式全部走本文件。
+   ========================================================================== */
+
+.auth-brand {
+  /* sticky + 100vh：注册页表单比一屏高时，品牌区不会被拉长成一大片空橙色，
+     而是固定满屏高、跟着滚 —— 内容永远垂直居中在可视区里 */
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  isolation: isolate;
+  overflow: hidden;
+  flex: 1;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 40px;
+  /* 三层叠加：左上暖光 + 右下深色收边 + 主渐变，比单条 linear-gradient 更有体积感 */
+  background:
+    radial-gradient(120% 100% at 12% 0%, #FFB87E 0%, rgba(255, 184, 126, 0) 58%),
+    radial-gradient(95% 85% at 100% 100%, #DE4810 0%, rgba(222, 72, 16, 0) 62%),
+    linear-gradient(150deg, #FF9C5C 0%, #FF7438 46%, #EE5A1E 100%);
+}
+
+/* ---------- 装饰层 ---------- */
+.auth-deco {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* 点阵网格：中部清晰、四周淡出，给纯色渐变加肌理 */
+.auth-deco__grid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, .3) 1.4px, transparent 1.5px);
+  background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(ellipse 78% 68% at 50% 44%, #000 0%, rgba(0, 0, 0, .3) 58%, transparent 86%);
+  mask-image: radial-gradient(ellipse 78% 68% at 50% 44%, #000 0%, rgba(0, 0, 0, .3) 58%, transparent 86%);
+  opacity: .85;
+}
+
+/* 光晕 */
+.auth-deco__glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(2px);
+}
+
+.auth-deco__glow--a {
+  top: -16%;
+  right: -12%;
+  width: 46%;
+  padding-bottom: 46%;
+  background: radial-gradient(circle, rgba(255, 255, 255, .42) 0%, rgba(255, 255, 255, 0) 70%);
+}
+
+.auth-deco__glow--b {
+  bottom: -20%;
+  left: -14%;
+  width: 52%;
+  padding-bottom: 52%;
+  background: radial-gradient(circle, rgba(140, 40, 0, .42) 0%, rgba(140, 40, 0, 0) 70%);
+}
+
+/* 中部暖光要克制，太亮会把橙底洗成粉白 */
+.auth-deco__glow--c {
+  top: 38%;
+  left: 26%;
+  width: 48%;
+  padding-bottom: 48%;
+  background: radial-gradient(circle, rgba(255, 226, 190, .18) 0%, rgba(255, 226, 190, 0) 68%);
+}
+
+/* 同心涟漪：慢速呼吸，暗示「服务在扩散」 */
+.auth-deco__ripple {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 50%;
+  animation: authRipple 7s var(--ease-inout) infinite;
+}
+
+.auth-deco__ripple--1 {
+  width: 46%;
+  padding-bottom: 46%;
+}
+
+.auth-deco__ripple--2 {
+  width: 78%;
+  padding-bottom: 78%;
+  animation-delay: 1.6s;
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, .11);
+}
+
+/* 漂浮光斑 */
+.auth-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(6px);
+  animation: authFloat 12s var(--ease-inout) infinite;
+}
+
+.auth-orb--1 {
+  top: 14%;
+  left: 10%;
+  width: 12px;
+  height: 12px;
+  background: rgba(255, 255, 255, .75);
+  box-shadow: 0 0 22px 6px rgba(255, 255, 255, .35);
+}
+
+.auth-orb--2 {
+  bottom: 20%;
+  right: 14%;
+  width: 18px;
+  height: 18px;
+  animation-delay: 2.4s;
+  background: rgba(255, 240, 225, .85);
+  box-shadow: 0 0 30px 10px rgba(255, 220, 180, .4);
+}
+
+.auth-orb--3 {
+  top: 62%;
+  left: 16%;
+  width: 9px;
+  height: 9px;
+  animation-delay: 4.2s;
+  background: rgba(255, 255, 255, .65);
+  box-shadow: 0 0 18px 5px rgba(255, 255, 255, .3);
+}
+
+/* 房屋线稿水印 */
+.auth-deco__house {
+  position: absolute;
+  right: -6%;
+  bottom: -8%;
+  width: 46%;
+  max-width: 340px;
+  opacity: .55;
+  animation: authFloat 16s var(--ease-inout) infinite reverse;
+}
+
+/* 斜向扫光：让静态面板有一丝流动感 */
+.auth-deco__sheen {
+  position: absolute;
+  top: -60%;
+  left: -60%;
+  width: 60%;
+  height: 220%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, .16) 50%, rgba(255, 255, 255, 0) 100%);
+  transform: rotate(18deg);
+  animation: authSheen 9s var(--ease-inout) infinite;
+}
+
+/* ---------- 内容区 ---------- */
+.auth-content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: #fff;
+}
+
+/* Logo 玻璃胶囊 */
+.auth-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 24px 10px 12px;
+  margin-bottom: 32px;
+  font-size: 25px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 2px;
+  color: #fff;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, .18);
+  border: 1px solid rgba(255, 255, 255, .34);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 10px 28px rgba(120, 40, 8, .22), inset 0 1px 0 rgba(255, 255, 255, .35);
+  animation: authFadeUp 600ms var(--ease-out) both;
+}
+
+.auth-logo img {
+  width: 42px;
+  height: 42px;
+  /* 圆角已画在 SVG 里，不要再加 border-radius */
+  flex-shrink: 0;
+}
+
+.auth-title {
+  font-size: 42px;
+  font-weight: var(--font-weight-bold);
+  line-height: 1.2;
+  letter-spacing: 4px;
+  color: #fff;
+  margin: 0 0 14px;
+  text-shadow: 0 3px 24px rgba(122, 44, 14, .3);
+  animation: authFadeUp 600ms var(--ease-out) 90ms both;
+}
+
+/* 标题下的短装饰线：两侧渐隐 + 中间菱形 */
+.auth-rule {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  animation: authFadeUp 600ms var(--ease-out) 150ms both;
+}
+
+.auth-rule::before,
+.auth-rule::after {
+  content: '';
+  width: 56px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, .8));
+}
+
+.auth-rule::after {
+  background: linear-gradient(90deg, rgba(255, 255, 255, .8), rgba(255, 255, 255, 0));
+}
+
+.auth-rule i {
+  width: 7px;
+  height: 7px;
+  rotate: 45deg;
+  background: rgba(255, 255, 255, .9);
+  border-radius: 1px;
+}
+
+.auth-subtitle {
+  font-size: var(--font-size-md);
+  line-height: var(--leading-relaxed);
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, .9);
+  margin: 0 0 30px;
+  animation: authFadeUp 600ms var(--ease-out) 210ms both;
+}
+
+/* 特性胶囊 */
+.auth-features {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin: 0 0 30px;
+  padding: 0;
+  list-style: none;
+  animation: authFadeUp 600ms var(--ease-out) 270ms both;
+}
+
+.auth-feature {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 15px;
+  font-size: var(--font-size-sm);
+  letter-spacing: .5px;
+  color: rgba(255, 255, 255, .96);
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, .14);
+  border: 1px solid rgba(255, 255, 255, .22);
+  transition: var(--transition-base);
+}
+
+.auth-feature:hover {
+  background: rgba(255, 255, 255, .26);
+  border-color: rgba(255, 255, 255, .45);
+  transform: translateY(-2px);
+}
+
+.auth-feature__icon {
+  font-size: 15px;
+  font-style: normal;
+  line-height: 1;
+}
+
+/* 数据条 */
+.auth-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  width: 100%;
+  padding: 18px 6px;
+  border-radius: var(--radius-xl);
+  background: rgba(255, 255, 255, .13);
+  border: 1px solid rgba(255, 255, 255, .24);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 12px 32px rgba(120, 40, 8, .16), inset 0 1px 0 rgba(255, 255, 255, .28);
+  animation: authFadeUp 600ms var(--ease-out) 330ms both;
+}
+
+.auth-stat {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.auth-stat + .auth-stat::before {
+  content: '';
+  position: absolute;
+  top: 12%;
+  left: 0;
+  width: 1px;
+  height: 76%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, .45), rgba(255, 255, 255, 0));
+}
+
+.auth-stat strong {
+  font-size: 24px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: .5px;
+  line-height: 1.1;
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(122, 44, 14, .28);
+}
+
+.auth-stat span {
+  font-size: var(--font-size-xs);
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, .78);
+}
+
+/* 底部标语 */
+.auth-foot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 22px;
+  z-index: 1;
+  margin: 0;
+  text-align: center;
+  font-size: var(--font-size-xs);
+  letter-spacing: 3px;
+  color: rgba(255, 255, 255, .62);
+  animation: authFadeUp 600ms var(--ease-out) 420ms both;
+}
+
+/* ---------- 动效 ---------- */
+@keyframes authFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes authFloat {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -16px, 0);
+  }
+}
+
+@keyframes authRipple {
+  0% {
+    opacity: .55;
+    transform: translate(-50%, -50%) scale(.94);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.03);
+  }
+  100% {
+    opacity: .55;
+    transform: translate(-50%, -50%) scale(.94);
+  }
+}
+
+@keyframes authSheen {
+  0% {
+    left: -60%;
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+  70%, 100% {
+    left: 130%;
+    opacity: 0;
+  }
+}
+
+/* ---------- 窄屏 ---------- */
+@media (max-width: 768px) {
+  .auth-brand {
+    /* 竖排时取消吸顶满屏高，否则会顶出一整屏橙色 */
+    position: static;
+    height: auto;
+    align-self: stretch;
+    min-height: 260px;
+    padding: 48px 24px;
+  }
+
+  /* 窄屏空间有限，只保留 Logo + 标题 + 副标题 */
+  .auth-features,
+  .auth-stats,
+  .auth-foot,
+  .auth-deco__ripple--2,
+  .auth-deco__sheen {
+    display: none;
+  }
+
+  .auth-deco__house {
+    width: 70%;
+    opacity: .35;
+  }
+
+  .auth-title {
+    font-size: 30px;
+    letter-spacing: 2px;
+  }
+
+  .auth-subtitle {
+    margin-bottom: 0;
+    font-size: var(--font-size-base);
+  }
+
+  .auth-logo {
+    margin-bottom: 22px;
+  }
+}
+
+/* 尊重用户的「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .auth-deco__ripple,
+  .auth-orb,
+  .auth-deco__house,
+  .auth-deco__sheen,
+  .auth-logo,
+  .auth-title,
+  .auth-rule,
+  .auth-subtitle,
+  .auth-features,
+  .auth-stats,
+  .auth-foot {
+    animation: none !important;
+  }
+}
