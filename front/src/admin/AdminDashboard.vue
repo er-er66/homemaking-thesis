@@ -594,6 +594,28 @@
           <h3>消息列表</h3>
           <el-tabs v-model="messageTab" @tab-change="handleMessageTabChange">
             <el-tab-pane label="用户消息" name="user">
+              <el-form :model="userMessageSearchForm" inline class="search-form">
+                <el-form-item label="用户名称">
+                  <el-input
+                    v-model="userMessageSearchForm.name"
+                    placeholder="请输入用户名称"
+                    clearable
+                    @keyup.enter="searchUserMessageList"
+                  />
+                </el-form-item>
+                <el-form-item label="用户账号">
+                  <el-input
+                    v-model="userMessageSearchForm.account"
+                    placeholder="请输入用户账号"
+                    clearable
+                    @keyup.enter="searchUserMessageList"
+                  />
+                </el-form-item>
+                <el-form-item>
+                  <el-button type="primary" @click="searchUserMessageList">搜索</el-button>
+                  <el-button @click="resetUserMessageSearch">重置</el-button>
+                </el-form-item>
+              </el-form>
               <el-table :data="userMessageList" style="width: 100%" v-loading="userMessageLoading" stripe>
                 <el-table-column label="用户账号" width="150">
                   <template #default="{ row }">
@@ -638,6 +660,28 @@
               </div>
             </el-tab-pane>
             <el-tab-pane label="家政人员消息" name="staff">
+              <el-form :model="staffMessageSearchForm" inline class="search-form">
+                <el-form-item label="家政人员名称">
+                  <el-input
+                    v-model="staffMessageSearchForm.name"
+                    placeholder="请输入家政人员名称"
+                    clearable
+                    @keyup.enter="searchStaffMessageList"
+                  />
+                </el-form-item>
+                <el-form-item label="家政人员账号">
+                  <el-input
+                    v-model="staffMessageSearchForm.account"
+                    placeholder="请输入家政人员账号"
+                    clearable
+                    @keyup.enter="searchStaffMessageList"
+                  />
+                </el-form-item>
+                <el-form-item>
+                  <el-button type="primary" @click="searchStaffMessageList">搜索</el-button>
+                  <el-button @click="resetStaffMessageSearch">重置</el-button>
+                </el-form-item>
+              </el-form>
               <el-table :data="staffMessageList" style="width: 100%" v-loading="staffMessageLoading" stripe>
                 <el-table-column label="员工账号" width="150">
                   <template #default="{ row }">
@@ -1034,6 +1078,10 @@ const userMessageLoading = ref(false)
 const staffMessageList = ref([])
 const staffMessageLoading = ref(false)
 
+// 消息列表搜索条件（名称 / 账号，均支持模糊匹配）
+const userMessageSearchForm = ref({ name: '', account: '' })
+const staffMessageSearchForm = ref({ name: '', account: '' })
+
 const userName = ref('')
 const userAvatar = ref('')
 
@@ -1198,12 +1246,16 @@ const createPager = (listRef, loadingRef, requestFn, options = {}) => {
   /**
    * 拉取全量数据并本地分页，返回全量数组（不写 listRef）。
    * 供需要「先拿全量再自行映射」的场景使用，如消息列表要 join 会话记录。
-   * 索引拉取失败时返回 []。
+   * 拉取失败时返回 []。
+   *
+   * @param {Function} fullApi 可选的另一个接口（不传则用本 pager 的 requestFn）
+   * @param {object}   params  查询条件（如 { name, account }）。注意这里**不带**
+   *                           pageNum/pageSize，靠后端「不传分页参数即返回全量数组」的约定拿全量。
    */
-  const fetchAll = async (fullApi) => {
+  const fetchAll = async (fullApi, params = {}) => {
     loadingRef.value = true
     try {
-      const res = await (fullApi || requestFn)({})
+      const res = await (fullApi || requestFn)(params)
       const data = (res && res.data) ?? []
       allRows = Array.isArray(data) ? data : (data.records || data.list || [])
     } catch {
@@ -1805,13 +1857,28 @@ const getAdminAccount = () => {
 /**
  * 消息列表的公共实现：拉一页「用户/员工」，再与该管理员的会话列表匹配出最新消息。
  * 会话列表（/chat/rooms）是一次性全量返回的，所以匹配不受分页影响。
- * @param {object} pager    对应的 pager 实例（负责分页与 total）
- * @param {object} listApi  拉取用户/员工列表的接口
+ *
+ * 搜索：名称 / 账号两个条件都交给后端（走后端模糊查询），前端不再做筛选 ——
+ * 后端分页生效后前端没有全量数据，本地筛选只能筛当前页。
+ * 账号参数用 `account`，后端尚未支持时前端会在本地补一层兜底（见 filterMessageRows）。
+ *
+ * @param {object} pager      对应的 pager 实例（负责分页与 total）
+ * @param {object} listApi    拉取用户/员工列表的接口
+ * @param {object} itemKey    { account, name } 映射用的字段名前缀
+ * @param {object} searchForm 搜索表单 ref（{ name, account }）
  */
-const buildMessageRows = async (pager, loadingRef, rowsRef, listApi, itemKey) => {
+const buildMessageRows = async (pager, loadingRef, rowsRef, listApi, itemKey, searchForm) => {
   loadingRef.value = true
   try {
-    const allRows = await pager.fetchAll(listApi)
+    const form = (searchForm && searchForm.value) || {}
+    const account = String(form.account || '').trim()
+    const name = String(form.name || '').trim()
+    // account 后端暂不支持时不会过滤，先本地兜底；name/startTime 等标准参数直接下传
+    const params = {}
+    if (name) params.name = name
+    if (account) params.account = account
+
+    const allRows = await pager.fetchAll(listApi, params)
     const adminAccount = getAdminAccount()
     let rooms = []
     if (adminAccount) {
@@ -1822,19 +1889,21 @@ const buildMessageRows = async (pager, loadingRef, rowsRef, listApi, itemKey) =>
     }
 
     const mapped = allRows.map(item => {
-      const account = item.account || item.username || ''
-      const room = rooms.find(r => r.account === account)
+      const rowAccount = item.account || item.username || ''
+      const room = rooms.find(r => r.account === rowAccount)
       return {
-        [itemKey.account]: account,
+        [itemKey.account]: rowAccount,
         [itemKey.name]: item.realName || item.username || '',
         lastMessage: room ? (room.lastMsg || '') : '',
         lastTime: room ? (room.lastTime || '') : (item.createTime || '')
       }
     })
+    // 本地兜底：后端还不认 account 参数时，账号仍能模糊过滤（后端补上后此段为无害的空操作）
+    const filtered = filterMessageRows(mapped, itemKey.account, account)
     // 映射后的数组长度与源数据一致，直接本地切片
-    pager.total.value = mapped.length
+    pager.total.value = filtered.length
     const start = (pager.pageNum.value - 1) * pager.pageSize.value
-    rowsRef.value = mapped.slice(start, start + pager.pageSize.value)
+    rowsRef.value = filtered.slice(start, start + pager.pageSize.value)
   } catch {
     rowsRef.value = []
     pager.total.value = 0
@@ -1842,6 +1911,17 @@ const buildMessageRows = async (pager, loadingRef, rowsRef, listApi, itemKey) =>
     loadingRef.value = false
   }
 }
+
+/**
+ * 账号模糊过滤兜底。后端 `/users`、`/emp` 支持 name/phone 但暂未支持 account 参数，
+ * 这里按账号做本地 like 匹配；等后端支持后，返回结果已由后端过滤，此函数不会改变结果。
+ */
+const filterMessageRows = (rows, accountKey, keyword) => {
+  if (!keyword) return rows
+  const kw = keyword.toLowerCase()
+  return rows.filter(r => String(r[accountKey] || '').toLowerCase().includes(kw))
+}
+
 
 /**
  * 消息列表的名称列统一展示成「名称（账号）」。
@@ -1860,14 +1940,34 @@ const formatMessageName = (name, account) => {
 }
 
 const fetchUserMessageList = () =>
-  buildMessageRows(userMessagePager, userMessageLoading, userMessageList, getUserListApi, {
-    account: 'userAccount', name: 'userName'
-  })
+  buildMessageRows(
+    userMessagePager, userMessageLoading, userMessageList, getUserListApi,
+    { account: 'userAccount', name: 'userName' }, userMessageSearchForm
+  )
 
 const fetchStaffMessageList = () =>
-  buildMessageRows(staffMessagePager, staffMessageLoading, staffMessageList, getStaffListApi, {
-    account: 'staffAccount', name: 'staffName'
-  })
+  buildMessageRows(
+    staffMessagePager, staffMessageLoading, staffMessageList, getStaffListApi,
+    { account: 'staffAccount', name: 'staffName' }, staffMessageSearchForm
+  )
+
+// 搜索 / 重置一律回到第 1 页再查（否则在第 3 页搜索会越界变空白）
+const searchUserMessageList = () => {
+  userMessagePager.pageNum.value = 1
+  fetchUserMessageList()
+}
+const resetUserMessageSearch = () => {
+  userMessageSearchForm.value = { name: '', account: '' }
+  searchUserMessageList()
+}
+const searchStaffMessageList = () => {
+  staffMessagePager.pageNum.value = 1
+  fetchStaffMessageList()
+}
+const resetStaffMessageSearch = () => {
+  staffMessageSearchForm.value = { name: '', account: '' }
+  searchStaffMessageList()
+}
 
 // 消息列表展示的是映射后的行，翻页 / 切每页条数都不能走 pager 的通用切片，要重建映射后再切
 const changeMessagePage = (pager, fetcher) => (page) => {

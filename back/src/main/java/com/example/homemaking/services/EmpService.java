@@ -32,7 +32,7 @@ public interface EmpService {
      * @param endTime 创建时间结束
      * @return 员工列表
      */
-    List<SysStaff> searchEmps(String name, String phone, LocalDateTime startTime, LocalDateTime endTime);
+    List<SysStaff> searchEmps(String name, String account, String phone, LocalDateTime startTime, LocalDateTime endTime);
 
     /**
      * 分页查询员工列表
@@ -45,6 +45,6 @@ public interface EmpService {
      * @param pageSize  每页条数
      * @return 分页结果
      */
-    PageResult<SysStaff> searchEmpsPage(String name, String phone, LocalDateTime startTime, LocalDateTime endTime,
+    PageResult<SysStaff> searchEmpsPage(String name, String account, String phone, LocalDateTime startTime, LocalDateTime endTime,
                                         Integer pageNum, Integer pageSize);
 }

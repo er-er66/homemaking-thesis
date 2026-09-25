@@ -36,24 +36,28 @@ public interface UserMapper {
      * 模糊查询用户列表
      *
      * @param name      用户名（模糊匹配）
+     * @param account   登录账号（模糊匹配）
      * @param phone     手机号（模糊匹配）
      * @param startTime 创建时间开始
      * @param endTime   创建时间结束
      * @return 用户列表
      */
-    List<SysUser> searchUsers(@Param("name") String name, @Param("phone") String phone,
+    List<SysUser> searchUsers(@Param("name") String name, @Param("account") String account,
+                              @Param("phone") String phone,
                               @Param("startTime") LocalDateTime startTime, @Param("endTime") LocalDateTime endTime);
 
     /**
      * 按条件统计用户总数
      *
      * @param name      用户名（模糊匹配）
+     * @param account   登录账号（模糊匹配）
      * @param phone     手机号（模糊匹配）
      * @param startTime 创建时间开始
      * @param endTime   创建时间结束
      * @return 总记录数
      */
-    long countUsers(@Param("name") String name, @Param("phone") String phone,
+    long countUsers(@Param("name") String name, @Param("account") String account,
+                    @Param("phone") String phone,
                     @Param("startTime") LocalDateTime startTime, @Param("endTime") LocalDateTime endTime);
 
     /**
@@ -63,7 +67,8 @@ public interface UserMapper {
      * @param pageSize 每页条数
      * @return 当前页用户列表
      */
-    List<SysUser> searchUsersPage(@Param("name") String name, @Param("phone") String phone,
+    List<SysUser> searchUsersPage(@Param("name") String name, @Param("account") String account,
+                                  @Param("phone") String phone,
                                   @Param("startTime") LocalDateTime startTime, @Param("endTime") LocalDateTime endTime,
                                   @Param("offset") int offset, @Param("pageSize") int pageSize);
 

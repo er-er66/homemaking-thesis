@@ -34,17 +34,20 @@ public interface UserService {
      * 模糊查询用户列表
      *
      * @param name      用户名（模糊匹配）
+     * @param account   登录账号（模糊匹配）
      * @param phone     手机号（模糊匹配）
      * @param startTime 创建时间开始
      * @param endTime   创建时间结束
      * @return 用户列表
      */
-    List<SysUser> searchUsers(String name, String phone, LocalDateTime startTime, LocalDateTime endTime);
+    List<SysUser> searchUsers(String name, String account, String phone,
+                              LocalDateTime startTime, LocalDateTime endTime);
 
     /**
      * 分页查询用户列表
      *
      * @param name      用户名（模糊匹配）
+     * @param account   登录账号（模糊匹配）
      * @param phone     手机号（模糊匹配）
      * @param startTime 创建时间开始
      * @param endTime   创建时间结束
@@ -52,7 +55,8 @@ public interface UserService {
      * @param pageSize  每页条数
      * @return 分页结果
      */
-    PageResult<SysUser> searchUsersPage(String name, String phone, LocalDateTime startTime, LocalDateTime endTime,
+    PageResult<SysUser> searchUsersPage(String name, String account, String phone,
+                                        LocalDateTime startTime, LocalDateTime endTime,
                                         Integer pageNum, Integer pageSize);
 
     /**

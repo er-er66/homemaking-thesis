@@ -35,6 +35,7 @@ public class UserController {
      * <p>传 pageNum/pageSize：返回 {total,pageNum,pageSize,records} 分页体</p>
      *
      * @param name      用户名（模糊匹配）
+     * @param account   账号（模糊匹配）
      * @param phone     手机号（模糊匹配）
      * @param startTime 创建时间开始
      * @param endTime   创建时间结束
@@ -45,6 +46,7 @@ public class UserController {
     @GetMapping("/users")
     public Result<?> users(
             @RequestParam(required = false) String name,
+            @RequestParam(required = false) String account,
             @RequestParam(required = false) String phone,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startTime,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endTime,
@@ -52,15 +54,15 @@ public class UserController {
             @RequestParam(required = false) Integer pageSize) {
         LocalDateTime startDateTime = startTime != null ? startTime.atStartOfDay() : null;
         LocalDateTime endDateTime = endTime != null ? endTime.atTime(LocalTime.MAX) : null;
-        log.info("查询用户列表，name={}, phone={}, startTime={}, endTime={}, pageNum={}, pageSize={}",
-                name, phone, startDateTime, endDateTime, pageNum, pageSize);
+        log.info("查询用户列表，name={}, account={}, phone={}, startTime={}, endTime={}, pageNum={}, pageSize={}",
+                name, account, phone, startDateTime, endDateTime, pageNum, pageSize);
 
         if (!PageUtil.enabled(pageNum, pageSize)) {
-            List<SysUser> list = userService.searchUsers(name, phone, startDateTime, endDateTime);
+            List<SysUser> list = userService.searchUsers(name, account, phone, startDateTime, endDateTime);
             maskPasswords(list);
             return Result.success(list);
         }
-        PageResult<SysUser> page = userService.searchUsersPage(name, phone, startDateTime, endDateTime, pageNum, pageSize);
+        PageResult<SysUser> page = userService.searchUsersPage(name, account, phone, startDateTime, endDateTime, pageNum, pageSize);
         maskPasswords(page.getRecords());
         return Result.success(page);
     }

@@ -56,27 +56,28 @@ public class UserServiceImpl implements UserService {
     /**
      * 模糊查询用户列表
      * @param name 用户名（模糊匹配）
+     * @param account 账号（模糊匹配）
      * @param phone 手机号（模糊匹配）
      * @param startTime 创建时间开始
      * @param endTime 创建时间结束
      * @return 用户列表
      */
     @Override
-    public List<SysUser> searchUsers(String name, String phone, LocalDateTime startTime, LocalDateTime endTime) {
-        return userMapper.searchUsers(name, phone, startTime, endTime);
+    public List<SysUser> searchUsers(String name, String account, String phone, LocalDateTime startTime, LocalDateTime endTime) {
+        return userMapper.searchUsers(name, account, phone, startTime, endTime);
     }
 
     /**
      * 分页查询用户列表
      */
     @Override
-    public PageResult<SysUser> searchUsersPage(String name, String phone, LocalDateTime startTime, LocalDateTime endTime,
+    public PageResult<SysUser> searchUsersPage(String name, String account, String phone, LocalDateTime startTime, LocalDateTime endTime,
                                                Integer pageNum, Integer pageSize) {
         int num = PageUtil.normalizePageNum(pageNum);
         int size = PageUtil.normalizePageSize(pageSize);
-        long total = userMapper.countUsers(name, phone, startTime, endTime);
+        long total = userMapper.countUsers(name, account, phone, startTime, endTime);
         List<SysUser> records = total == 0 ? List.of()
-                : userMapper.searchUsersPage(name, phone, startTime, endTime, PageUtil.offset(num, size), size);
+                : userMapper.searchUsersPage(name, account, phone, startTime, endTime, PageUtil.offset(num, size), size);
         return PageResult.of(total, num, size, records);
     }
 

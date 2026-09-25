@@ -25,6 +25,9 @@
         <if test="name != null and name != ''">
             and username like concat('%', #{name}, '%')
         </if>
+        <if test="account != null and account != ''">
+            and account like concat('%', #{account}, '%')
+        </if>
         <if test="phone != null and phone != ''">
             and phone like concat('%', #{phone}, '%')
         </if>
