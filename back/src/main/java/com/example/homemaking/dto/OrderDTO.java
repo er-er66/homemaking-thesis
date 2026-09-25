@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class OrderDTO {
@@ -76,4 +77,17 @@ public class OrderDTO {
     private String remark;
 
     private String username;
+
+    /**
+     * 下单选择的套餐明细（推荐写法）：
+     * {@code [{"packageId":5,"packageNum":2}]}
+     * <p>与 {@link #packageIds} 同时存在时以本字段为准。</p>
+     */
+    private List<OrderPackageItemDTO> packages;
+
+    /**
+     * 下单选择的套餐ID（简写），每个套餐数量默认 1。
+     * <p>仅当 {@link #packages} 为空时生效。</p>
+     */
+    private List<Long> packageIds;
 }

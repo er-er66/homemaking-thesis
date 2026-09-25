@@ -12,8 +12,38 @@
         set package_name=#{packageName},service_type=#{serviceType},package_price=#{packagePrice},package_desc=#{packageDesc},package_img=#{packageImg},unit_text=#{unitText},status=#{status},sort=#{sort},expire_status=#{expireStatus},expire_start_time=#{expireStartTime},expire_end_time=#{expireEndTime},update_time=#{updateTime}
         where id=#{id}
     </update>
+
+    <!--
+        上下架切换用一条 SQL 原子翻转：
+        若改成「先 select status 再 update」，并发下两次点击会互相覆盖，结果不可预期。
+        is_deleted = 0 保证已删除的套餐不能被重新上架。
+    -->
+    <update id="toggleStatus">
+        update homemaking_package
+        set status = case when status = 1 then 0 else 1 end,
+            update_time = now()
+        where id = #{id} and is_deleted = 0
+    </update>
+
+    <!-- 显式设置状态（幂等，便于后续做批量上下架） -->
+    <update id="updateStatus">
+        update homemaking_package
+        set status = #{status},
+            update_time = now()
+        where id = #{id} and is_deleted = 0
+    </update>
+
     <select id="selectById" resultType="com.example.homemaking.entity.HomemakingPackage">
         select * from homemaking_package where id=#{id}
+    </select>
+    <select id="selectByIds" resultType="com.example.homemaking.entity.HomemakingPackage">
+        select * from homemaking_package
+        where is_deleted = 0
+        and id in
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        order by id asc
     </select>
     <select id="selectList" resultType="com.example.homemaking.entity.HomemakingPackage">
         select * from homemaking_package where is_deleted=0

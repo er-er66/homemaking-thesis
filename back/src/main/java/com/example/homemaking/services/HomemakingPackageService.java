@@ -41,4 +41,21 @@ public interface HomemakingPackageService {
      * @return
      */
     int updatePackage(HomemakingPackageDTO homemakingPackageDTO);
+
+    /**
+     * 切换套餐上下架状态：0(上架) ↔ 1(下架)，并清理该套餐的 Redis 缓存
+     *
+     * @param id 套餐ID
+     * @return 受影响的行数，0 表示套餐不存在或已逻辑删除
+     */
+    int toggleStatus(Long id);
+
+    /**
+     * 显式设置套餐上下架状态，并清理该套餐的 Redis 缓存
+     *
+     * @param id     套餐ID
+     * @param status 0上架 1下架
+     * @return 受影响的行数，0 表示套餐不存在或已逻辑删除
+     */
+    int updateStatus(Long id, Integer status);
 }

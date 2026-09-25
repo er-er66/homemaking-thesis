@@ -69,11 +69,18 @@ public class HomemakingPackageServiceImpl implements HomemakingPackageService {
         }
         if (cacheDTO != null && cacheDTO.getPackageInfo() != null) {
             HomemakingPackage pak = cacheDTO.getPackageInfo();//获取到套餐原始数据赋值给pak
-            if (checkPackageEffective(pak)) {
+            // 缓存命中也必须复核「状态 + 删除标记 + 有效期」：
+            // 缓存里存的是写入那一刻的快照，套餐可能已经被下架，
+            // 原来这里只判有效期，导致下架的套餐在缓存 TTL（最长 2.5 小时）内还能被取到。
+            if (pak.getStatus() != null && pak.getStatus() == 0
+                    && pak.getIsDeleted() != null && pak.getIsDeleted() == 0
+                    && checkPackageEffective(pak)) {
                 return pak;
             } else {
-                //套餐以失效主动清理缓存，防止占用无效缓存
+                //套餐已下架/已删除/已失效，主动清理缓存，防止占用无效缓存
                 redisTemplate.delete(cacheKey);
+                //写空标识，避免下架后每次请求都回源数据库（缓存穿透）
+                redisTemplate.opsForValue().set(cacheKey, "NULL", NULL_TTL, TimeUnit.SECONDS);
                 return null;
             }
         }
@@ -101,12 +108,23 @@ public class HomemakingPackageServiceImpl implements HomemakingPackageService {
     }
 
     private boolean checkPackageEffective(HomemakingPackage pak) {
-        //判断套餐是否在有效期
+        // expire_status=0 为「永久上架」，不受起止时间约束。
+        // 库中永久上架的套餐 expire_start_time / expire_end_time 普遍为 NULL，
+        // 原来直接 now.isAfter(startTime) 会 NPE（22 条里有 21 条会炸）。
+        if (pak.getExpireStatus() == null || pak.getExpireStatus() == 0) {
+            return true;
+        }
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startTime = pak.getExpireStartTime();//套餐开始时间
         LocalDateTime endTime = pak.getExpireEndTime();//套餐到期结束时间
-        //当前时间 > 开始时间 并且 当前时间 < 结束时间 则返回true，否则返回false
-        return now.isAfter(startTime) && now.isBefore(endTime);
+        // 限时上架（expire_status=1）：哪一侧时间为空就不受那一侧约束
+        if (startTime != null && now.isBefore(startTime)) {
+            return false;
+        }
+        if (endTime != null && now.isAfter(endTime)) {
+            return false;
+        }
+        return true;
     }
 
 
@@ -148,6 +166,42 @@ public class HomemakingPackageServiceImpl implements HomemakingPackageService {
         HomemakingPackage homemakingPackage = new HomemakingPackage();
         BeanUtils.copyProperties(homemakingPackageDTO,homemakingPackage);
         homemakingPackage.setUpdateTime(LocalDateTime.now());
-        return homemakingPackageMapper.updateById(homemakingPackage);
+        int count = homemakingPackageMapper.updateById(homemakingPackage);
+        if (count > 0 && homemakingPackage.getId() != null) {
+            // 编辑弹窗里也能改 status（上架/下架单选），所以这里同样要清缓存
+            evictCache(homemakingPackage.getId());
+        }
+        return count;
+    }
+
+    @Override
+    public int toggleStatus(Long id) {
+        int count = homemakingPackageMapper.toggleStatus(id);
+        if (count > 0) {
+            evictCache(id);
+        }
+        return count;
+    }
+
+    @Override
+    public int updateStatus(Long id, Integer status) {
+        int count = homemakingPackageMapper.updateStatus(id, status);
+        if (count > 0) {
+            evictCache(id);
+        }
+        return count;
+    }
+
+    /**
+     * 清理单个套餐的详情缓存。
+     * <p>上下架后必须清：{@link #getPackageById} 命中缓存时返回的是写入那一刻的快照，
+     * 不去掉的话下架后的套餐在缓存 TTL（最长 2.5 小时）内仍会被返回。</p>
+     * <p>注意缓存的 null 空标识也必须一起删 —— 否则套餐从「空」变成「有值」时会被空标识挡住。</p>
+     */
+    private void evictCache(Long id) {
+        if (id == null) {
+            return;
+        }
+        redisTemplate.delete(KEY_PREFIX + id);
     }
 }

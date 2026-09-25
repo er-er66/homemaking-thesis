@@ -3,12 +3,17 @@ package com.example.homemaking.services.impl;
 import ch.qos.logback.core.joran.util.beans.BeanUtil;
 import com.example.homemaking.dto.HomemakingOrderImgDTO;
 import com.example.homemaking.dto.OrderDTO;
+import com.example.homemaking.dto.OrderPackageItemDTO;
 import com.example.homemaking.dto.PageResult;
 import com.example.homemaking.entity.HomemakingOrderImg;
+import com.example.homemaking.entity.HomemakingOrderPackage;
+import com.example.homemaking.entity.HomemakingPackage;
 import com.example.homemaking.entity.Order;
 import com.example.homemaking.entity.SysUser;
 import com.example.homemaking.entity.UserImg;
 import com.example.homemaking.mapper.HomemakingOrderImgMapper;
+import com.example.homemaking.mapper.HomemakingOrderPackageMapper;
+import com.example.homemaking.mapper.HomemakingPackageMapper;
 import com.example.homemaking.mapper.OrderMapper;
 import com.example.homemaking.mapper.UserImgMapper;
 import com.example.homemaking.mapper.UserMapper;
@@ -22,8 +27,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -40,12 +50,19 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     private HomemakingOrderImgMapper homemakingOrderImgMapper;
 
+    @Autowired
+    private HomemakingOrderPackageMapper orderPackageMapper;
+
+    @Autowired
+    private HomemakingPackageMapper homemakingPackageMapper;
+
     /**
      * 创建订单
      *
      * @param orderDTO
      * @return
      */
+    @Transactional
     @Override
     public String createOrder(OrderDTO orderDTO) {
         //获取到当前支付密码是否正确（库中存的是 BCrypt hash，走 matches 校验）
@@ -70,6 +87,21 @@ public class OrderServiceImpl implements OrderService {
         order.setIsDeleted(0);//逻辑删除：0正常 1已删除
         order.setStaffAccount("null");
 
+        // 下单时选的套餐（可能为空：老前端只传 service_item 文本名，不传套餐）
+        List<HomemakingOrderPackage> orderPackages = buildOrderPackages(orderDTO, order.getOrderNo());
+
+        if (!orderPackages.isEmpty()) {
+            // 套餐算出来的金额优先于前端传的金额（防止前端算错或漏传 unit_price 快照）
+            BigDecimal packageAmount = orderPackages.stream()
+                    .map(ip -> ip.getUnitPrice().multiply(BigDecimal.valueOf(ip.getPackageNum())))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            order.setOrderAmount(packageAmount);
+            if (order.getServiceItem() == null || order.getServiceItem().trim().isEmpty()) {
+                // service_item 是 NOT NULL，套餐场景下用套餐名兜底
+                order.setServiceItem(buildServiceItemText(orderPackages));
+            }
+        }
+
         // 保存订单封面图片
         if (orderDTO.getCoverUrl() != null && !orderDTO.getCoverUrl().isEmpty()) {
             UserImg userImg = new UserImg();
@@ -84,10 +116,101 @@ public class OrderServiceImpl implements OrderService {
         }
 
         int count2 = orderMapper.addOrder(order);
-        if (count2 > 0) {
-            return "订单创建成功";
+        if (count2 <= 0) {
+            return "订单创建失败";
         }
-        return "订单创建失败";
+
+        // 订单必须先落库拿到 order_no，才能写中间表 —— 否则撞 fk_order_pkg_order_no 外键
+        if (!orderPackages.isEmpty()) {
+            int count3 = orderPackageMapper.batchInsert(orderPackages);
+            if (count3 <= 0) {
+                // 抛异常而不是 return：@Transactional 默认只对 RuntimeException 回滚，
+                // 直接 return 会把已经插入的订单留下，中间表却空，数据不一致。
+                throw new IllegalStateException("订单套餐关联写入失败，orderNo=" + order.getOrderNo());
+            }
+        }
+        return "订单创建成功";
+    }
+
+    /**
+     * 把 {@code OrderDTO} 上的套餐入参整理成中间表实体。
+     * <p>支持两种写法：</p>
+     * <ul>
+     *   <li>{@code packages: [{packageId, packageNum}]} —— 推荐，可指定数量</li>
+     *   <li>{@code packageIds: [1,2]} —— 简写，数量默认 1；仅当 packages 为空时生效</li>
+     * </ul>
+     * <p>同一套餐出现多次会被合并数量：{@code uk_order_package(order_no, package_id)}
+     * 唯一键会拦下重复插入。</p>
+     * <p>套餐不存在或已被逻辑删除时直接抛异常（触发事务回滚），不静默跳过。</p>
+     */
+    private List<HomemakingOrderPackage> buildOrderPackages(OrderDTO orderDTO, String orderNo) {
+        // 归一化：packageId -> packageNum
+        Map<Long, Integer> merged = new LinkedHashMap<>();
+        if (orderDTO.getPackages() != null) {
+            for (OrderPackageItemDTO item : orderDTO.getPackages()) {
+                if (item == null || item.getPackageId() == null) {
+                    continue;
+                }
+                int num = item.getPackageNum() == null || item.getPackageNum() <= 0 ? 1 : item.getPackageNum();
+                merged.merge(item.getPackageId(), num, Integer::sum);
+            }
+        }
+        if (merged.isEmpty() && orderDTO.getPackageIds() != null) {
+            for (Long id : orderDTO.getPackageIds()) {
+                if (id != null) {
+                    merged.merge(id, 1, Integer::sum);
+                }
+            }
+        }
+        if (merged.isEmpty()) {
+            return List.of();
+        }
+
+        // 一次 IN 查询拿价格快照，避免 N 次查询
+        List<HomemakingPackage> packages =
+                homemakingPackageMapper.selectByIds(new ArrayList<>(merged.keySet()));
+        Map<Long, HomemakingPackage> packageMap = packages.stream()
+                .collect(Collectors.toMap(HomemakingPackage::getId, p -> p));
+
+        List<Long> missing = merged.keySet().stream()
+                .filter(id -> !packageMap.containsKey(id))
+                .collect(Collectors.toList());
+        if (!missing.isEmpty()) {
+            throw new IllegalArgumentException("套餐不存在或已下架：" + missing);
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        List<HomemakingOrderPackage> result = new ArrayList<>(merged.size());
+        for (Map.Entry<Long, Integer> e : merged.entrySet()) {
+            HomemakingPackage pkg = packageMap.get(e.getKey());
+            HomemakingOrderPackage op = new HomemakingOrderPackage();
+            op.setOrderNo(orderNo);
+            op.setPackageId(e.getKey());
+            op.setPackageNum(e.getValue());
+            op.setUnitPrice(pkg.getPackagePrice());// 下单价格快照，防止后续调价影响历史订单
+            op.setCreateTime(now);
+            result.add(op);
+        }
+        return result;
+    }
+
+    /**
+     * 套餐名为空时给 service_item 兜底，例如「日常钟点保洁 x2,整理收纳服务 x1」
+     */
+    private String buildServiceItemText(List<HomemakingOrderPackage> orderPackages) {
+        List<Long> ids = orderPackages.stream()
+                .map(HomemakingOrderPackage::getPackageId)
+                .collect(Collectors.toList());
+        Map<Long, String> nameMap = homemakingPackageMapper.selectByIds(ids).stream()
+                .collect(Collectors.toMap(HomemakingPackage::getId, HomemakingPackage::getPackageName));
+        return orderPackages.stream()
+                .map(op -> {
+                    String name = nameMap.getOrDefault(op.getPackageId(), "套餐" + op.getPackageId());
+                    return op.getPackageNum() != null && op.getPackageNum() > 1
+                            ? name + " x" + op.getPackageNum()
+                            : name;
+                })
+                .collect(Collectors.joining(","));
     }
 
     /**

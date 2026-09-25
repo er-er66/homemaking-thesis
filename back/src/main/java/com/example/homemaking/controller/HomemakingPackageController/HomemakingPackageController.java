@@ -59,4 +59,28 @@ public class HomemakingPackageController {
         return Result.error("update failed");
     }
 
+    /**
+     * 套餐上架/下架
+     * <p>不传 status：0(上架) ↔ 1(下架) 切换 —— 管理端列表的「上架/下架」按钮走这条</p>
+     * <p>传 status=0 或 1：显式设置，幂等，适合后续做批量上下架</p>
+     *
+     * @param id     套餐ID
+     * @param status 可选，0上架 1下架；不传表示切换
+     */
+    @PutMapping("/{id}/status")
+    public Result<String> updateStatus(@PathVariable Long id,
+                                       @RequestParam(required = false) Integer status) {
+        log.info("套餐上架/下架，id={}, status={}", id, status);
+        if (status != null && status != 0 && status != 1) {
+            return Result.error("status 只能是 0(上架) 或 1(下架)");
+        }
+        int count = (status == null)
+                ? homemakingPackageService.toggleStatus(id)
+                : homemakingPackageService.updateStatus(id, status);
+        if (count > 0) {
+            return Result.success(status == null ? "状态切换成功" : "状态更新成功");
+        }
+        return Result.error("操作失败，套餐不存在或已删除");
+    }
+
 }
