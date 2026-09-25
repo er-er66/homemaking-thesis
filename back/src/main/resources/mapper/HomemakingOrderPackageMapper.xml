@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.homemaking.mapper.HomemakingOrderPackageMapper">
+
+    <insert id="batchInsert">
+        insert into homemaking_order_package(order_no, package_id, package_num, unit_price, create_time)
+        values
+        <foreach collection="items" item="it" separator=",">
+            (#{orderNo}, #{it.packageId}, #{it.packageNum}, #{it.unitPrice}, #{createTime})
+        </foreach>
+    </insert>
+
+    <delete id="deleteByOrderNo">
+        delete from homemaking_order_package where order_no = #{orderNo}
+    </delete>
+
+    <sql id="orderPackageColumns">
+        op.id           as id,
+        op.order_no     as orderNo,
+        op.package_id   as packageId,
+        op.package_num  as packageNum,
+        op.unit_price   as unitPrice,
+        op.create_time  as createTime,
+        p.package_name  as packageName,
+        p.unit_text     as unitText,
+        p.package_img   as packageImg
+    </sql>
+
+    <select id="selectByOrderNo" resultType="com.example.homemaking.entity.HomemakingOrderPackage">
+        select
+        <include refid="orderPackageColumns"/>
+        from homemaking_order_package op
+        left join homemaking_package p on p.id = op.package_id
+        where op.order_no = #{orderNo}
+        order by op.id asc
+    </select>
+
+    <select id="selectByOrderNos" resultType="com.example.homemaking.entity.HomemakingOrderPackage">
+        select
+        <include refid="orderPackageColumns"/>
+        from homemaking_order_package op
+        left join homemaking_package p on p.id = op.package_id
+        where op.order_no in
+        <foreach collection="orderNos" item="orderNo" open="(" separator="," close=")">
+            #{orderNo}
+        </foreach>
+        order by op.id asc
+    </select>
+
+</mapper>

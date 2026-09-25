@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.homemaking.mapper.SysStaffPackageMapper">
+
+    <insert id="batchInsert">
+        insert into sys_staff_package(staff_account, package_id, create_time)
+        values
+        <foreach collection="packageIds" item="packageId" separator=",">
+            (#{staffAccount}, #{packageId}, #{createTime})
+        </foreach>
+    </insert>
+
+    <delete id="deleteByStaffAccount">
+        delete from sys_staff_package where staff_account = #{staffAccount}
+    </delete>
+
+    <select id="selectPackageIdsByStaffAccount" resultType="java.lang.Long">
+        select package_id from sys_staff_package where staff_account = #{staffAccount} order by package_id asc
+    </select>
+
+    <select id="selectPackagesByStaffAccount" resultType="com.example.homemaking.entity.HomemakingPackage">
+        select p.*
+        from sys_staff_package sp
+                 join homemaking_package p on p.id = sp.package_id
+        where sp.staff_account = #{staffAccount}
+          and p.is_deleted = 0
+        order by p.id asc
+    </select>
+
+    <!--
+        批量查多个员工的套餐绑定。员工列表页必须先收集本页所有 account 再一次性查，
+        不要在循环里逐个调 selectPackagesByStaffAccount（N+1）。
+    -->
+    <select id="selectPackagesByStaffAccounts" resultType="com.example.homemaking.dto.StaffPackageRefDTO">
+        select sp.staff_account as staffAccount,
+               sp.package_id    as packageId,
+               p.package_name   as packageName,
+               p.package_price  as packagePrice,
+               p.unit_text      as unitText
+        from sys_staff_package sp
+                 join homemaking_package p on p.id = sp.package_id
+        where p.is_deleted = 0
+          and sp.staff_account in
+        <foreach collection="staffAccounts" item="account" open="(" separator="," close=")">
+            #{account}
+        </foreach>
+        order by sp.staff_account asc, p.id asc
+    </select>
+
+</mapper>
