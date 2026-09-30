@@ -21,9 +21,6 @@
           <el-menu-item index="about">
             <a href="#about">关于我们</a>
           </el-menu-item>
-          <el-menu-item index="contact">
-            <a href="#contact">联系我们</a>
-          </el-menu-item>
           <el-menu-item v-if="!isAdmin" index="merchant" @click="router.push('/merchant')">
             商家消息
             <el-badge
@@ -62,14 +59,31 @@
       </div>
     </el-menu>
 
-    <!-- 横幅区域 -->
+    <!-- 横幅轮播 -->
     <section class="banner">
-      <div class="banner-container">
-        <div class="banner-content">
-          <h1>专业家政服务</h1>
-          <p>为您提供优质、专业、贴心的家政服务，让您的生活更美好</p>
-          <el-button type="primary" size="large" round @click="bookService">立即预约</el-button>
-        </div>
+      <div class="banner-frame">
+        <el-carousel
+          class="banner-carousel"
+          height="440px"
+          :interval="4500"
+          :pause-on-hover="true"
+          arrow="always"
+          indicator-position="none"
+        >
+          <el-carousel-item v-for="slide in bannerSlides" :key="slide.image">
+            <div class="banner-slide">
+              <img :src="slide.image" :alt="slide.title" class="banner-image" />
+              <div class="banner-mask"></div>
+              <div class="banner-content">
+                <h1>{{ slide.title }}</h1>
+                <p>{{ slide.subtitle }}</p>
+                <el-button type="primary" size="large" round @click="bookService">
+                  自行发布订单
+                </el-button>
+              </div>
+            </div>
+          </el-carousel-item>
+        </el-carousel>
       </div>
     </section>
 
@@ -97,7 +111,7 @@
                 <div v-else class="service-icon">{{ service.icon }}</div>
               </div>
               <h3>{{ service.name }}</h3>
-              <p>{{ service.description }}</p>
+              <p :class="{ empty: !service.description }">{{ service.description }}</p>
               <el-tag type="danger" size="large">{{ service.price }}</el-tag>
             </el-card>
           </el-col>
@@ -140,40 +154,6 @@
       </div>
     </section>
 
-    <!-- 联系我们 -->
-    <section id="contact" class="contact">
-      <h2 class="section-title">联系我们</h2>
-      <el-row :gutter="40" justify="center">
-        <el-col :span="6">
-          <div class="contact-item">
-            <el-icon :size="32" color="var(--accent)"><Phone /></el-icon>
-            <div>
-              <p>服务热线</p>
-              <strong>400-888-8888</strong>
-            </div>
-          </div>
-        </el-col>
-        <el-col :span="6">
-          <div class="contact-item">
-            <el-icon :size="32" color="var(--accent)"><Message /></el-icon>
-            <div>
-              <p>电子邮箱</p>
-              <strong>service@homemaking.com</strong>
-            </div>
-          </div>
-        </el-col>
-        <el-col :span="6">
-          <div class="contact-item">
-            <el-icon :size="32" color="var(--accent)"><Location /></el-icon>
-            <div>
-              <p>服务地址</p>
-              <strong>北京市朝阳区XX街道XX号</strong>
-            </div>
-          </div>
-        </el-col>
-      </el-row>
-    </section>
-
     <!-- 页脚 -->
     <footer class="footer">
       <p>© 2024 家政服务. All rights reserved.</p>
@@ -184,7 +164,7 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { Phone, Message, Location, ArrowDown } from '@element-plus/icons-vue'
+import { ArrowDown } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getTotalUnread, initUnreadFromApi, setMerchants } from '../store/merchantStore'
 import { getUnreadMessagesApi, getMerchantListApi, getPackageListApi } from '../api/admin'
@@ -220,13 +200,33 @@ const userInitial = computed(() => {
   return userName.value ? userName.value.charAt(0).toUpperCase() : 'U'
 })
 
+const bannerSlides = [
+  {
+    image: '/images/carousel/banner-1.png',
+    title: '专业保洁 · 焕新居家',
+    subtitle: '持证上岗的保洁团队，让您的家焕然一新'
+  },
+  {
+    image: '/images/carousel/banner-2.png',
+    title: '母婴护理 · 温柔守护',
+    subtitle: '科学育儿理念，给妈妈和宝宝最贴心的照护'
+  },
+  {
+    image: '/images/carousel/banner-3.png',
+    title: '老人照护 · 陪伴常在',
+    subtitle: '耐心细致的照护服务，让长辈安享晚年'
+  }
+]
+
 const totalUnread = computed(() => getTotalUnread())
 
 const ICON_POOL = ['🧹', '✨', '🔧', '👶', '🍳', '⏰']
 
 // 后端套餐 -> 页面展示结构
 const mapPackage = (pkg, index = 0) => {
-  const desc = pkg.packageDesc || ''
+  const rawDesc = String(pkg.packageDesc || '').trim()
+  // 「无」/「-」视为无描述，不渲染那一行
+  const desc = (rawDesc === '无' || rawDesc === '-' || rawDesc === '—') ? '' : rawDesc
   return {
     id: pkg.id,
     name: pkg.packageName,
@@ -468,11 +468,11 @@ const goToProfile = () => {
   top: 0;
   z-index: 100;
   padding: 0 20px;
-  background-color: rgba(255, 255, 255, .86);
-  backdrop-filter: blur(14px) saturate(180%);
-  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  background-color: rgba(255, 255, 255, .9);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
   border-bottom: 1px solid var(--border-light);
-  box-shadow: var(--shadow-xs);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, .03), var(--shadow-xs);
 }
 
 .header-container {
@@ -487,7 +487,7 @@ const goToProfile = () => {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-right: 40px;
+  margin-right: 48px;
 }
 
 .logo-img {
@@ -519,6 +519,16 @@ const goToProfile = () => {
   border-radius: var(--radius-md);
   font-weight: var(--font-weight-medium);
   transition: var(--transition-base);
+}
+
+/* 菜单项 hover 带浅底 + 主题色文字，反馈更明确 */
+.header-center .el-menu-item:hover {
+  background-color: var(--brand-50) !important;
+  color: var(--brand-600) !important;
+}
+
+.header-center .el-menu-item:hover a {
+  color: var(--brand-600);
 }
 
 .header-right {
@@ -560,73 +570,95 @@ const goToProfile = () => {
   color: var(--text-secondary);
 }
 
-/* ---------- 横幅：渐变 + 双光晕装饰 ---------- */
+/* ---------- 横幅轮播 ---------- */
 .banner {
   position: relative;
-  overflow: hidden;
-  background: var(--gradient-brand);
-  padding: 96px 20px 104px;
-  text-align: center;
+  padding: 0 20px;
   margin-bottom: var(--space-8);
 }
 
-.banner::before {
-  content: '';
-  position: absolute;
-  top: -180px;
-  right: -110px;
-  width: 520px;
-  height: 520px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, .34) 0%, rgba(255, 255, 255, 0) 70%);
-  pointer-events: none;
-}
-
-.banner::after {
-  content: '';
-  position: absolute;
-  bottom: -210px;
-  left: -130px;
-  width: 560px;
-  height: 560px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(122, 44, 14, .28) 0%, rgba(122, 44, 14, 0) 70%);
-  pointer-events: none;
-}
-
-.banner-container {
-  position: relative;
-  z-index: 1;
+/* 收拢宽度 + 圆角 + 阴影，与下方卡片区块对齐 */
+.banner-frame {
   max-width: 1200px;
   margin: 0 auto;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+/* 让轮播左右箭头始终显示且样式与主题一致 */
+.banner :deep(.el-carousel__arrow) {
+  background-color: rgba(255, 255, 255, .3);
+  color: #fff;
+  backdrop-filter: blur(4px);
+}
+
+.banner :deep(.el-carousel__arrow:hover) {
+  background-color: rgba(255, 122, 69, .9);
+}
+
+.banner-slide {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.banner-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* 构图优先取图片上部分（人物/面部多在上半），裁剪掉底部 */
+  object-position: center 22%;
+  display: block;
+}
+
+/* 左深右浅的遮罩，保证左侧标题可读，同时不破坏右侧人物 */
+.banner-mask {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(28, 12, 6, .72) 0%,
+    rgba(28, 12, 6, .48) 38%,
+    rgba(28, 12, 6, 0) 68%
+  );
+  pointer-events: none;
 }
 
 .banner-content {
+  position: absolute;
+  left: 8%;
+  top: 50%;
+  transform: translateY(-50%);
+  text-align: left;
+  max-width: 480px;
   color: #fff;
   animation: appFadeInUp var(--duration-slow) var(--ease-out) both;
 }
 
 .banner-content h1 {
-  font-size: 52px;
+  font-size: 48px;
   font-weight: var(--font-weight-bold);
-  margin-bottom: 20px;
+  margin-bottom: 18px;
   color: #fff;
-  letter-spacing: 3px;
-  text-shadow: 0 4px 24px rgba(122, 44, 14, .25);
+  letter-spacing: 2px;
+  line-height: 1.2;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, .35);
 }
 
 .banner-content p {
   font-size: var(--font-size-lg);
-  margin-bottom: 34px;
-  color: rgba(255, 255, 255, .92);
-  letter-spacing: .6px;
+  margin-bottom: 30px;
+  color: rgba(255, 255, 255, .95);
+  letter-spacing: .5px;
   line-height: var(--leading-relaxed);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, .3);
 }
 
 /* ---------- 区块统一卡片化 ---------- */
 .services,
-.about,
-.contact {
+.about {
   max-width: 1200px;
   margin: 0 auto var(--space-6);
   padding: 64px 40px;
@@ -698,10 +730,21 @@ const goToProfile = () => {
   box-shadow: var(--shadow-sm);
 }
 
-/* 选中态（el-tag type=primary effect=dark）加品牌光晕 */
+/* 未选中态（info / plain）：hover 走品牌浅底 + 品牌字，不要默认的灰 */
+.service-type-tab.el-tag--info:hover {
+  background-color: var(--brand-50) !important;
+  border-color: var(--brand-300) !important;
+  color: var(--brand-600) !important;
+}
+
+/* 选中态（el-tag type=primary effect=dark）加品牌光晕，hover 保持白字 */
 .service-type-tab.el-tag--primary {
   border-color: transparent;
   box-shadow: var(--shadow-brand-soft);
+}
+
+.service-type-tab.el-tag--primary:hover {
+  color: #fff !important;
 }
 
 /* ---------- 服务卡片 ---------- */
@@ -709,15 +752,17 @@ const goToProfile = () => {
   text-align: center;
   margin-bottom: 20px;
   cursor: pointer;
-  transition: var(--transition-base);
-  height: 260px;
+  transition: transform var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out);
+  height: 280px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20px 16px;
+  padding: 24px 20px 20px;
   box-sizing: border-box;
   overflow: hidden !important;
   border-radius: var(--radius-lg);
+  border: 1px solid var(--border-light);
+  background: var(--surface-card);
 }
 
 .service-card :deep(.el-card__body) {
@@ -732,21 +777,26 @@ const goToProfile = () => {
 .service-card:hover {
   transform: translateY(-6px);
   border-color: var(--border-brand);
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 12px 32px -8px rgba(var(--brand-rgb), .22), var(--shadow-md);
 }
 
 .service-image {
-  width: 100px;
-  height: 100px;
+  width: 108px;
+  height: 108px;
   display: flex;
   justify-content: center;
   align-items: center;
   flex-shrink: 0;
-  border-radius: var(--radius-lg);
+  border-radius: 50%;
   overflow: hidden;
-  background: var(--brand-50);
-  margin: 0 auto 12px;
-  box-shadow: inset 0 0 0 1px var(--border-light);
+  background: linear-gradient(135deg, var(--brand-50), var(--neutral-100));
+  margin: 0 auto 14px;
+  box-shadow: inset 0 0 0 1px var(--border-light), 0 4px 12px -4px rgba(var(--brand-rgb), .12);
+  transition: box-shadow var(--duration-base) var(--ease-out);
+}
+
+.service-card:hover .service-image {
+  box-shadow: inset 0 0 0 2px var(--brand-300), 0 6px 18px -4px rgba(var(--brand-rgb), .28);
 }
 
 .service-image img {
@@ -758,12 +808,12 @@ const goToProfile = () => {
 
 /* 悬停时图片轻微放大，卡片更有生命力 */
 .service-card:hover .service-image img {
-  transform: scale(1.06);
+  transform: scale(1.08);
 }
 
 .service-icon {
-  font-size: 40px;
-  line-height: 100px;
+  font-size: 44px;
+  line-height: 108px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -777,8 +827,10 @@ const goToProfile = () => {
   font-weight: var(--font-weight-semibold);
   margin: 0 0 8px;
   flex-shrink: 0;
+  color: var(--text-primary);
 }
 
+/* 描述行：始终占位，保证同排卡片的价格按钮对齐；无描述时透明 */
 .service-card p {
   color: var(--text-secondary);
   margin: 0 0 12px;
@@ -788,16 +840,42 @@ const goToProfile = () => {
   line-height: 1.5;
   font-size: var(--font-size-base);
   flex-shrink: 0;
+  min-height: calc(var(--font-size-base) * 1.5);
+}
+
+.service-card p:empty,
+.service-card p.empty {
+  visibility: hidden;
 }
 
 .service-card .el-tag {
   flex-shrink: 0;
   margin-top: auto;
+  /* 价格标签样式精修：圆角 + 去边框 + 更醒目 */
+  border-radius: var(--radius-full);
+  border: none;
+  padding: 4px 14px;
+  font-weight: var(--font-weight-semibold);
 }
 
 /* ---------- 关于我们 ---------- */
 .about {
+  position: relative;
   background-image: linear-gradient(135deg, var(--brand-50) 0%, var(--neutral-100) 100%);
+  overflow: hidden;
+}
+
+/* 顶部一道渐变细线，代替单调的边框 */
+.about::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2px;
+  background-image: linear-gradient(90deg, transparent, var(--brand-400), transparent);
+  border-radius: var(--radius-full);
 }
 
 .about .about-content {
@@ -810,49 +888,50 @@ const goToProfile = () => {
   font-size: var(--font-size-md);
   line-height: var(--leading-relaxed);
   color: var(--text-secondary);
-  max-width: 800px;
-  margin: 0 auto 40px;
+  max-width: 720px;
+  margin: 0 auto 48px;
 }
 
-/* ---------- 联系我们 ---------- */
-.contact-item {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  justify-content: center;
-  padding: var(--space-4);
-  border-radius: var(--radius-lg);
-  transition: var(--transition-base);
-}
-
-.contact-item:hover {
-  background-color: var(--brand-50);
-}
-
-.contact-item p {
+/* 统计项数字用品牌色，更有层次 */
+.about :deep(.el-statistic__head) {
   color: var(--text-secondary);
   font-size: var(--font-size-base);
+  margin-bottom: 8px;
 }
 
-.contact-item strong {
-  font-size: var(--font-size-md);
-  color: var(--text-primary);
-  font-weight: var(--font-weight-semibold);
+.about :deep(.el-statistic__content) {
+  color: var(--brand-600);
+  font-size: 34px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: .5px;
 }
 
 /* ---------- 页脚 ---------- */
 .footer {
-  background-image: linear-gradient(135deg, var(--neutral-900) 0%, #3D2E22 100%);
-  padding: 36px 20px;
+  position: relative;
+  background-image: linear-gradient(135deg, var(--neutral-900) 0%, #2c2018 100%);
+  padding: 40px 20px 32px;
   text-align: center;
-  border-top: 3px solid transparent;
-  border-image: var(--gradient-brand) 1;
+}
+
+/* 顶部一道品牌色渐变细线（用伪元素而不是 border-image，对圆角友好且更可控） */
+.footer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 72%;
+  height: 2px;
+  background-image: linear-gradient(90deg, transparent, var(--brand-500), transparent);
+  border-radius: var(--radius-full);
 }
 
 .footer p {
-  color: rgba(255, 255, 255, .66);
+  color: rgba(255, 255, 255, .62);
   font-size: var(--font-size-base);
   letter-spacing: .4px;
+  margin: 0;
 }
 
 .merchant-badge {
@@ -870,22 +949,28 @@ const goToProfile = () => {
     margin-right: 0;
   }
 
-  .banner {
-    padding: 64px 20px 72px;
+  .banner-carousel {
+    height: 320px !important;
+  }
+
+  .banner-content {
+    left: 6%;
+    max-width: 78%;
   }
 
   .banner-content h1 {
-    font-size: 32px;
-    letter-spacing: 2px;
+    font-size: 28px;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
   }
 
   .banner-content p {
     font-size: var(--font-size-base);
+    margin-bottom: 20px;
   }
 
   .services,
-  .about,
-  .contact {
+  .about {
     padding: 40px 20px;
     border-radius: var(--radius-lg);
   }
