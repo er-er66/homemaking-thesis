@@ -1,6 +1,7 @@
 package com.example.homemaking.services.impl;
 
 import com.example.homemaking.dto.RegisterRequestDTO;
+import com.example.homemaking.entity.SysAdmin;
 import com.example.homemaking.entity.SysStaff;
 import com.example.homemaking.entity.SysUser;
 import com.example.homemaking.mapper.RegisterRequestMapper;
@@ -35,7 +36,23 @@ public class RegisterRequestServiceImpl implements RegisterRequestService {
         registerRequestDTO.setAccount(src);
         LocalDateTime now = LocalDateTime.now();
         if ("00".equals(role)) {//注册管理员
-
+            if (registerRequestMapper.countByPhoneAdmin(registerRequestDTO.getPhone()) > 0) {
+                return "PHONE_EXISTS";
+            }
+            if (registerRequestMapper.countByAccountAdmin(registerRequestDTO.getAccount()) > 0) {
+                return "ACCOUNT_EXISTS";
+            }
+            SysAdmin sysAdmin =new SysAdmin();
+            BeanUtils.copyProperties(registerRequestDTO,sysAdmin);
+            sysAdmin.setPassword(PasswordUtil.encode(registerRequestDTO.getPassword()));
+            sysAdmin.setCreateTime(LocalDateTime.now());
+            sysAdmin.setUpdateTime(LocalDateTime.now());
+            int rows=registerRequestMapper.insertSys_Admin(sysAdmin);
+            if(rows>0){
+                return jwtUtil.generateToken(sysAdmin.getId(),sysAdmin.getAccount(),role);
+            }else {
+                return null;
+            }
         } else if ("01".equals(role)) {
             if (registerRequestMapper.countByPhoneUser(registerRequestDTO.getPhone()) > 0) {
                 return "PHONE_EXISTS";

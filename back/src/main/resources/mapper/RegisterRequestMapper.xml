@@ -13,6 +13,10 @@
         insert into sys_staff(account,phone,password,username,gender,skills,avatar,status,create_time,update_time,is_deleted)
         values(#{account},#{phone},#{password},#{username},#{gender},#{skills},#{avatar},#{status},#{createTime},#{updateTime},#{isDeleted})
     </insert>
+    <insert id="insertSys_Admin" useGeneratedKeys="true" keyProperty="id">
+        insert into sys_admin(account,phone,password,username,avatar,role,status,create_time,update_time)
+        values(#{account},#{phone},#{password},#{username},#{avatar},#{role},#{status},#{createTime},#{updateTime})
+    </insert>
 
     <select id="countByPhoneUser" resultType="int">
         select count(*) from sys_user where phone = #{phone} and is_deleted = 0
@@ -20,6 +24,15 @@
 
     <select id="countByPhoneStaff" resultType="int">
         select count(*) from sys_staff where phone = #{phone} and is_deleted = 0
+    </select>
+    <select id="countByPhoneAdmin" resultType="int">
+        select count(*) from sys_admin where phone = #{phone}
+    </select>
+    <select id="countByAccountAdmin" resultType="java.lang.Integer">
+        select count(*) from sys_admin where account = #{account}
+    </select>
+    <select id="selectMaxAdminRole" resultType="string">
+        select max(role) from sys_admin where role like '0%'
     </select>
 
 </mapper>

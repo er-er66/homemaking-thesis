@@ -29,14 +29,17 @@ public class RegisterRequestController {
         }
         verificationCodeService.remove(phone);
 
-     String token = registerRequestService.register(registerRequestDTO);
+        String token = registerRequestService.register(registerRequestDTO);
 
         if ("PHONE_EXISTS".equals(token)) {
             return Result.error("手机号已存在");
+        } else if ("ACCOUNT_EXISTS".equals(token)) {
+            return Result.error("账号已存在，请重试");
         } else if (token != null) {
             return Result.success(token);
         } else {
             return Result.error("注册失败");
         }
+
     }
 }

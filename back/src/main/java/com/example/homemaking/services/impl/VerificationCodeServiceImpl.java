@@ -18,6 +18,11 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
 
+    /**
+     * 保存到Redis中
+     * @param phone
+     * @param code
+     */
     public void save(String phone, String code) {
         stringRedisTemplate.opsForValue().set(
                 REDIS_KEY_PREFIX + phone,
