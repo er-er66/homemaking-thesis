@@ -171,9 +171,12 @@
 
           <el-form-item label="注册身份">
             <el-radio-group v-model="form.role" class="role-group">
-              <el-radio value="01">普通用户</el-radio>
-              <el-radio value="02">家政人员</el-radio>
+              <!-- @click.prevent 拦截 radio 自带的选中逻辑，改由 toggleRole 手动控制，
+                   这样再次点击已选中的项可以取消选择 -->
+              <el-radio value="01" @click.prevent="toggleRole('01')">普通用户</el-radio>
+              <el-radio value="02" @click.prevent="toggleRole('02')">家政人员</el-radio>
             </el-radio-group>
+            <div v-if="!form.role" class="role-hint">未选择身份，将注册为管理员</div>
           </el-form-item>
 
           <el-form-item v-if="form.role === '02'" label="服务技能" prop="skills">
@@ -252,8 +255,10 @@ const fetchSkills = async () => {
   }
 }
 
-const handleRoleChange = (role) => {
-  if (role === '02') {
+// 再次点击已选中的身份 = 取消选择；清空时 role 为 ''，提交时按 '00'（管理员）发送
+const toggleRole = (role) => {
+  form.role = form.role === role ? '' : role
+  if (form.role === '02') {
     fetchSkills()
   }
 }
@@ -407,8 +412,9 @@ const handleRegister = async () => {
       code: form.code,
       password: form.password,
       confirmPassword: form.confirmPassword,
-      role: form.role,
-      skills: form.skills
+      // 不选身份时按后端约定发 '00'（注册管理员）
+      role: form.role || '00',
+      skills: form.role === '02' ? form.skills : []
     })
     ElMessage.success('注册成功!')
     router.replace('/login')
@@ -492,6 +498,14 @@ const handleRegister = async () => {
   display: flex;
   gap: var(--space-5);
   flex-wrap: wrap;
+}
+
+.role-hint {
+  width: 100%;
+  margin-top: 6px;
+  font-size: var(--font-size-sm);
+  color: var(--brand-500);
+  line-height: 1.4;
 }
 
 /* 技能多选：拉开行距，选中态更醒目 */
