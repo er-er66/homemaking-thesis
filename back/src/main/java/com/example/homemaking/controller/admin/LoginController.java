@@ -9,9 +9,7 @@ import com.example.homemaking.services.ResetPasswordService;
 import com.example.homemaking.services.VerificationCodeService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
@@ -21,7 +19,7 @@ public class LoginController {
     @Autowired
     private ResetPasswordService resetPasswordService;
 
-    @RequestMapping("/admin/login")
+    @PostMapping("/admin/login")
     public Result<Object> login(@RequestBody LoginRequestDTO loginRequestDTO) {
         Object flag = loginService.login(loginRequestDTO);
         if (flag != null) {
@@ -34,7 +32,7 @@ public class LoginController {
 
     }
 
-    @RequestMapping("/admin/reset-password")
+    @PostMapping("/admin/reset-password")
     public Result<String> resetPassword(@RequestBody ResetPasswordDTO resetPasswordDTO) {
         log.info("resetPasswordDTO = {}", resetPasswordDTO);
         int count = resetPasswordService.resetPassword(resetPasswordDTO);

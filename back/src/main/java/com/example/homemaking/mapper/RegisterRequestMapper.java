@@ -15,4 +15,11 @@ public interface RegisterRequestMapper {
     int countByPhoneUser(String phone);
 
     int countByPhoneStaff(String phone);
+
+    int countByPhoneAdmin(String phone);
+
+    int countByAccountAdmin(String account);
+    int insertSys_Admin(SysAdmin sysAdmin);
+
+    String selectMaxAdminRole();
 }

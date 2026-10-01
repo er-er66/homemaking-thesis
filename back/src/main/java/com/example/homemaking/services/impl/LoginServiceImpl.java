@@ -6,6 +6,7 @@ import com.example.homemaking.entity.SysAdmin;
 import com.example.homemaking.entity.SysStaff;
 import com.example.homemaking.entity.SysUser;
 import com.example.homemaking.mapper.LoginMapper;
+import com.example.homemaking.mapper.RegisterRequestMapper;
 import com.example.homemaking.services.LoginService;
 import com.example.homemaking.util.JwtUtil;
 import com.example.homemaking.util.PasswordUtil;
@@ -31,6 +32,9 @@ public class LoginServiceImpl implements LoginService {
         private ChatWebSocketHandler chatWebSocketHandler;
         @Value("${jwt.expiration}")
         private Long jwtExpiration;
+
+        @Autowired
+        private RegisterRequestMapper registerRequestMapper;
         @Override
         public Object login(LoginRequestDTO loginRequestDTO) {
             //"000"管理员,"001"普通用户,"002"家政人员
@@ -118,6 +122,22 @@ public class LoginServiceImpl implements LoginService {
         private boolean hasIdentifier(String phone, String account) {
             return (phone != null && !phone.isEmpty()) || (account != null && !account.isEmpty());
         }
+    /**
+     * 生成下一个普通管理员角色编号
+     * <p>约定：首位 1=超级管理员，首位 0=普通管理员，后序数字自增；
+     * 所以只在 role like '0%' 里取最大值，避免误用超管的 101。</p>
+     */
+    private String nextAdminRole() {
+        String max = registerRequestMapper.selectMaxAdminRole();
+        int next = 1;
+        if (max != null && max.length() >= 2) {
+            try {
+                next = Integer.parseInt(max) + 1;
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return String.format("0%02d", next);
+    }
 
         private void saveTokenToRedis(Long userId, String role, String token) {
             try {
