@@ -192,6 +192,17 @@ public class HomemakingPackageServiceImpl implements HomemakingPackageService {
         return count;
     }
 
+    @Override
+    public int deletePackage(Long id) {
+        int count = homemakingPackageMapper.deleteById(id);
+        if (count > 0) {
+            // 必须清缓存：getPackageById 命中缓存时返回的是写入那一刻的快照，
+            // 不清的话已删除的套餐在缓存 TTL（最长 2.5 小时）内仍会被返回。
+            evictCache(id);
+        }
+        return count;
+    }
+
     /**
      * 清理单个套餐的详情缓存。
      * <p>上下架后必须清：{@link #getPackageById} 命中缓存时返回的是写入那一刻的快照，

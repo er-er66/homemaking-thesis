@@ -94,8 +94,8 @@
           <div class="order-tabs">
             <el-radio-group v-model="orderFilter" @change="fetchOrders">
               <el-radio-button value="all">全部</el-radio-button>
-              <el-radio-button value="accepted">已接订单</el-radio-button>
-              <el-radio-button value="progress">进行中</el-radio-button>
+              <el-radio-button value="pending">待接单</el-radio-button>
+              <el-radio-button value="accepted">已接单</el-radio-button>
               <el-radio-button value="completed">已完成</el-radio-button>
               <el-radio-button value="cancelled">已取消</el-radio-button>
             </el-radio-group>
@@ -513,15 +513,23 @@ const sendPhoneCode = async () => {
 const fetchOrders = async () => {
   orderLoading.value = true
   try {
-    const params = { staffAccount: userAccount.value }
-    
+    // 家政人员查「我接的单」用 staffAccount，普通用户查「我下的单」用 userAccount。
+    // 之前一律传 staffAccount，普通用户查的是 staff_account = 自己账号 → 恒为空。
+    const params = isStaff.value
+      ? { staffAccount: userAccount.value }
+      : { userAccount: userAccount.value }
+
     if (orderFilter.value !== 'all') {
-      const statusMap = { accepted: 1, progress: 1, completed: 2, cancelled: 3 }
+      // 与后端 homemaking_order.order_status 语义对齐：0待接单 1已接单 2服务完成 3用户取消 4家政人员取消
+      const statusMap = { pending: 0, accepted: 1, completed: 2, cancelled: 3 }
       params.orderStatus = statusMap[orderFilter.value]
     }
-    
+
     const res = await getOrderListApi(params)
-    orderList.value = Array.isArray(res.data) ? res.data : []
+    const data = (res && res.data) ?? []
+    // 兼容后端分页：传了分页参数才会返回 {records,total}，这里不传因此是数组，
+    // 但仍兜一层，避免后端以后默认开启分页导致列表空白
+    orderList.value = Array.isArray(data) ? data : (data.records || data.list || [])
   } catch {
     orderList.value = []
   } finally {
@@ -599,7 +607,7 @@ const contactUser = (order) => {
 
 const getEmptyDescription = () => {
   if (userRole.value === 'staff') return '暂无接单记录'
-  const filterText = { all: '暂无订单', accepted: '暂无已接订单', progress: '暂无进行中', completed: '暂无已完成', cancelled: '暂无已取消' }
+  const filterText = { all: '暂无订单', pending: '暂无待接单', accepted: '暂无已接单', completed: '暂无已完成', cancelled: '暂无已取消' }
   return filterText[orderFilter.value] || '暂无订单'
 }
 

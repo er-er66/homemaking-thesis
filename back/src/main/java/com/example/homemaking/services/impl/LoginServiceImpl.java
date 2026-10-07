@@ -38,12 +38,12 @@ public class LoginServiceImpl implements LoginService {
         @Override
         public Object login(LoginRequestDTO loginRequestDTO) {
             //"000"管理员,"001"普通用户,"002"家政人员
-            // vo.setRoleCode("10");返回10表示超级管理员，01普通管理员，02家政人员，03普通用户
+            // vo.setRole("10");返回10表示超级管理员，01普通管理员，02家政人员，03普通用户
             String phone = loginRequestDTO.getPhone();
             String account = loginRequestDTO.getAccount();
             String password = loginRequestDTO.getPassword();
             String role = loginRequestDTO.getRole();
-            log.info("登录请求 -> phone={}, account={}, role={}", phone, account, role);
+
             if (password == null || password.isEmpty()) {
                 log.warn("登录失败：密码为空，account={}, role={}", account, role);
                 return null;
@@ -64,7 +64,7 @@ public class LoginServiceImpl implements LoginService {
                 vo.setUsername(admin.getUsername());
                 vo.setAvatar(admin.getAvatar());
                 String adminRole = admin.getRole();
-                if (adminRole != null && adminRole.startsWith("1")){
+                if (adminRole != null && adminRole.startsWith("1")){//1开头就是超级管理员
                     vo.setRoleCode("10");
                     vo.setAccount(admin.getAccount());
                     vo.setPhone(admin.getPhone());

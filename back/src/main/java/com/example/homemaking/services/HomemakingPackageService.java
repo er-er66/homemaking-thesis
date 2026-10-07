@@ -58,4 +58,13 @@ public interface HomemakingPackageService {
      * @return 受影响的行数，0 表示套餐不存在或已逻辑删除
      */
     int updateStatus(Long id, Integer status);
+
+    /**
+     * 删除套餐（逻辑删除，is_deleted 置 1），并清理该套餐的 Redis 缓存
+     * <p>不物理删除：外键会拦，且历史订单需要按 package_id 回查套餐名。</p>
+     *
+     * @param id 套餐ID
+     * @return 受影响的行数，0 表示套餐不存在或已删除
+     */
+    int deletePackage(Long id);
 }
