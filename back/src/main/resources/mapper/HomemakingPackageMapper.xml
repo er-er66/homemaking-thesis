@@ -33,6 +33,19 @@
         where id = #{id} and is_deleted = 0
     </update>
 
+    <!--
+        逻辑删除：只置 is_deleted = 1，不物理删除。
+        homemaking_order_package / sys_staff_package 都有 FK 指向本表，
+        物理删除会抛外键约束错误，且会让历史订单的套餐名（left join 本表取）丢失。
+        is_deleted = 0 作为条件，保证重复删除是幂等的、且不会覆盖已删除记录的 update_time。
+    -->
+    <update id="deleteById">
+        update homemaking_package
+        set is_deleted = 1,
+            update_time = now()
+        where id = #{id} and is_deleted = 0
+    </update>
+
     <select id="selectById" resultType="com.example.homemaking.entity.HomemakingPackage">
         select * from homemaking_package where id=#{id}
     </select>

@@ -83,4 +83,24 @@ public class HomemakingPackageController {
         return Result.error("操作失败，套餐不存在或已删除");
     }
 
+    /**
+     * 删除套餐（逻辑删除）
+     * <p>走 is_deleted = 1，不做物理删除 —— homemaking_order_package / sys_staff_package
+     * 都有外键指向本表，物理删会被 FK 拦下，也会让历史订单取不到套餐名。</p>
+     * <p>删除后：管理端列表不再显示；家政人员的「服务技能」列表因为
+     * SysStaffPackageMapper 带 p.is_deleted = 0 过滤，也会同步消失；
+     * 历史订单详情走 left join 且不过滤 is_deleted，套餐名仍能正常显示。</p>
+     *
+     * @param id 套餐ID
+     */
+    @PostMapping("/delete/{id}")
+    public Result<String> deletePackage(@PathVariable Long id) {
+        log.info("删除套餐，id={}", id);
+        int count = homemakingPackageService.deletePackage(id);
+        if (count > 0) {
+            return Result.success("删除成功");
+        }
+        return Result.error("删除失败，套餐不存在或已删除");
+    }
+
 }

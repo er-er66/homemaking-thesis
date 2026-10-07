@@ -21,10 +21,10 @@ public class LoginController {
 
     @PostMapping("/admin/login")
     public Result<Object> login(@RequestBody LoginRequestDTO loginRequestDTO) {
-        Object flag = loginService.login(loginRequestDTO);
-        if (flag != null) {
-            log.info("loginService 返回数据：flag = {}", flag);
-            return Result.success(flag);
+        Object loginVO = loginService.login(loginRequestDTO);
+        if (loginVO != null) {
+            log.info("loginService 返回数据：flag = {}", loginVO);
+            return Result.success(loginVO);
 
         } else {
             return Result.error("登录失败");

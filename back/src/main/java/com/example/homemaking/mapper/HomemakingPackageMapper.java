@@ -43,6 +43,16 @@ public interface HomemakingPackageMapper {
     int updateStatus(@Param("id") Long id, @Param("status") Integer status);
 
     /**
+     * 逻辑删除套餐（is_deleted 置 1）
+     * <p>不做物理删除：homemaking_order_package / sys_staff_package 都有外键指向
+     * homemaking_package.id，物理删除会被外键约束拦下，还会让历史订单丢失套餐快照。</p>
+     *
+     * @param id 套餐ID
+     * @return 受影响的行数，0 表示套餐不存在或已删除（幂等）
+     */
+    int deleteById(@Param("id") Long id);
+
+    /**
      * 按条件统计套餐总数（不含已逻辑删除）
      *
      * @param serviceType 套餐类型，为 null 或 0 时不过滤
