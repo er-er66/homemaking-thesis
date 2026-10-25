@@ -66,8 +66,14 @@
             @click="selectServiceItem(item)"
           >
             {{ item.name }}
+            <span class="service-item-price">¥{{ item.price }}{{ item.unit }}</span>
           </el-tag>
         </div>
+        <el-empty
+          v-if="!serviceItemsLoading && serviceItems.length === 0"
+          description="该分类下暂无在售套餐"
+          :image-size="80"
+        />
       </el-card>
 
       <el-card class="form-card">
@@ -93,16 +99,25 @@
       </el-card>
 
       <el-card class="form-card">
-        <h4>订单金额</h4>
-        <el-input-number
-          v-model="orderAmount"
-          :min="0"
-          :precision="2"
-          :step="10"
-          placeholder="请输入订单金额"
-          style="width: 100%"
-        />
-        <span class="amount-unit">元</span>
+        <h4>服务数量与金额</h4>
+        <div class="amount-row">
+          <el-input-number
+            v-model="serviceCount"
+            :min="1"
+            :max="99"
+            :step="1"
+            :disabled="!selectedServiceItem"
+            style="width: 160px"
+          />
+          <span class="amount-unit">份</span>
+          <span class="amount-total">
+            ¥{{ orderAmount }}
+            <em v-if="selectedServiceItem" class="amount-formula">
+              （¥{{ selectedServiceItem.price }}{{ selectedServiceItem.unit }} × {{ serviceCount }}）
+            </em>
+          </span>
+        </div>
+        <p class="amount-tip">金额按所选套餐价格自动计算，不可手动修改。</p>
       </el-card>
 
       <el-card class="form-card">
@@ -237,11 +252,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowDown, WarningFilled, Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { checkPayPasswordApi, getAddressListApi, createOrderApi, uploadPackageCoverApi } from '../api/admin'
+import { checkPayPasswordApi, getAddressListApi, createOrderApi, uploadPackageCoverApi, getPackageListApi } from '../api/admin'
 
 const router = useRouter()
 
@@ -274,44 +289,23 @@ const serviceItems = ref([])
 const selectedServiceItem = ref(null)
 const serviceItemsLoading = ref(false)
 
-const allServiceItems = [
-  { id: 1, name: '日常保洁', serviceType: 1 },
-  { id: 2, name: '深度清洁', serviceType: 1 },
-  { id: 3, name: '开荒保洁', serviceType: 1 },
-  { id: 4, name: '家电清洗', serviceType: 1 },
-  { id: 5, name: '擦玻璃', serviceType: 1 },
-  { id: 6, name: '地板打蜡', serviceType: 1 },
-  { id: 7, name: '油烟机清洗', serviceType: 1 },
-  { id: 8, name: '空调清洗', serviceType: 1 },
-  { id: 9, name: '住家保姆', serviceType: 2 },
-  { id: 10, name: '白班保姆', serviceType: 2 },
-  { id: 11, name: '小时工', serviceType: 2 },
-  { id: 12, name: '做饭阿姨', serviceType: 2 },
-  { id: 13, name: '育儿嫂', serviceType: 3 },
-  { id: 14, name: '月嫂', serviceType: 3 },
-  { id: 15, name: '育婴师', serviceType: 3 },
-  { id: 16, name: '催乳师', serviceType: 3 },
-  { id: 17, name: '陪产护理', serviceType: 3 },
-  { id: 18, name: '老人护理', serviceType: 4 },
-  { id: 19, name: '病患护理', serviceType: 4 },
-  { id: 20, name: '康复护理', serviceType: 4 },
-  { id: 21, name: '陪诊服务', serviceType: 4 },
-  { id: 22, name: '养老护理', serviceType: 4 },
-  { id: 23, name: '整理收纳', serviceType: 5 },
-  { id: 24, name: '搬家服务', serviceType: 5 },
-  { id: 25, name: '甲醛治理', serviceType: 5 },
-  { id: 26, name: '灭虫除螨', serviceType: 5 },
-  { id: 27, name: '绿植养护', serviceType: 5 },
-  { id: 28, name: '宠物护理', serviceType: 5 },
-  { id: 29, name: '窗帘清洗', serviceType: 6 },
-  { id: 30, name: '沙发清洗', serviceType: 6 },
-  { id: 31, name: '地毯清洗', serviceType: 6 },
-  { id: 32, name: '衣物的洗涤与整理', serviceType: 6 }
-]
+/**
+ * 服务项目 = 在售套餐（homemaking_package，status=0 上架）。
+ * 绝不能写死本地数组：item.id 必须是真实 package_id，否则下单无法回传 packages，
+ * homemaking_order_package 永远写不进去（旧版本地 1~32 是数组下标，不是套餐ID）。
+ */
+const allPackages = ref([])
+const serviceCount = ref(1)
 
 const orderName = ref('')
 const orderDesc = ref('')
-const orderAmount = ref(0)
+const lastAutoDesc = ref('')
+// 下单金额由套餐价 × 数量得出，不允许手填：后端 createOrder 也会用套餐价重算并覆盖
+const orderAmount = computed(() => {
+  const item = selectedServiceItem.value
+  if (!item) return 0
+  return Number((item.price * (serviceCount.value || 1)).toFixed(2))
+})
 const remark = ref('')
 const serviceTime = ref('')
 const selectedAddrId = ref(null)
@@ -333,25 +327,57 @@ onMounted(() => {
 const fetchServiceItems = async () => {
   serviceItemsLoading.value = true
   try {
-    serviceItems.value = allServiceItems
+    // status: 0 = 上架（1 是下架，别写反）。
+    // 必须带分页参数：不带分页时后端走 list()，那条 SQL 只过滤 is_deleted、忽略 status，
+    // 会把下架套餐也返回；带上分页才会按 status 过滤，返回 {records,total}。
+    const res = await getPackageListApi({ status: 0, pageNum: 1, pageSize: 200 })
+    const data = (res && res.data) ?? []
+    const rows = Array.isArray(data) ? data : (data.records || data.list || [])
+    allPackages.value = rows.map(pkg => ({
+      id: pkg.id,
+      packageId: pkg.id,
+      name: pkg.packageName,
+      price: Number(pkg.packagePrice) || 0,
+      unit: pkg.unitText || '',
+      serviceType: pkg.serviceType ?? 0,
+      desc: pkg.packageDesc || '',
+      image: pkg.packageImg || ''
+    }))
+    if (!allPackages.value.length) {
+      ElMessage.warning('暂无可下单的套餐，请联系管理员在套餐管理中添加')
+    }
   } catch (e) {
-    console.error('获取服务项目列表失败:', e)
+    console.error('获取套餐列表失败:', e)
+    allPackages.value = []
   }
+  filterServiceItems()
   serviceItemsLoading.value = false
 }
 
 const filterServiceItems = () => {
   if (selectedServiceType.value === 0) {
-    serviceItems.value = allServiceItems
+    serviceItems.value = allPackages.value
   } else {
-    serviceItems.value = allServiceItems.filter(item => item.serviceType === selectedServiceType.value)
+    serviceItems.value = allPackages.value.filter(item => item.serviceType === selectedServiceType.value)
   }
-  selectedServiceItem.value = null
+  // 切分类后原选中项可能不在列表里，清掉避免「看不见却已选中」
+  if (selectedServiceItem.value && !serviceItems.value.some(i => i.id === selectedServiceItem.value.id)) {
+    selectedServiceItem.value = null
+  }
 }
 
 const selectServiceItem = (item) => {
   selectedServiceItem.value = item
   orderName.value = item.name
+  serviceCount.value = 1
+  // 用套餐简介/图片预填，用户仍可手动改
+  if (!orderDesc.value.trim() || orderDesc.value === lastAutoDesc.value) {
+    orderDesc.value = item.desc
+    lastAutoDesc.value = item.desc
+  }
+  if (item.image && !coverUrl.value) {
+    coverUrl.value = item.image
+  }
 }
 
 const fetchAddressList = async () => {
@@ -507,7 +533,7 @@ const handleSubmit = async () => {
     return
   }
   if (!orderAmount.value || orderAmount.value <= 0) {
-    ElMessage.warning('请输入订单金额')
+    ElMessage.warning('所选套餐价格异常，请重新选择服务项目')
     return
   }
   if (!selectedAddrId.value) {
@@ -529,14 +555,20 @@ const handleSubmit = async () => {
 
   pendingOrderData.value = {
     serviceItem: orderName.value,
-    serviceType: selectedServiceType.value,
+    // 用所选套餐的类型，而不是分类 Tab 的 selectedServiceType（选「全部」时它是 0）
+    serviceType: selectedServiceItem.value.serviceType || 0,
     serviceAddress: serviceAddress,
     serviceTime: serviceTime.value,
     orderAmount: orderAmount.value,
     remark: remark.value,
     coverUrl: coverUrl.value,
     orderStatus: 0,
-    payStatus: 1
+    payStatus: 1,
+    // 后端据此写 homemaking_order_package；packages 优先于 packageIds
+    packages: [{
+      packageId: selectedServiceItem.value.packageId,
+      packageNum: serviceCount.value || 1
+    }]
   }
 
   showPayDialog.value = true
@@ -678,6 +710,16 @@ h2 {
 
 .service-item-card {
   cursor: pointer;
+  height: auto;
+  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.service-item-price {
+  font-size: var(--font-size-sm);
+  opacity: .85;
 }
 
 .cover-upload {
@@ -812,6 +854,33 @@ h2 {
 
 .amount-unit {
   margin-left: 8px;
+  color: var(--text-secondary);
+}
+
+.amount-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.amount-total {
+  margin-left: auto;
+  font-size: 24px;
+  font-weight: var(--font-weight-bold);
+  color: var(--brand-600);
+}
+
+.amount-formula {
+  font-style: normal;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-regular);
+  color: var(--text-secondary);
+}
+
+.amount-tip {
+  margin-top: 10px;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
 }
 

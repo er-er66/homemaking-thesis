@@ -68,7 +68,10 @@
             </el-button>
           </div>
         </div>
-        <el-empty v-else description="加载中..." />
+        <div v-else-if="loading" class="order-detail-loading" v-loading="true"></div>
+        <el-empty v-else :description="detailError || '暂无订单信息'">
+          <el-button type="primary" plain size="small" @click="fetchOrderDetail">重新加载</el-button>
+        </el-empty>
       </div>
 
       <div class="chat-panel">
@@ -201,18 +204,20 @@ import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Document } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { getOrderDetailApi, takeOrderApi, markChatReadApi, saveChatMsgApi } from '../api/admin'
+import { getOrderDetailApi, takeOrderApi, markChatReadApi, saveChatMsgApi, getOrderListApi } from '../api/admin'
 import { normalizeChatMessage, resolveOrderDetail, buildOrderDetailContent } from '../utils/chatMessage'
 
 const route = useRoute()
 const router = useRouter()
 
-const orderId = ref(route.query.orderId || '')
+const orderId = ref(route.query.orderId || route.query.id || '')
+const orderNo = ref(route.query.orderNo || '')
 const userAccount = ref(route.query.userAccount || '')
 const userName = ref(route.query.userName || '用户')
 const userAvatar = ref(route.query.userAvatar || '')
 
 const loading = ref(true)
+const detailError = ref('')
 const takingOrder = ref(false)
 const sendingOrder = ref(false)
 const orderData = ref(null)
@@ -280,17 +285,37 @@ onMounted(() => {
 })
 
 const fetchOrderDetail = async () => {
-  if (!orderId.value) {
-    loading.value = false
-    return
-  }
+  loading.value = true
+  detailError.value = ''
+
+  // 路由上可能只有 orderId、也可能只有 orderNo（聊天卡片里存的订单数据不带 id），
+  // 两者都试一遍，避免「参数对不上 → 一直显示加载中」。
   try {
-    const res = await getOrderDetailApi(orderId.value)
-    if (res && res.data) {
-      orderData.value = res.data
+    let detail = null
+
+    if (orderId.value) {
+      const res = await getOrderDetailApi(orderId.value)
+      detail = (res && res.data) || null
+      if (!detail) console.warn('[订单与聊天] 按 id 未查到订单，尝试用 orderNo 兜底:', orderId.value)
     }
-  } catch {
-    ElMessage.error('获取订单详情失败')
+
+    if (!detail && orderNo.value) {
+      const res = await getOrderListApi({ orderNo: orderNo.value })
+      const data = (res && res.data) ?? []
+      const rows = Array.isArray(data) ? data : (data.records || data.list || [])
+      detail = rows[0] || null
+    }
+
+    orderData.value = detail
+    if (!detail) {
+      detailError.value = (orderId.value || orderNo.value)
+        ? '未找到该订单，可能已被删除'
+        : '缺少订单参数，请从订单列表进入'
+    }
+  } catch (e) {
+    console.error('[订单与聊天] 获取订单详情失败:', e)
+    orderData.value = null
+    detailError.value = '获取订单详情失败，请稍后重试'
   } finally {
     loading.value = false
   }
@@ -692,6 +717,11 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+/* 加载占位：先撑出高度，避免 v-loading 遮罩塌成 0 高 */
+.order-detail-loading {
+  min-height: 240px;
 }
 
 .order-info-card {

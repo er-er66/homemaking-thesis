@@ -204,6 +204,9 @@ const router = useRouter()
 
 const service = reactive({
   id: '',
+  // 真实套餐ID。只有从首页套餐卡片（/package/list 数据）进来才有值；
+  // 兜底数据 getDefaultServices() 的 id 是本地序号，不是 package_id，故单独用这个字段区分。
+  packageId: null,
   name: '',
   description: '',
   price: '',
@@ -228,8 +231,9 @@ const adminList = ref([])
 const selectedCsId = ref(null)
 
 onMounted(() => {
-  const { id, name, description, price, icon, image } = route.query
+  const { id, name, description, price, icon, image, packageId } = route.query
   service.id = id || ''
+  service.packageId = packageId ? Number(packageId) : null
   service.name = name || '未选择服务'
   service.description = description || ''
   service.price = price || '¥0'
@@ -362,7 +366,7 @@ const handlePay = async () => {
   const orderAmount = parseFloat(service.price.replace(/[^0-9.]/g, ''))
 
   try {
-    await createOrderApi({
+    const payload = {
       userAccount,
       staffAccount: '',
       serviceItem: service.name,
@@ -373,7 +377,13 @@ const handlePay = async () => {
       payStatus: 1,
       payPassword: pwd,
       remark: remark.value
-    })
+    }
+    // 只有从真实套餐卡片进来才回传 packageId；
+    // 后端 buildOrderPackages 会据此写 homemaking_order_package，并按套餐价重算 orderAmount。
+    if (service.packageId) {
+      payload.packages = [{ packageId: service.packageId, packageNum: 1 }]
+    }
+    await createOrderApi(payload)
     paying.value = false
     showPayDialog.value = false
     ElMessage.success('下单支付成功！')

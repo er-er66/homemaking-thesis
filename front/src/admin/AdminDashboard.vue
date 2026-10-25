@@ -53,6 +53,10 @@
           <el-icon><ShoppingCart /></el-icon>
           <span>套餐管理</span>
         </el-menu-item>
+        <el-menu-item index="staffAmount">
+          <el-icon><Wallet /></el-icon>
+          <span>资金结算</span>
+        </el-menu-item>
         <el-menu-item index="messages">
           <el-icon><ChatDotRound /></el-icon>
           <span>消息列表</span>
@@ -589,6 +593,119 @@
           </div>
         </div>
 
+        <!-- 资金结算 -->
+        <div v-if="activeMenu === 'staffAmount'" class="content-panel">
+          <div class="panel-head">
+            <h3>资金结算</h3>
+            <div class="panel-head-right">
+              <el-tag type="info">
+                员工分成 {{ (incomeRatio * 100).toFixed(0) }}% · 完成满 {{ settleDelayDays }} 天自动结算
+              </el-tag>
+              <el-button type="primary" :loading="settling" @click="handleRunSettle">
+                立即结算待结算
+              </el-button>
+            </div>
+          </div>
+
+          <el-form :model="staffAmountSearchForm" inline class="search-form">
+            <el-form-item label="工号">
+              <el-input v-model="staffAmountSearchForm.staffAccount" placeholder="请输入工号" clearable />
+            </el-form-item>
+            <el-form-item label="姓名">
+              <el-input v-model="staffAmountSearchForm.staffName" placeholder="请输入姓名" clearable />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="searchStaffAmountList">搜索</el-button>
+              <el-button @click="resetStaffAmountSearch">重置</el-button>
+            </el-form-item>
+          </el-form>
+
+          <el-table :data="staffAmountList" style="width: 100%" v-loading="staffAmountLoading" stripe>
+            <el-table-column prop="staffAccount" label="工号" width="130" />
+            <el-table-column label="姓名" width="120">
+              <template #default="{ row }">{{ row.staffName || '-' }}</template>
+            </el-table-column>
+            <el-table-column label="累计收入" width="130">
+              <template #default="{ row }">¥{{ money(row.totalIncome) }}</template>
+            </el-table-column>
+            <el-table-column label="待结算" width="130">
+              <template #default="{ row }">
+                <span class="amount-pending">¥{{ money(row.pendingAmount) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="已结算" width="130">
+              <template #default="{ row }">
+                <span class="amount-settled">¥{{ money(row.settleAmount) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="已提现" width="120">
+              <template #default="{ row }">¥{{ money(row.withdrawAmount) }}</template>
+            </el-table-column>
+            <el-table-column prop="remark" label="备注" show-overflow-tooltip />
+            <el-table-column label="操作" width="120" fixed="right">
+              <template #default="{ row }">
+                <el-button type="primary" size="small" @click="showStaffAmountRecords(row)">流水</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+
+          <div class="table-pagination">
+            <el-pagination
+              background
+              layout="total, sizes, prev, pager, next, jumper"
+              :total="staffAmountTotal"
+              :page-size="staffAmountPageSize"
+              :page-sizes="PAGE_SIZE_OPTIONS"
+              :current-page="staffAmountPageNum"
+              @current-change="staffAmountChangePage"
+              @size-change="staffAmountChangeSize"
+            />
+          </div>
+
+          <el-drawer v-model="recordsVisible" :title="`${recordsStaffName} 的资金流水`" size="60%">
+            <el-table :data="staffAmountRecords" v-loading="recordsLoading" stripe>
+              <el-table-column prop="orderNo" label="订单号" width="200">
+                <template #default="{ row }">{{ row.orderNo || '-' }}</template>
+              </el-table-column>
+              <el-table-column label="订单金额" width="110">
+                <template #default="{ row }">¥{{ money(row.orderAmount) }}</template>
+              </el-table-column>
+              <el-table-column label="分成比例" width="90">
+                <template #default="{ row }">{{ row.ratio == null ? '-' : (Number(row.ratio) * 100).toFixed(0) + '%' }}</template>
+              </el-table-column>
+              <el-table-column label="收入" width="110">
+                <template #default="{ row }">¥{{ money(row.incomeAmount) }}</template>
+              </el-table-column>
+              <el-table-column label="类型" width="100">
+                <template #default="{ row }">{{ recordTypeText(row.recordType) }}</template>
+              </el-table-column>
+              <el-table-column label="结算状态" width="100">
+                <template #default="{ row }">
+                  <el-tag :type="row.settleStatus === 1 ? 'success' : 'warning'">
+                    {{ row.settleStatus === 1 ? '已结算' : '待结算' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="结算时间" width="170">
+                <template #default="{ row }">{{ fmtTime(row.settleTime) }}</template>
+              </el-table-column>
+              <el-table-column label="记账时间" width="170">
+                <template #default="{ row }">{{ fmtTime(row.createTime) }}</template>
+              </el-table-column>
+            </el-table>
+            <div class="table-pagination">
+              <el-pagination
+                background
+                layout="total, prev, pager, next"
+                :total="recordsTotal"
+                :page-size="recordsPageSize"
+                :current-page="recordsPageNum"
+                @current-change="recordsChangePage"
+              />
+            </div>
+          </el-drawer>
+        </div>
+
         <!-- 消息列表 -->
         <div v-if="activeMenu === 'messages'" class="content-panel">
           <h3>消息列表</h3>
@@ -955,7 +1072,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowDown, List, UserFilled, Document, Setting, ShoppingCart, Plus, ChatDotRound } from '@element-plus/icons-vue'
+import { ArrowDown, List, UserFilled, Document, Setting, ShoppingCart, Plus, ChatDotRound, Wallet } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getUserListApi,
@@ -975,7 +1092,11 @@ import {
   togglePackageStatusApi,
   uploadPackageCoverApi,
   getChatHistoryApi,
-  getChatRoomListApi
+  getChatRoomListApi,
+  getStaffAmountListApi,
+  getStaffAmountRecordsApi,
+  getStaffAmountConfigApi,
+  runStaffAmountSettleApi
 } from '../api/admin'
 
 const router = useRouter()
@@ -1099,6 +1220,7 @@ onMounted(() => {
     } catch { /* ignore */ }
   }
   fetchUserList()
+  fetchStaffAmountConfig()
 })
 
 const isSuperAdmin = computed(() => {
@@ -1132,6 +1254,8 @@ const handleMenuSelect = (index) => {
     fetchAdminList()
   } else if (index === 'package') {
     fetchPackageList()
+  } else if (index === 'staffAmount') {
+    fetchStaffAmountList()
   } else if (index === 'messages') {
     fetchUserMessageList()
   }
@@ -1378,6 +1502,130 @@ const packagePageNum = packagePager.pageNum
 const packagePageSize = packagePager.pageSize
 const packageChangePage = packagePager.changePage
 const packageChangeSize = packagePager.changePageSize
+
+/* ==================== 资金结算 ==================== */
+const staffAmountList = ref([])
+const staffAmountLoading = ref(false)
+const staffAmountSearchForm = ref({ staffAccount: '', staffName: '' })
+const incomeRatio = ref(0.8)
+const settleDelayDays = ref(7)
+const settling = ref(false)
+
+const recordsVisible = ref(false)
+const recordsStaffName = ref('')
+const recordsStaffId = ref(null)
+const staffAmountRecords = ref([])
+const recordsLoading = ref(false)
+const recordsPageNum = ref(1)
+const recordsPageSize = ref(10)
+const recordsTotal = ref(0)
+
+const staffAmountPager = createPager(staffAmountList, staffAmountLoading, getStaffAmountListApi)
+const staffAmountTotal = staffAmountPager.total
+const staffAmountPageNum = staffAmountPager.pageNum
+const staffAmountPageSize = staffAmountPager.pageSize
+const staffAmountChangePage = staffAmountPager.changePage
+const staffAmountChangeSize = staffAmountPager.changePageSize
+
+const buildStaffAmountParams = () => {
+  const form = staffAmountSearchForm.value
+  const params = {}
+  if (form.staffAccount) params.staffAccount = form.staffAccount.trim()
+  if (form.staffName) params.staffName = form.staffName.trim()
+  return params
+}
+
+const fetchStaffAmountList = () => staffAmountPager.search(buildStaffAmountParams())
+const searchStaffAmountList = () => staffAmountPager.search(buildStaffAmountParams())
+
+const resetStaffAmountSearch = () => {
+  staffAmountSearchForm.value = { staffAccount: '', staffName: '' }
+  staffAmountPager.search({})
+}
+
+const fetchStaffAmountConfig = async () => {
+  try {
+    const res = await getStaffAmountConfigApi()
+    const data = (res && res.data) || {}
+    incomeRatio.value = Number(data.incomeRatio ?? 0.8)
+    settleDelayDays.value = Number(data.settleDelayDays ?? 7)
+  } catch {
+    // 配置拿不到就沿用默认值，不打断页面
+  }
+}
+
+const handleRunSettle = async () => {
+  try {
+    await ElMessageBox.confirm(
+      `将把所有「服务完成满 ${settleDelayDays.value} 天」的待结算流水转为已结算，是否继续？`,
+      '确认结算',
+      { type: 'warning', confirmButtonText: '确认结算', cancelButtonText: '取消' }
+    )
+  } catch {
+    return
+  }
+
+  settling.value = true
+  try {
+    // 传 0 = 忽略延迟天数、立即结算全部待结算流水
+    const res = await runStaffAmountSettleApi(0)
+    ElMessage.success((res && res.data) || '结算完成')
+    fetchStaffAmountList()
+  } catch {
+    // 拦截器已提示
+  } finally {
+    settling.value = false
+  }
+}
+
+const showStaffAmountRecords = (row) => {
+  recordsStaffId.value = row.staffId
+  recordsStaffName.value = row.staffName || row.staffAccount || ''
+  recordsPageNum.value = 1
+  staffAmountRecords.value = []
+  recordsVisible.value = true
+  fetchStaffAmountRecords()
+}
+
+const fetchStaffAmountRecords = async () => {
+  recordsLoading.value = true
+  try {
+    const res = await getStaffAmountRecordsApi({
+      staffId: recordsStaffId.value,
+      pageNum: recordsPageNum.value,
+      pageSize: recordsPageSize.value
+    })
+    const data = (res && res.data) || {}
+    if (Array.isArray(data)) {
+      staffAmountRecords.value = data
+      recordsTotal.value = data.length
+    } else {
+      staffAmountRecords.value = data.records || []
+      recordsTotal.value = Number(data.total) || 0
+    }
+  } catch {
+    staffAmountRecords.value = []
+    recordsTotal.value = 0
+  } finally {
+    recordsLoading.value = false
+  }
+}
+
+const recordsChangePage = (p) => {
+  recordsPageNum.value = p
+  fetchStaffAmountRecords()
+}
+
+// 后端 BigDecimal 序列化后是数字（800.00 → 800），统一补两位小数
+const money = (v) => Number(v ?? 0).toFixed(2)
+
+const fmtTime = (v) => {
+  if (!v) return '-'
+  // 后端没配 jackson.date-format，LocalDateTime 是 2026-10-25T13:18:31
+  return String(v).replace('T', ' ').slice(0, 19)
+}
+
+const recordTypeText = (t) => ({ 1: '订单收入', 2: '结算', 3: '冻结', 4: '解冻' }[t] || '-')
 
 const userMessageTotal = userMessagePager.total
 const userMessagePageNum = userMessagePager.pageNum
@@ -2093,6 +2341,35 @@ const openStaffChat = (row) => {
   padding: 16px;
   background: var(--neutral-50);
   border-radius: 6px;
+}
+
+/* 资金结算面板头部：标题 + 右侧配置提示/操作按钮 */
+.panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.panel-head h3 {
+  margin: 0;
+}
+
+.panel-head-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.amount-pending {
+  color: var(--color-warning);
+  font-weight: var(--font-weight-semibold);
+}
+
+.amount-settled {
+  color: var(--color-success);
+  font-weight: var(--font-weight-semibold);
 }
 
 .skill-tag {

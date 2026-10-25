@@ -32,8 +32,8 @@
 
       <div class="auth-content">
         <div class="auth-logo">
-          <img src="/src/assets/logo.svg" alt="家政服务" />
-          <span>家政服务</span>
+          <img src="/src/assets/logo.svg" alt="悦居家政服务" />
+          <span>悦居家政服务</span>
         </div>
 
         <h2 class="auth-title">创建您的账号</h2>
@@ -245,11 +245,12 @@ const skillOptions = ref([])
 const fetchSkills = async () => {
   if (skillOptions.value.length > 0) return
   try {
-    // 0 = 上架，只取在售套餐（原来传 1 是下架，属于笔误，后端目前忽略该参数才没暴露）
-    const res = await getPackageListApi({ status: 0 })
-    if (res && res.data && Array.isArray(res.data)) {
-      skillOptions.value = res.data.map(pkg => pkg.package_name)
-    }
+    // status=0 只取上架；必须带分页参数，否则后端走 list()（那条 SQL 忽略 status）。
+    // 另外实体字段是 packageName（驼峰），不是 package_name —— 写错会导致技能列表全空。
+    const res = await getPackageListApi({ status: 0, pageNum: 1, pageSize: 200 })
+    const data = (res && res.data) ?? []
+    const rows = Array.isArray(data) ? data : (data.records || data.list || [])
+    skillOptions.value = rows.map(pkg => pkg.packageName).filter(Boolean)
   } catch (e) {
     console.warn('获取技能列表失败:', e)
   }

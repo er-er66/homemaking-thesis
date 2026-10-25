@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.homemaking.mapper.SysStaffAmountMapper">
+
+    <!--
+      记一笔收入。
+      依赖 uk_staff_id 做 upsert：首次消费 insert 分支，之后走 update 累加。
+      is_deleted 在 update 分支里一并置 0：账户若曾被逻辑删除，再次有收入时自动恢复。
+    -->
+    <insert id="upsertIncome">
+        insert into sys_staff_amount
+            (staff_id, total_income, settle_amount, pending_amount, withdraw_amount, freeze_amount,
+             create_time, update_time, is_deleted)
+        values
+            (#{staffId}, #{income}, 0.00, #{income}, 0.00, 0.00, now(), now(), 0)
+        on duplicate key update
+            total_income   = total_income + #{income},
+            pending_amount = pending_amount + #{income},
+            is_deleted     = 0,
+            update_time    = now()
+    </insert>
+
+    <!-- 结算：pending 转 settle，两个字段必须同一语句内更新，避免中间态 -->
+    <update id="addSettled">
+        update sys_staff_amount
+           set pending_amount = pending_amount - #{amount},
+               settle_amount  = settle_amount + #{amount},
+               update_time    = now()
+         where staff_id = #{staffId}
+           and is_deleted = 0
+    </update>
+
+    <select id="selectByStaffId" resultType="com.example.homemaking.entity.SysStaffAmount">
+        select a.*,
+               s.account  as staff_account,
+               s.username as staff_name
+          from sys_staff_amount a
+          join sys_staff s on s.id = a.staff_id
+         where a.staff_id = #{staffId}
+           and a.is_deleted = 0
+         limit 1
+    </select>
+
+    <select id="selectByStaffAccount" resultType="com.example.homemaking.entity.SysStaffAmount">
+        select a.*,
+               s.account  as staff_account,
+               s.username as staff_name
+          from sys_staff_amount a
+          join sys_staff s on s.id = a.staff_id
+         where s.account = #{staffAccount}
+           and a.is_deleted = 0
+         limit 1
+    </select>
+
+    <!-- search / count 共用，改条件只改这一处，否则 total 与 records 会不一致 -->
+    <sql id="amountCondition">
+        <if test="staffAccount != null and staffAccount != ''">
+            and s.account like concat('%', #{staffAccount}, '%')
+        </if>
+        <if test="staffName != null and staffName != ''">
+            and s.username like concat('%', #{staffName}, '%')
+        </if>
+    </sql>
+
+    <select id="search" resultType="com.example.homemaking.entity.SysStaffAmount">
+        select a.*,
+               s.account  as staff_account,
+               s.username as staff_name
+          from sys_staff_amount a
+          join sys_staff s on s.id = a.staff_id
+         where a.is_deleted = 0
+        <include refid="amountCondition"/>
+         order by a.total_income desc, a.id asc
+        <if test="limit != null">
+            limit #{offset}, #{limit}
+        </if>
+    </select>
+
+    <select id="count" resultType="long">
+        select count(*)
+          from sys_staff_amount a
+          join sys_staff s on s.id = a.staff_id
+         where a.is_deleted = 0
+        <include refid="amountCondition"/>
+    </select>
+
+    <select id="selectStaffIdByAccount" resultType="java.lang.Long">
+        select id
+          from sys_staff
+         where account = #{account}
+           and is_deleted = 0
+         limit 1
+    </select>
+
+    <select id="selectOrderByNo" resultType="com.example.homemaking.entity.Order">
+        select id,
+               order_no,
+               user_account,
+               staff_account,
+               order_amount,
+               order_status,
+               pay_status,
+               is_deleted
+          from homemaking_order
+         where order_no = #{orderNo}
+           and is_deleted = 0
+         limit 1
+    </select>
+
+</mapper>
