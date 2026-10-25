@@ -32,8 +32,8 @@
 
       <div class="auth-content">
         <div class="auth-logo">
-          <img src="/src/assets/logo.svg" alt="家政服务" />
-          <span>家政服务</span>
+          <img src="/src/assets/logo.svg" alt="悦居家政服务" />
+          <span>悦居家政服务</span>
         </div>
 
         <h2 class="auth-title">欢迎回来</h2>

@@ -415,3 +415,38 @@ export const resetPasswordApi = (data) => {
     data
   })
 }
+
+/* ==================== 家政人员资金结算 ====================
+ * baseURL 已经是 /admin，这里的 url 不能再带 /admin 前缀，
+ * 否则会拼成 /admin/admin/staff-amount/... 直接 404。
+ */
+
+/** 资金账户列表（传 pageNum/pageSize 返回分页体，不传返回全量数组） */
+export const getStaffAmountListApi = (params) => {
+  return request({ url: '/staff-amount/list', method: 'get', params })
+}
+
+/** 资金流水（支持 staffId / staffAccount / settleStatus / recordType） */
+export const getStaffAmountRecordsApi = (params) => {
+  return request({ url: '/staff-amount/records', method: 'get', params })
+}
+
+/** 单个员工的资金账户 */
+export const getStaffAmountDetailApi = (staffId) => {
+  return request({ url: `/staff-amount/${staffId}`, method: 'get' })
+}
+
+/** 当前结算配置：收入分成比例 + 完成满 N 天自动结算 */
+export const getStaffAmountConfigApi = () => {
+  return request({ url: '/staff-amount/config', method: 'get' })
+}
+
+/** 手动结算：delayDays 不传用后端配置；传 0 表示立即结算全部待结算流水 */
+export const runStaffAmountSettleApi = (delayDays) => {
+  return request({ url: '/staff-amount/settle/run', method: 'post', params: { delayDays } })
+}
+
+/** 家政人员查自己的资金账户（staffAccount 为后端必填参数） */
+export const getMyStaffAmountApi = (staffAccount) => {
+  return request({ url: '/staff-amount/my', method: 'get', params: { staffAccount } })
+}

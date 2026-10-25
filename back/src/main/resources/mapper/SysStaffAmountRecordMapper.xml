@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.homemaking.mapper.SysStaffAmountRecordMapper">
+
+    <!--
+      普通 insert，不做 on duplicate key update。
+      原因：MySQL Connector/J 默认 useAffectedRows=false，JDBC 返回的是 found rows，
+      ON DUPLICATE KEY UPDATE 命中已有行时仍返回 1，无法用返回值判断是否重复记账。
+      幂等改由 Service 侧「先查后插 + 捕获唯一键冲突」保证，冲突时让这里抛 DuplicateKeyException。
+    -->
+    <insert id="insertRecord" useGeneratedKeys="true" keyProperty="id">
+        insert into sys_staff_amount_record
+            (staff_id, staff_account, order_no, order_amount, ratio, income_amount,
+             record_type, settle_status, remark, create_time, update_time, is_deleted)
+        values
+            (#{staffId}, #{staffAccount}, #{orderNo}, #{orderAmount}, #{ratio}, #{incomeAmount},
+             #{recordType}, #{settleStatus}, #{remark}, now(), now(), 0)
+    </insert>
+
+    <!-- 到期可结算的收入流水；只查 record_type=1，避免把结算记录自己再结算一遍 -->
+    <select id="selectPending" resultType="com.example.homemaking.entity.SysStaffAmountRecord">
+        select *
+          from sys_staff_amount_record
+         where record_type = 1
+           and settle_status = 0
+           and is_deleted = 0
+           and create_time &lt;= #{beforeTime}
+         order by id asc
+         limit #{limit}
+    </select>
+
+    <update id="markSettled">
+        update sys_staff_amount_record
+           set settle_status = 1,
+               settle_time   = #{settleTime},
+               update_time   = now()
+         where id = #{id}
+           and settle_status = 0
+           and is_deleted = 0
+    </update>
+
+    <sql id="recordCondition">
+        <if test="staffId != null">
+            and r.staff_id = #{staffId}
+        </if>
+        <if test="staffAccount != null and staffAccount != ''">
+            and r.staff_account like concat('%', #{staffAccount}, '%')
+        </if>
+        <if test="settleStatus != null">
+            and r.settle_status = #{settleStatus}
+        </if>
+        <if test="recordType != null">
+            and r.record_type = #{recordType}
+        </if>
+    </sql>
+
+    <select id="searchRecords" resultType="com.example.homemaking.entity.SysStaffAmountRecord">
+        select r.*,
+               s.username as staff_name
+          from sys_staff_amount_record r
+          join sys_staff s on s.id = r.staff_id
+         where r.is_deleted = 0
+        <include refid="recordCondition"/>
+         order by r.id desc
+        <if test="limit != null">
+            limit #{offset}, #{limit}
+        </if>
+    </select>
+
+    <select id="countRecords" resultType="long">
+        select count(*)
+          from sys_staff_amount_record r
+          join sys_staff s on s.id = r.staff_id
+         where r.is_deleted = 0
+        <include refid="recordCondition"/>
+    </select>
+
+    <select id="selectByOrder" resultType="com.example.homemaking.entity.SysStaffAmountRecord">
+        select *
+          from sys_staff_amount_record
+         where order_no = #{orderNo}
+           and staff_id = #{staffId}
+           and record_type = 1
+           and is_deleted = 0
+         limit 1
+    </select>
+
+</mapper>

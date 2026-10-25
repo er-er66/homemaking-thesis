@@ -18,6 +18,7 @@ import com.example.homemaking.mapper.OrderMapper;
 import com.example.homemaking.mapper.UserImgMapper;
 import com.example.homemaking.mapper.UserMapper;
 import com.example.homemaking.services.OrderService;
+import com.example.homemaking.services.StaffAmountService;
 import com.example.homemaking.util.OrderNoUtil;
 import com.example.homemaking.util.PageUtil;
 import com.example.homemaking.util.PasswordUtil;
@@ -55,6 +56,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private HomemakingPackageMapper homemakingPackageMapper;
+
+    @Autowired
+    private StaffAmountService staffAmountService;
 
     /**
      * 创建订单
@@ -398,6 +402,10 @@ public class OrderServiceImpl implements OrderService {
         if (!saveOrderImgs(homemakingOrderImgDTO.getAfterCleanImgs(), homemakingOrderImg, 1)) {
             return "订单已完成失败";
         }
+
+        // 订单完成 → 按 staff.income.ratio 计提员工收入：写流水 + 累加待结算金额。
+        // 记账失败会抛 RuntimeException，连带回滚上面的订单状态更新，避免「订单完成了账没记」。
+        staffAmountService.recordOrderIncome(orderNo, staffAccount);
 
         return "订单已完成成功";
     }

@@ -9,7 +9,7 @@
       <div class="header-container">
         <div class="header-left">
           <img src="/src/assets/logo.svg" alt="家政服务" class="logo-img" />
-          <span class="logo-text">家政服务</span>
+          <span class="logo-text">悦居家政服务</span>
         </div>
         <div class="header-center">
           <el-menu-item v-if="isAdmin" index="admin" @click="router.push('/admin/dashboard')">
@@ -229,6 +229,9 @@ const mapPackage = (pkg, index = 0) => {
   const desc = pkg.packageDesc || ''
   return {
     id: pkg.id,
+    // 标记来源：true 表示 id 是真实 package_id（后端 /package/list），
+    // false/undefined 是 getDefaultServices() 的本地序号，不能当套餐ID传给后端。
+    isPackage: true,
     name: pkg.packageName,
     description: desc.length > 15 ? desc.slice(0, 15) + '...' : desc,
     price: `¥${pkg.packagePrice}${pkg.unitText || ''}`,
@@ -440,6 +443,9 @@ const goToOrder = (service) => {
     path: '/order',
     query: {
       id: service.id,
+      // 仅真实套餐才带 packageId：OrderPage 下单时回传给后端写 homemaking_order_package。
+      // 兜底数据的 id 是本地序号，绝不能当套餐ID传出去。
+      packageId: service.isPackage ? service.id : '',
       name: service.name,
       description: service.description,
       price: service.price,

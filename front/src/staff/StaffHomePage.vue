@@ -2,8 +2,8 @@
   <div class="staff-home">
     <header class="staff-header">
       <div class="header-left">
-        <img src="/src/assets/logo.svg" alt="家政服务" class="logo" />
-        <span class="logo-text">家政服务</span>
+        <img src="/src/assets/logo.svg" alt="悦居家政服务" class="logo" />
+        <span class="logo-text">悦居家政服务</span>
       </div>
       <div class="header-right">
         <el-dropdown trigger="click">
@@ -15,6 +15,7 @@
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item @click="router.push('/profile')">个人中心</el-dropdown-item>
+              <el-dropdown-item @click="router.push('/staff/income')">我的收入</el-dropdown-item>
               <el-dropdown-item divided @click="handleLogout">退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -627,6 +628,12 @@ const handleCancelOrder = async (order) => {
 }
 
 const goChat = (order) => {
+  // 订单详情页优先按 id 查、其次按 orderNo 兜底；两者都没有就别跳了，
+  // 跳过去只会卡在「未找到订单」。
+  if (!order || (!order.id && !order.orderNo)) {
+    ElMessage.warning('订单信息不完整，请刷新后重试')
+    return
+  }
   router.push({
     path: '/staff/order-chat',
     query: {

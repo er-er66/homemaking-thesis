@@ -22,6 +22,7 @@ const routes = [
   { path: '/merchant', name: 'merchant', component: MerchantPage, meta: { requiresAuth: true } },
   { path: '/staff/home', name: 'staffHome', component: StaffHomePage, meta: { requiresAuth: true, requiresStaff: true } },
   { path: '/staff/chat', name: 'staffChat', component: StaffChatPage, meta: { requiresAuth: true, requiresStaff: true } },
+  { path: '/staff/income', name: 'staffIncome', component: () => import('../staff/StaffIncomePage.vue'), meta: { requiresAuth: true, requiresStaff: true } },
   { 
     path: '/admin/dashboard', 
     name: 'adminDashboard', 
